@@ -65,13 +65,19 @@ namespace WordWebCMS
             {
                 if (usr == null || !(usr.Authority == Setting.AuthLevel.Admin || usr.Authority == Setting.AuthLevel.PostManager))
                 {
-                    Response.Redirect(Setting.WebsiteURL + "/password.aspx?type=post&ID="+pID);
+                    Response.Redirect(Setting.WebsiteURL + "/password.aspx?type=post&ID=" + pID);
                     Response.End();
                     return;
                 }
             }
 
             LContentPage.Text = post.ToPost();
+
+            //添加评论
+            if (post.AllowComments)
+            {
+                
+            }
 
 
             LSecondary.Text += post.ContentToIndex();

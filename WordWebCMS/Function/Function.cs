@@ -40,7 +40,7 @@ namespace WordWebCMS
         => Westwind.Web.Markdown.Utilities.MarkdownUtils.SanitizeHtml(html);
 
 
-        private static readonly string[] HeaderStyles = new string[]{"widget-index-H1", "widget-index-H2", "widget-index-H3", "widget-index-H4", "widget-index-H5", "widget-index-H6" };
+        private static readonly string[] HeaderStyles = new string[]{"widget-index-h1", "widget-index-h2", "widget-index-h3", "widget-index-h4", "widget-index-h5", "widget-index-h6" };
         /// <summary>
         /// 生成侧边栏的目录系统
         /// </summary>
@@ -56,7 +56,7 @@ namespace WordWebCMS
             int previousLevel = 1;
 
             StringBuilder indexBuilder = new StringBuilder();
-            indexBuilder.Append("<aside id=\"widget-title\" class=\"widget widget-index\"><h2 class=\"widget-title\">目录</h2><ul>");
+            indexBuilder.Append("<aside id=\"widget-title\" class=\"widget-index\"><h2 class=\"widget-title\"><a href=\"#main\">目录</a></h2><ul>");
             foreach (Match headerMatch in headerMatches)
             {
                 int currentLevel = int.Parse(headerMatch.Groups["level"].Value);
@@ -69,16 +69,16 @@ namespace WordWebCMS
 
                 if (currentLevel == previousLevel)
                 {
-                    indexBuilder.AppendFormat("<li style=\"{1}\">{0}</li>", link, HeaderStyles[currentLevel - 1]);
+                    indexBuilder.AppendFormat("<li class=\"{1}\">{0}</li>", link, HeaderStyles[currentLevel - 1]);
                 }
                 else if (currentLevel > previousLevel && currentLevel <= limit)
                 {
-                    indexBuilder.AppendFormat("<ul><li style=\"{1}\">{0}</li>", link, HeaderStyles[currentLevel - 1]);
+                    indexBuilder.AppendFormat("<ul><li class=\"{1}\">{0}</li>", link, HeaderStyles[currentLevel - 1]);
                     previousLevel = currentLevel;
                 }
                 else if (currentLevel < previousLevel)
                 {
-                    indexBuilder.AppendFormat("</ul><li style=\"{1}\">{0}</li>", link, HeaderStyles[currentLevel - 1]);
+                    indexBuilder.AppendFormat("</ul><li class=\"{1}\">{0}</li>", link, HeaderStyles[currentLevel - 1]);
                     previousLevel = currentLevel;
                 }
             }
