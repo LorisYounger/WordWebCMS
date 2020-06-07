@@ -9,9 +9,9 @@ namespace WordWebCMS
 {//TODO:摘录要清空html
     //文章表格式:select LAST_INSERT_ID()  gifts
     //   -post 
-    //     Pid(int)|name(string100)|content(midtext)|author(int)|excerpt(string400)|postdate(date)|modifydate(date)|classify(string200)|state(byte)|attachment(tinytext)|password(string32) |   anzhtml  |readers(int)|likes(int)|
-    //     文章id  |    文章名     |      内容      |   作者id  |   摘录/简介      |   发布日期   |    修改日期    |     分类目录      |  文章类型 |         附图       |      密码md5s     |是否分析html|   阅读量   |  赞同数  |
-    //     主键递增|   --------------------------------------------------------------------------------------------------------------- |   0-默认  |   空-无图片 or url |   空-不需要密码   |    false   |    0       |   0      |
+    //     Pid(int)|name(string100)|content(midtext)|author(int)|excerpt(string400)|postdate(date)|modifydate(date)|classify(string200)|state(byte)|attachment(tinytext)|password(string32) |   anzhtml  |allowcomments|readers(int)|likes(int)|
+    //     文章id  |    文章名     |      内容      |   作者id  |   摘录/简介      |   发布日期   |    修改日期    |     分类目录      |  文章类型 |         附图       |      密码md5s     |是否分析html|   允许评论  |   阅读量   |  赞同数  |
+    //     主键递增|   --------------------------------------------------------------------------------------------------------------- |   0-默认  |   空-无图片 or url |   空-不需要密码   |    false   |    true     |    0       |   0      |
     public class Posts
     {
         #region "辅助构建函数"
@@ -324,6 +324,21 @@ namespace WordWebCMS
                 RAW.ExecuteNonQuery($"UPDATE post SET anzhtml=@cont WHERE Pid=@pid", new MySQLHelper.Parameter("cont", value), new MySQLHelper.Parameter("pid", pID));
             }
         }
+        /// <summary>
+        /// 指示这篇文章是否允许评论
+        /// </summary>
+        public bool AllowComments
+        {
+            get
+            {
+                return DataBuff.Find("allowcomments").info == "1";
+            }
+            set
+            {
+                databf = null;
+                RAW.ExecuteNonQuery($"UPDATE post SET allowcomments=@cont WHERE Pid=@pid", new MySQLHelper.Parameter("cont", value), new MySQLHelper.Parameter("pid", pID));
+            }
+        }
 
         /// <summary>
         /// 文章名称
@@ -337,7 +352,7 @@ namespace WordWebCMS
             set
             {
                 databf = null;
-                RAW.ExecuteNonQuery($"UPDATE post SET name=@name WHERE Pid=@pid", new MySQLHelper.Parameter("name", value), new MySQLHelper.Parameter("pid", pID));
+                RAW.ExecuteNonQuery($"UPDATE post SET name=@name WHERE Pid=@pid", new MySQLHelper.Parameter("name", Function.SanitizeHtml(value)), new MySQLHelper.Parameter("pid", pID));
             }
         }
         /// <summary>
@@ -367,7 +382,7 @@ namespace WordWebCMS
             set
             {
                 databf = null;
-                RAW.ExecuteNonQuery($"UPDATE post SET excerpt=@cont WHERE Pid=@pid", new MySQLHelper.Parameter("cont", value), new MySQLHelper.Parameter("pid", pID));
+                RAW.ExecuteNonQuery($"UPDATE post SET excerpt=@cont WHERE Pid=@pid", new MySQLHelper.Parameter("cont", Function.SanitizeHtml(value)), new MySQLHelper.Parameter("pid", pID));
             }
         }
         /// <summary>
@@ -512,9 +527,9 @@ namespace WordWebCMS
             => $"<article id=\"post-{pID}\" class=\"post-{pID} post hentry State-{State}\">	<header class=\"entry-header\"> <h1 class=\"entry-title\">" +
             $"<a href=\"{Setting.WebsiteURL}/Post.aspx?ID={pID}\">{Name}</a></h1><div class=\"entry-meta\">" +
             $"<span class=\"posted-on\">时间:<a href=\"{Setting.WebsiteURL}/Index.aspx?Date={PostDate.ToShortDateString()}\">{PostDate.ToShortDateString()}" +
-            $"</a> </span><span class=\"poster-author\" id=user-{Author}> <span class=\"author vcard\"> 作者:<a href=\"{Setting.WebsiteURL}/User.aspx?ID={AuthorID}\">{Author.UserName}" +
-            $"</a></span></span><span class=\"comments-link\"><a href=\"{Setting.WebsiteURL}/Post.aspx?ID={pID}#respond\">发表回复</a></span></div></header>" +
-            $"<div class=\"entry-content\">{(Attachment == "" ? "" : $"<img width=\"150\" height=\"150\" src=\"{Attachment}\" class=\"wp-post-image\">")}<p>{Excerpt.Replace("\n", "<br />")}</p></div></article>";
+            $"</a> </span><span class=\"poster-author\" id=user-{Author}> <span class=\"author vcard\"> 作者:<a href=\"{Setting.WebsiteURL}/User.aspx?ID={AuthorID}\">{Author.UserName}</a></span></span>" +
+           (AllowComments ? $"<span class=\"comments-link\"><a href=\"{Setting.WebsiteURL}/Post.aspx?ID={pID}#respond\">发表回复</a></span>" : "") +
+            $"</div></header><div class=\"entry-content\">{(Attachment == "" ? "" : $"<img width=\"150\" height=\"150\" src=\"{Attachment}\" class=\"wp-post-image\">")}<p>{Excerpt.Replace("\n", "<br />")}</p></div></article>";
 
         public string ToPost()
         {
@@ -522,9 +537,10 @@ namespace WordWebCMS
             return $"<article class=\"post hentry post-{pID} {State}\"><header class=\"entry-header\"><h1 class=\"entry-title\">" +
                    $"{Name}</h1><div class=\"entry-meta\"><span class=\"posted-on\">在 <a href=\"{Setting.WebsiteURL}/Index.aspx?Date={PostDate.ToShortDateString()}\" rel=\"bookmark\">" +
                    $"{PostDate.ToShortDateString()}</a> 上张贴</span><span class=\"poster-author\" id=user-{Author}> 由 <span class=\"author vcard\">" +
-                   $"<a href=\"{Setting.WebsiteURL}/User.aspx?ID={AuthorID}\"><img src={Author.HeadPortraitURL} width=\"20\" height=\"20\">{Author.UserName}</a>" +
-                   $"</span></span><span class=\"comments-link\"><a href=\"#respond\">发表回复</a></span></div></header><div class=\"entry-content\">{ContentToHtml()}</div></article>" +
-               $"<footer class=\"entry-footer\"><span class=\"cat-links\">张贴在<a href=\"{Setting.WebsiteURL}/Index.aspx?class={Classify}\" rel=\"category tag\">{Classify}</a></span></footer>";
+                   $"<a href=\"{Setting.WebsiteURL}/User.aspx?ID={AuthorID}\"><img src={Author.HeadPortraitURL} width=\"20\" height=\"20\">{Author.UserName}</a></span></span>" +
+                  (AllowComments ? $"<span class=\"comments-link\"><a href=\"#respond\">发表回复</a></span>" : "") +
+                   $"</div></header><div class=\"entry-content\">{ContentToHtml()}</div></article><footer class=\"entry-footer\"><span class=\"cat-links\">张贴在" +
+               $"<a href=\"{Setting.WebsiteURL}/Index.aspx?class={Classify}\" rel=\"category tag\">{Classify}</a></span></footer>";
         }
 
         #endregion
