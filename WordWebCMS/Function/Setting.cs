@@ -296,7 +296,30 @@ namespace WordWebCMS
                 DataBuff = null;
             }
         }
-
+        /// <summary>
+        /// 文章默认权限 (是否需要审核)
+        /// </summary>
+        public static Posts.PostState PostDefault
+        {
+            get
+            {
+                var line = DataBuff.FindLine("defaultpost");
+                if (line == null)
+                    return Posts.PostState.Pending;
+                return (Posts.PostState)Convert.ToSByte(line.First().info);
+            }
+            set
+            {
+                Line lin = DataBuff.FindLine("defaultpost");
+                if (lin == null)
+                {
+                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('defaultpost',@prop)", new MySQLHelper.Parameter("prop", ((short)value).ToString()));
+                }
+                else
+                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='defaultpost'", new MySQLHelper.Parameter("prop", ((short)value).ToString()));
+                DataBuff = null;
+            }
+        }
         /// <summary>
         /// 网站使用的logo链接 若无 不显示logo
         /// </summary>
@@ -442,6 +465,30 @@ namespace WordWebCMS
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='webinfo'", new MySQLHelper.Parameter("prop", value));
+                DataBuff = null;
+            }
+        }
+        /// <summary>
+        /// 网站使用的默认主页 -1为主页 其他会自动跳转post
+        /// </summary>
+        public static int NomalIndex
+        {
+            get
+            {
+                var line = DataBuff.FindLine("nomalindex");
+                if (line != null)
+                    return line.First().InfoToInt;
+                return -1;
+            }
+            set
+            {
+                Line lin = DataBuff.FindLine("nomalindex");
+                if (lin == null)
+                {
+                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('nomalindex',@prop)", new MySQLHelper.Parameter("prop", value));
+                }
+                else
+                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='nomalindex'", new MySQLHelper.Parameter("prop", value));
                 DataBuff = null;
             }
         }

@@ -40,7 +40,7 @@ namespace WordWebCMS
         => Westwind.Web.Markdown.Utilities.MarkdownUtils.SanitizeHtml(html);
 
 
-        private static readonly string[] HeaderStyles = new string[]{"widget-index-h1", "widget-index-h2", "widget-index-h3", "widget-index-h4", "widget-index-h5", "widget-index-h6" };
+        private static readonly string[] HeaderStyles = new string[] { "widget-index-h1", "widget-index-h2", "widget-index-h3", "widget-index-h4", "widget-index-h5", "widget-index-h6" };
         /// <summary>
         /// 生成侧边栏的目录系统
         /// </summary>
@@ -86,5 +86,35 @@ namespace WordWebCMS
             return indexBuilder.ToString();
         }
 
+        public static Random Rnd = new Random();
+
+        /// <summary>
+        /// 随机生成数学题
+        /// </summary>
+        public static string RndQuestion(out int anser)
+        {
+            int a, b; string str;
+            if (Rnd.Next(2) == 0)
+            {
+                a = Rnd.Next(-20, 20); b = Rnd.Next(0, 20);
+                if (Rnd.Next(2) == 0)
+                {
+                    anser = a + b;
+                    str = a + " + " + b;
+                }
+                else
+                {
+                    anser = a - b;
+                    str = a + " - " + b;
+                }
+            }
+            else
+            {
+                a = Rnd.Next(-10, 10); b = Rnd.Next(-10, 10);
+                anser = a * b;
+                str = a + " x " + b;
+            }
+            return str + " = ";
+        }
     }
 }

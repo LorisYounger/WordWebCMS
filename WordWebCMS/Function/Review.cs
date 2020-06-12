@@ -60,7 +60,7 @@ namespace WordWebCMS
             {
                 Reviews.Add(new Review(line.InfoToInt, line));
             }
-            return Reviews;            
+            return Reviews;
         }
 
 
@@ -68,7 +68,7 @@ namespace WordWebCMS
         /// 通过搜索相似评论内容获得评论
         /// </summary>
         /// <param name="key">关键字</param>
-        /// <returns>文章列表</returns>
+        /// <returns>评论列表</returns>
         public static List<Review> GetReviewLikeName(string key)
         {
             List<Review> Reviews = new List<Review>();
@@ -77,13 +77,13 @@ namespace WordWebCMS
             {
                 Reviews.Add(new Review(line.InfoToInt, line));
             }
-            return Reviews;            
+            return Reviews;
         }
 
         /// <summary>
         /// 获得所有可以展示出来的评论 (可被一般用户看到)
         /// </summary>
-        /// <returns>文章列表 按发布顺序排序</returns>
+        /// <returns>评论列表 按发布顺序排序</returns>
         public static List<Review> GetAllAvailableReview()
         {
             List<Review> Reviews = new List<Review>();
@@ -109,16 +109,16 @@ namespace WordWebCMS
                 Reviews.Add(new Review(line.InfoToInt, line));
             }
             return Reviews;
-        }        
+        }
         /// <summary>
-        /// 通过作者id称获得文章
+        /// 通过作者id称获得评论
         /// </summary>
         /// <param name="Authorid">作者id</param>
         /// <returns>文章列表</returns>
         public static List<Review> GetReviewByAuthor(int Authorid)
         {
             List<Review> Reviews = new List<Review>();
-            LpsDocument data = RAW.ExecuteQuery("SELECT * FROM post WHERE author=@pid ORDER BY modifydate DESC", new MySQLHelper.Parameter("pid", Authorid));
+            LpsDocument data = RAW.ExecuteQuery("SELECT * FROM post WHERE author=@pid ORDER BY Rid DESC", new MySQLHelper.Parameter("pid", Authorid));
             foreach (Line line in data)
             {
                 Reviews.Add(new Review(line.InfoToInt, line));
@@ -128,9 +128,9 @@ namespace WordWebCMS
         /// <summary>
         /// 创建新评论
         /// </summary>
-        public static Review CreatPost(int pid, string cont, int authid, DateTime postdate, DateTime modifydate, ReviewState state = ReviewState.Default, bool anzhtml = false)
+        public static Review CreatReview(int pid, string cont, int authid, DateTime postdate, DateTime modifydate, ReviewState state = ReviewState.Default, bool anzhtml = false)
         {
-            RAW.ExecuteNonQuery($"INSERT INTO review VALUES (NULL,@pid,@content,@author,@postdate,@modifydate,@state,@anzhtml)",
+            RAW.ExecuteNonQuery($"INSERT INTO review VALUES (NULL,@pid,@content,@author,@postdate,@modifydate,@state,@anzhtml,NULL)",
                 new MySQLHelper.Parameter("pid", pid), new MySQLHelper.Parameter("content", cont), new MySQLHelper.Parameter("author", authid),
                 new MySQLHelper.Parameter("postdate", postdate), new MySQLHelper.Parameter("modifydate", modifydate),
                 new MySQLHelper.Parameter("state", ((int)state).ToString()), new MySQLHelper.Parameter("anzhtml", anzhtml));
@@ -224,7 +224,7 @@ namespace WordWebCMS
             }
         }
 
-        
+
         /// <summary>
         /// 点赞赞同数量
         /// </summary>

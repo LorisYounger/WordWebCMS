@@ -331,7 +331,7 @@ namespace WordWebCMS
         {
             get
             {
-                return DataBuff.Find("allowcomments").info == "1";
+                return Convert.ToBoolean(DataBuff.Find("allowcomments").info);
             }
             set
             {
@@ -463,7 +463,10 @@ namespace WordWebCMS
         {
             get
             {
-                return (PostState)Convert.ToSByte(DataBuff.Find("state").info);
+                PostState state = (PostState)Convert.ToSByte(DataBuff.Find("state").info);
+                if (state == PostState.Default)//如果是默认 则走设置内容
+                    return Setting.PostDefault;
+                return state;
             }
             set
             {
@@ -536,11 +539,10 @@ namespace WordWebCMS
             Readers += 1;
             return $"<article class=\"post hentry post-{pID} {State}\"><header class=\"entry-header\"><h1 class=\"entry-title\">" +
                    $"{Name}</h1><div class=\"entry-meta\"><span class=\"posted-on\">在 <a href=\"{Setting.WebsiteURL}/Index.aspx?Date={PostDate.ToShortDateString()}\" rel=\"bookmark\">" +
-                   $"{PostDate.ToShortDateString()}</a> 上张贴</span><span class=\"poster-author\" id=user-{Author}> 由 <span class=\"author vcard\">" +
+                   $"{PostDate.ToShortDateString()}</a> 上张贴</span><span class=\"poster-author\" id=user-{AuthorID}> 由 <span class=\"author vcard\">" +
                    $"<a href=\"{Setting.WebsiteURL}/User.aspx?ID={AuthorID}\"><img src={Author.HeadPortraitURL} width=\"20\" height=\"20\">{Author.UserName}</a></span></span>" +
                   (AllowComments ? $"<span class=\"comments-link\"><a href=\"#respond\">发表回复</a></span>" : "") +
-                   $"</div></header><div class=\"entry-content\">{ContentToHtml()}</div></article><footer class=\"entry-footer\"><span class=\"cat-links\">张贴在" +
-               $"<a href=\"{Setting.WebsiteURL}/Index.aspx?class={Classify}\" rel=\"category tag\">{Classify}</a></span></footer>";
+                   $"</div></header><div class=\"entry-content\">{ContentToHtml()}</div></article>";
         }
 
         #endregion
