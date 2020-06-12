@@ -25,5 +25,5 @@ INSERT INTO `post` (`Pid`, `name`, `content`, `author`, `excerpt`, `postdate`, `
 CREATE TABLE `wwcms`.`review` ( `Rid` INT NOT NULL AUTO_INCREMENT COMMENT '评论id' , `Pid` INT NOT NULL COMMENT '文章id' , `content` TEXT NOT NULL COMMENT '内容' , `author` INT NOT NULL COMMENT '作者id' , `postdate` DATETIME NOT NULL COMMENT '发布日期' , `modifydate` DATETIME NOT NULL COMMENT '修改日期' , `state` TINYINT NOT NULL DEFAULT '0' COMMENT '评论类型' , `anzhtml` BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否分析html' , `likes` INT NOT NULL DEFAULT '0' COMMENT '赞同数' , PRIMARY KEY (`Rid`)) ENGINE = InnoDB COMMENT = '评论表';
 
 #评论 HelloWord
-INSERT INTO `review` (`Rid`, `Pid`, `content`, `author`, `postdate`, `modifydate`, `state`, `anzhtml`, `likes`) VALUES (NULL, '1', '你好 我也觉得WordWebCMS最棒了\r\n#首先 评论也支持Markdown\r\n我觉得这点很棒\r\n\r\n我特别喜欢WWCMS,**你呢?**', '1', NOW(), NOW(), '7', '0', '10');
+INSERT INTO `review` (`Rid`, `Pid`, `content`, `author`, `postdate`, `modifydate`, `state`, `anzhtml`, `likes`) VALUES (NULL, '1', '你好 我也觉得WordWebCMS最棒了\r\n# 首先 评论也支持Markdown\r\n我觉得这点很棒\r\n\r\n我特别喜欢WWCMS,**你呢?**', '1', NOW(), NOW(), '7', '0', '10');
 

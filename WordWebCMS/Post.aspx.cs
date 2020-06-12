@@ -4,11 +4,14 @@ using System.Linq;
 using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
+using static WordWebCMS.Function;
 
 namespace WordWebCMS
 {
     public partial class Post : System.Web.UI.Page
     {
+        int pID = -1;
+        int anser = int.MinValue;
         protected void Page_Load(object sender, EventArgs e)
         {
             //Important:把缓存交给设置
@@ -31,7 +34,6 @@ namespace WordWebCMS
                 LSecondary.Text = usr.ToWidget();
             }
 
-            int pID = -1;
             if (Request.QueryString["ID"] != null)
             {
                 int.TryParse(Request.QueryString["ID"], out pID);
@@ -73,10 +75,34 @@ namespace WordWebCMS
 
             LContentPage.Text = post.ToPost();
 
+            LCatLink.Text = $"<span class=\"nav-previous\">张贴在<a href=\"{Setting.WebsiteURL}/Index.aspx?class={post.Classify}\" rel=\"category tag\">{post.Classify}</a></span>";
+            LikeNumber.Text = post.Likes.ToString(); 
+            if (Application[$"Likep{pID}u{usr.uID}"] != null)
+            {
+                Like.Style.Add("background", "url(Picture/likeup.png)");
+            }
+            else
+            {
+                Like.Style.Add("background", "url(Picture/like.png)");
+            }
+            Like.Style.Add("background-size", "cover");
+
             //添加评论
             if (post.AllowComments)
             {
-                
+                if (usr == null)
+                {
+                    LContentPage.Text += $"<h3 id=\"none-reply-title\" class=\"comment-reply-title\">您还没有登陆 无法发表评论 <a href=\"{Setting.WebsiteURL}/login.asp\"><em>->前往登陆</em></a></h3>";
+                }
+                else
+                {
+                    commentspanel.Visible = true;
+                    captcha_question.Text = RndQuestion(out anser);
+                }
+            }
+            else
+            {
+                LContentPage.Text += "<h3 id=\"none-reply-title\" class=\"comment-reply-title\">这篇文章已关闭评论</h3>";
             }
 
 
@@ -92,6 +118,61 @@ namespace WordWebCMS
             Response.Redirect(Setting.WebsiteURL + "/404.aspx?type=" + type);
             Response.End();
             return;
+        }
+
+
+        private void MsgBox(string msg) => Page.ClientScript.RegisterStartupScript(this.GetType(), "", $"<script>alert('{msg}');</script>");
+
+        protected void submit_Click(object sender, EventArgs e)
+        {
+            Users usr = null;
+            if (Session["User"] == null)
+            {
+                MsgBox("登陆已失效,请重新登陆"); return;
+            }
+            else
+            {
+                usr = ((Users)Session["User"]);
+            }
+            if (anser == int.MinValue)
+            {//如果出现了这个 肯定是bug
+                Goto404("commentpw");
+                return;
+            }
+            if (!int.TryParse(captcha_anser.Text, out int res))
+            {
+                MsgBox("验证码答案为纯数字,请检查输入"); return;
+            }
+            if (res != anser)
+            {
+                MsgBox("您输入了错误的验证码答案。请重试"); return;
+            }
+            Goto404(Review.CreatReview(pID, comment.Text, usr.uID, DateTime.Now, DateTime.Now).rID.ToString());
+        }
+
+        protected void Like_Click(object sender, EventArgs e)
+        {
+            Users usr = null;
+            if (Session["User"] == null)
+            {
+                MsgBox("请在登录后进行操作"); return;
+            }
+            else
+            {
+                usr = ((Users)Session["User"]);
+            }
+            if (Application[$"Likep{pID}u{usr.uID}"] == null)
+            {
+                Application[$"Likep{pID}u{usr.uID}"] = true;
+                Posts.GetPost(pID).Likes += 1;
+                Response.Redirect(HttpContext.Current.Request.Url.ToString() + "#respond");
+            }
+            else
+            {
+                Posts.GetPost(pID).Likes -= 1;
+                Application[$"Likep{pID}u{usr.uID}"] = null;
+                Response.Redirect(HttpContext.Current.Request.Url.ToString() + "#respond");
+            }
         }
     }
 }
