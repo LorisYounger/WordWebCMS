@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using LinePutScript;
 using LinePutScript.SQLHelper;
 using static WordWebCMS.Conn;
-using Westwind.Web.Markdown;
 
 namespace WordWebCMS
 {//TODO:摘录要清空html
@@ -419,12 +418,8 @@ namespace WordWebCMS
         /// 将文章内容转换成html
         /// </summary>
         /// <returns>转换成的HTML</returns>
-        public string ContentToHtml() => Markdown.Parse(Content, false, false, !AnalyzeHtml);
-        /// <summary>
-        /// 将文章内容转换成html 附带行号
-        /// </summary>
-        /// <returns>转换成的HTML</returns>
-        public string ContentToHtmlLine() => Markdown.Parse(Content, true, false, !AnalyzeHtml);
+        public string ContentToHtml() => MarkdownParse(Content, false, !AnalyzeHtml);
+
         /// <summary>
         /// 将文章内容转换成Index
         /// </summary>
@@ -540,7 +535,7 @@ namespace WordWebCMS
             return $"<article class=\"post hentry post-{pID} {State}\"><header class=\"entry-header\"><h1 class=\"entry-title\">" +
                    $"{Name}</h1><div class=\"entry-meta\"><span class=\"posted-on\">在 <a href=\"{Setting.WebsiteURL}/Index.aspx?Date={PostDate.ToShortDateString()}\" rel=\"bookmark\">" +
                    $"{PostDate.ToShortDateString()}</a> 上张贴</span><span class=\"poster-author\" id=user-{AuthorID}> 由 <span class=\"author vcard\">" +
-                   $"<a href=\"{Setting.WebsiteURL}/User.aspx?ID={AuthorID}\"><img src={Author.HeadPortraitURL} width=\"20\" height=\"20\">{Author.UserName}</a></span></span>" +
+                   $"<a href=\"{Setting.WebsiteURL}/User.aspx?ID={AuthorID}\"><img src={Author.AvatarURL} width=\"20\" height=\"20\">{Author.UserName}</a></span></span>" +
                   (AllowComments ? $"<span class=\"comments-link\"><a href=\"#respond\">发表回复</a></span>" : "") +
                    $"</div></header><div class=\"entry-content\">{ContentToHtml()}</div></article>";
         }

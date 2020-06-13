@@ -83,7 +83,7 @@
   <ItemGroup>
     <Content Include="Index.aspx" />
     <Content Include="Login.aspx" />
-    <Content Include="Picture\headport.png" />
+    <Content Include="Picture\avatar.png" />
     <Content Include="Picture\markdown.png" />
     <Content Include="Picture\like.png" />
     <Content Include="Picture\likeup.png" />
@@ -100,6 +100,9 @@
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AJAX.ashx.cs">
+      <DependentUpon>AJAX.ashx</DependentUpon>
+    </Compile>
     <Compile Include="Function\Conn.cs" />
     <Compile Include="Function\Function.cs" />
     <Compile Include="Function\Master.cs" />
@@ -131,6 +134,7 @@
     <Compile Include="Function\Setting.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="AJAX.ashx" />
     <None Include="packages.config" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>

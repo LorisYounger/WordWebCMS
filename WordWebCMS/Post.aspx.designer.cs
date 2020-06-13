@@ -51,22 +51,22 @@ namespace WordWebCMS
         protected global::System.Web.UI.WebControls.Literal LCatLink;
 
         /// <summary>
-        /// LikeNumber 控件。
+        /// Lpostlike 控件。
         /// </summary>
         /// <remarks>
         /// 自动生成的字段。
         /// 若要进行修改，请将字段声明从设计器文件移到代码隐藏文件。
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Label LikeNumber;
+        protected global::System.Web.UI.WebControls.Literal Lpostlike;
 
         /// <summary>
-        /// Like 控件。
+        /// LComments 控件。
         /// </summary>
         /// <remarks>
         /// 自动生成的字段。
         /// 若要进行修改，请将字段声明从设计器文件移到代码隐藏文件。
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Button Like;
+        protected global::System.Web.UI.WebControls.Literal LComments;
 
         /// <summary>
         /// commentspanel 控件。
@@ -85,24 +85,6 @@ namespace WordWebCMS
         /// 若要进行修改，请将字段声明从设计器文件移到代码隐藏文件。
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox comment;
-
-        /// <summary>
-        /// captcha_question 控件。
-        /// </summary>
-        /// <remarks>
-        /// 自动生成的字段。
-        /// 若要进行修改，请将字段声明从设计器文件移到代码隐藏文件。
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Label captcha_question;
-
-        /// <summary>
-        /// captcha_anser 控件。
-        /// </summary>
-        /// <remarks>
-        /// 自动生成的字段。
-        /// 若要进行修改，请将字段声明从设计器文件移到代码隐藏文件。
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox captcha_anser;
 
         /// <summary>
         /// comment_mail_notify 控件。
