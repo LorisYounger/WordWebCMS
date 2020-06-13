@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using LinePutScript;
 using LinePutScript.SQLHelper;
 using static WordWebCMS.Conn;
-using Westwind.Web.Markdown;
 
 namespace WordWebCMS
 {
@@ -37,25 +36,25 @@ namespace WordWebCMS
         {
             List<Review> Reviews = new List<Review>();
             //获得超级置顶评论
-            LpsDocument data = RAW.ExecuteQuery("SELECT * FROM review WHERE Pid=@pid AND state=9 ORDER BY Rid DESC", new MySQLHelper.Parameter("pid", PostID));
+            LpsDocument data = RAW.ExecuteQuery("SELECT * FROM review WHERE Pid=@pid AND state=9 ORDER BY Rid", new MySQLHelper.Parameter("pid", PostID));
             foreach (Line line in data)
             {
                 Reviews.Add(new Review(line.InfoToInt, line));
             }
             //获得置顶评论
-            data = RAW.ExecuteQuery("SELECT * FROM review WHERE Pid=@pid AND state=7 ORDER BY Rid DESC", new MySQLHelper.Parameter("pid", PostID));
+            data = RAW.ExecuteQuery("SELECT * FROM review WHERE Pid=@pid AND state=7 ORDER BY Rid", new MySQLHelper.Parameter("pid", PostID));
             foreach (Line line in data)
             {
                 Reviews.Add(new Review(line.InfoToInt, line));
             }
             //获得普通的已发布评论
-            data = RAW.ExecuteQuery("SELECT * FROM review WHERE Pid=@pid AND state=5 ORDER BY Rid DESC", new MySQLHelper.Parameter("pid", PostID));
+            data = RAW.ExecuteQuery($"SELECT * FROM review WHERE Pid=@pid AND (state=5{(Setting.ReviewDefault == ReviewState.Published ? " OR state=1" : "")}) ORDER BY Rid", new MySQLHelper.Parameter("pid", PostID));
             foreach (Line line in data)
             {
                 Reviews.Add(new Review(line.InfoToInt, line));
             }
             //获得置底评论
-            data = RAW.ExecuteQuery("SELECT * FROM review WHERE Pid=@pid AND state=8 ORDER BY Rid DESC", new MySQLHelper.Parameter("pid", PostID));
+            data = RAW.ExecuteQuery("SELECT * FROM review WHERE Pid=@pid AND state=8 ORDER BY Rid", new MySQLHelper.Parameter("pid", PostID));
             foreach (Line line in data)
             {
                 Reviews.Add(new Review(line.InfoToInt, line));
@@ -88,7 +87,7 @@ namespace WordWebCMS
         {
             List<Review> Reviews = new List<Review>();
             //获得评论
-            LpsDocument data = RAW.ExecuteQuery("SELECT * FROM review WHERE state=9 AND state=7 AND state=5 AND state=8 ORDER BY Rid DESC");
+            LpsDocument data = RAW.ExecuteQuery("SELECT * FROM review WHERE state=9 OR state=7 OR state=5 OR state=8 ORDER BY Rid DESC");
             foreach (Line line in data)
             {
                 Reviews.Add(new Review(line.InfoToInt, line));
@@ -130,7 +129,7 @@ namespace WordWebCMS
         /// </summary>
         public static Review CreatReview(int pid, string cont, int authid, DateTime postdate, DateTime modifydate, ReviewState state = ReviewState.Default, bool anzhtml = false)
         {
-            RAW.ExecuteNonQuery($"INSERT INTO review VALUES (NULL,@pid,@content,@author,@postdate,@modifydate,@state,@anzhtml,NULL)",
+            RAW.ExecuteNonQuery($"INSERT INTO review VALUES (NULL,@pid,@content,@author,@postdate,@modifydate,@state,@anzhtml,0)",
                 new MySQLHelper.Parameter("pid", pid), new MySQLHelper.Parameter("content", cont), new MySQLHelper.Parameter("author", authid),
                 new MySQLHelper.Parameter("postdate", postdate), new MySQLHelper.Parameter("modifydate", modifydate),
                 new MySQLHelper.Parameter("state", ((int)state).ToString()), new MySQLHelper.Parameter("anzhtml", anzhtml));
@@ -178,6 +177,7 @@ namespace WordWebCMS
             set
             {
                 databf = null;
+                author = null;
                 RAW.ExecuteNonQuery($"UPDATE review SET author=@auth WHERE Rid=@rid", new MySQLHelper.Parameter("auth", value), new MySQLHelper.Parameter("rid", rID));
             }
         }
@@ -186,13 +186,21 @@ namespace WordWebCMS
         /// </summary>
         public Users Author
         {
-            get => Users.GetUser(DataBuff.Find("author").InfoToInt);
+            get
+            {
+                if (author == null)
+                    author = Users.GetUser(DataBuff.Find("author").InfoToInt);
+                return author;
+            }
             set
             {
                 databf = null;
+                author = null;
                 RAW.ExecuteNonQuery($"UPDATE review SET author=@auth WHERE Rid=@rid", new MySQLHelper.Parameter("auth", value.uID), new MySQLHelper.Parameter("rid", rID));
             }
         }
+        private Users author;
+
         /// <summary>
         /// 发布日期
         /// </summary>
@@ -200,7 +208,7 @@ namespace WordWebCMS
         {
             get
             {
-                return Convert.ToDateTime(DataBuff.Find("postdate").info);
+                return Convert.ToDateTime(DataBuff.Find("postdate").Info);
             }
             set
             {
@@ -215,7 +223,7 @@ namespace WordWebCMS
         {
             get
             {
-                return Convert.ToDateTime(DataBuff.Find("modifydate").info);
+                return Convert.ToDateTime(DataBuff.Find("modifydate").Info);
             }
             set
             {
@@ -275,16 +283,10 @@ namespace WordWebCMS
             }
         }
         /// <summary>
-        /// 将文章内容转换成html
+        /// 将文章内容转换成html 经过降级处理
         /// </summary>
         /// <returns>转换成的HTML</returns>
-        public string ContentToHtml() => Markdown.Parse(Content, false, false, !AnalyzeHtml);
-        /// <summary>
-        /// 将文章内容转换成html 附带行号
-        /// </summary>
-        /// <returns>转换成的HTML</returns>
-        public string ContentToHtmlLine() => Markdown.Parse(Content, true, false, !AnalyzeHtml);
-
+        public string ContentToHtml() => Function.TitleDownGrade(Function.MarkdownParse(Content, false, AnalyzeHtml));
 
         /// <summary>
         /// 文章类型
@@ -349,6 +351,18 @@ namespace WordWebCMS
         {
             rID = ReviewID;
             databf = bf;
+        }
+        #endregion
+
+        #region 转换成HTML
+        public string ToPostReview()
+        {
+            return $"<li id=\"comment-{rID}\"><article id=\"div-comment-{rID}\" class=\"comment-body\"><footer class=\"comment-meta\">" +
+                $"<div class=\"comment-author vcard\"><img src=\"{Author.AvatarURL}\" class=\"avatar avatar-60 photo\" height=\"60\" width=\"60\">" +
+                $"<a href=\"{Setting.WebsiteURL}/User.aspx?ID={AuthorID}\"><b class=\"fn\">{Author.UserName}</b></a><span class=\"says\">评论道：</span></div>" +
+                $"<div class=\"comment-metadata\"><a href=\"#comment-{rID}\">{Modifydate.ToShortDateString()} {Modifydate.ToShortTimeString()}</a></div></footer>" +
+                $"<div class=\"comment-content\">{ContentToHtml()}</div><div class=\"reply\"><button type=\"button\" onclick=\"Reply('{Author.UserName}')\"/>" +
+                "回复</button></div></article></li>";
         }
         #endregion
     }

@@ -66,6 +66,33 @@
     font-size: 60%;
     margin-left: 5em;
 }
+
+.down-h1 {
+    font-size: 150%;
+    font-weight: bolder;
+}
+.down-h2 {
+    font-size: 125%;
+    font-weight: bolder;
+}
+.down-h3 {
+    font-size: 110%;
+    font-weight: bolder;
+}
+.down-h4 {
+    font-size: 100%;
+    font-weight: bolder;
+}
+.down-h5 {
+    font-size: 90%;
+    font-weight: bolder;
+}
+.down-h6 {
+    font-size: 80%;
+    font-weight: bolder;
+}
+
+
 /*
 Theme Name: pacify
 Theme URI: 
@@ -726,7 +753,8 @@ a {
         padding: 3px;
         margin: 0 0.4em !important;
     }
-    .widget-index{
+
+    .widget-index {
         display: none;
     }
 }

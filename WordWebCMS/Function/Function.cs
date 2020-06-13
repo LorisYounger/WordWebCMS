@@ -85,6 +85,29 @@ namespace WordWebCMS
             indexBuilder.Append("</ul></aside>");
             return indexBuilder.ToString();
         }
+        /// <summary>
+        /// 降级标题为格式化
+        /// </summary>
+        /// <param name="html">HTML文件</param>
+        /// <returns></returns>
+        public static string TitleDownGrade(string html) => html
+            .Replace("<h6", "<span class=\"down-h6\"").Replace("</h6>", "</span>")
+            .Replace("<h5", "<span class=\"down-h5\"").Replace("</h5>", "</span>")
+            .Replace("<h4", "<span class=\"down-h4\"").Replace("</h4>", "</span>")
+            .Replace("<h3", "<span class=\"down-h3\"").Replace("</h3>", "</span>")
+            .Replace("<h2", "<span class=\"down-h2\"").Replace("</h2>", "</span>")
+            .Replace("<h1", "<span class=\"down-h1\"").Replace("</h1>", "</span>");
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="markdown"></param>
+        /// <param name="usePragmaLines"></param>
+        /// <param name="AnalyzeHtml"></param>
+        /// <returns></returns>
+        public static string MarkdownParse(string markdown, bool usePragmaLines = false, bool AnalyzeHtml = false)
+            => Westwind.Web.Markdown.Markdown.Parse(markdown, usePragmaLines, false, !AnalyzeHtml);
+
 
         public static Random Rnd = new Random();
 

@@ -35,7 +35,7 @@ namespace WordWebCMS
                 if (databf == null)
                 {
                     if (Application["dtbfSetting"] == null)
-                    {                       
+                    {
                         databf = Data;
                         Application["dtbfSetting"] = databf;
                     }
@@ -45,7 +45,7 @@ namespace WordWebCMS
                 return databf;
             }
             set
-            {                
+            {
                 Application["dtbfSetting"] = null;
                 databf = null;
             }
@@ -62,7 +62,7 @@ namespace WordWebCMS
         /// </summary>
         public static AuthLevel GetUserAuthority(int uID)
         {
-            Line lin = DataBuff.FindLine("auth_" + uID.ToString());
+            Line lin = DataBuff.Assemblage.Find(x => x.info == "auth_" + uID.ToString());
             if (lin == null)
                 return UserAuthorityDefault;
             return (AuthLevel)Convert.ToSByte(lin.First().info);
@@ -72,7 +72,7 @@ namespace WordWebCMS
         /// </summary>
         public static void SetUserAuthority(int uID, AuthLevel auth)
         {
-            Line lin = DataBuff.FindLine("auth_" + uID.ToString());
+            Line lin = DataBuff.Assemblage.Find(x => x.info == "auth_" + uID.ToString());
             if (lin == null)
             {
                 RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "auth_" + uID.ToString()), new MySQLHelper.Parameter("prop", ((short)auth).ToString()));
@@ -87,14 +87,14 @@ namespace WordWebCMS
         {
             get
             {
-                var line = DataBuff.FindLine("defaultuserauth");
+                var line = DataBuff.Assemblage.Find(x => x.info == "defaultuserauth");
                 if (line == null)
                     return AuthLevel.Default;
                 return (AuthLevel)Convert.ToSByte(line.First().info);
             }
             set
             {
-                Line lin = DataBuff.FindLine("defaultuserauth");
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "defaultuserauth");
                 if (lin == null)
                 {
                     RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "defaultuserauth"), new MySQLHelper.Parameter("prop", ((short)value).ToString()));
@@ -157,14 +157,14 @@ namespace WordWebCMS
         {
             get
             {
-                var line = DataBuff.FindLine("webtitle");
+                var line = DataBuff.Assemblage.Find(x => x.info == "webtitle");
                 if (line != null)
                     return line.First().Info;
                 return "WordWebCMS的网站标题";
             }
             set
             {
-                Line lin = DataBuff.FindLine("webtitle");
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "webtitle");
                 if (lin == null)
                 {
                     RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "webtitle"), new MySQLHelper.Parameter("prop", value));
@@ -181,14 +181,14 @@ namespace WordWebCMS
         {
             get
             {
-                var line = DataBuff.FindLine("websubtitle");
+                var line = DataBuff.Assemblage.Find(x => x.info == "websubtitle");
                 if (line != null)
                     return line.First().Info;
                 return "这是网站副标题 - 一个由洛里斯编写的网站";
             }
             set
             {
-                Line lin = DataBuff.FindLine("websubtitle");
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "websubtitle");
                 if (lin == null)
                 {
                     RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "websubtitle"), new MySQLHelper.Parameter("prop", value));
@@ -205,14 +205,14 @@ namespace WordWebCMS
         {
             get
             {
-                var line = DataBuff.FindLine("websiteurl");
+                var line = DataBuff.Assemblage.Find(x => x.info == "websiteurl");
                 if (line != null)
                     return line.First().Info;
                 return HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Authority);//HttpContext.Current.Request.Url.Host
             }
             set
             {
-                Line lin = DataBuff.FindLine("websideurl");
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "websideurl");
                 if (lin == null)
                 {
                     RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "websiteurl"), new MySQLHelper.Parameter("prop", value));
@@ -229,14 +229,14 @@ namespace WordWebCMS
         {
             get
             {
-                var line = DataBuff.FindLine("alowregister");
+                var line = DataBuff.Assemblage.Find(x => x.info == "alowregister");
                 if (line != null)
                     return Convert.ToBoolean(line.First().info);
                 return false;//HttpContext.Current.Request.Url.Host
             }
             set
             {
-                Line lin = DataBuff.FindLine("alowregister");
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "alowregister");
                 if (lin == null)
                 {
                     RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "alowregister"), new MySQLHelper.Parameter("prop", value));
@@ -254,14 +254,14 @@ namespace WordWebCMS
         {
             get
             {
-                var line = DataBuff.FindLine("themes");
+                var line = DataBuff.Assemblage.Find(x => x.info == "themes");
                 if (line != null)
                     return line.First().Info;
                 return "default";
             }
             set
             {
-                Line lin = DataBuff.FindLine("themes");
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "themes");
                 if (lin == null)
                 {
                     RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('themes',@prop)", new MySQLHelper.Parameter("prop", value));
@@ -279,14 +279,14 @@ namespace WordWebCMS
         {
             get
             {
-                var line = DataBuff.FindLine("defaultreview");
+                var line = DataBuff.Assemblage.Find(x => x.info == "defaultreview");
                 if (line == null)
                     return Review.ReviewState.Pending;
                 return (Review.ReviewState)Convert.ToSByte(line.First().info);
             }
             set
             {
-                Line lin = DataBuff.FindLine("defaultuserauth");
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "defaultuserauth");
                 if (lin == null)
                 {
                     RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('defaultreview',@prop)", new MySQLHelper.Parameter("prop", ((short)value).ToString()));
@@ -303,14 +303,14 @@ namespace WordWebCMS
         {
             get
             {
-                var line = DataBuff.FindLine("defaultpost");
+                var line = DataBuff.Assemblage.Find(x => x.info == "defaultpost");
                 if (line == null)
                     return Posts.PostState.Pending;
                 return (Posts.PostState)Convert.ToSByte(line.First().info);
             }
             set
             {
-                Line lin = DataBuff.FindLine("defaultpost");
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "defaultpost");
                 if (lin == null)
                 {
                     RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('defaultpost',@prop)", new MySQLHelper.Parameter("prop", ((short)value).ToString()));
@@ -327,14 +327,14 @@ namespace WordWebCMS
         {
             get
             {
-                var line = DataBuff.FindLine("toplogo");
+                var line = DataBuff.Assemblage.Find(x => x.info == "toplogo");
                 if (line != null)
                     return line.First().Info;
                 return "";
             }
             set
             {
-                Line lin = DataBuff.FindLine("toplogo");
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "toplogo");
                 if (lin == null)
                 {
                     RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('toplogo',@prop)", new MySQLHelper.Parameter("prop", value));
@@ -352,7 +352,7 @@ namespace WordWebCMS
         {
             get
             {
-                var line = DataBuff.FindLine("menulist");
+                var line = DataBuff.Assemblage.Find(x => x.info == "menulist");
                 if (line != null)
                     return new Line(line.First().Info).Subs;
                 return new List<Sub>();
@@ -360,7 +360,7 @@ namespace WordWebCMS
             set
             {
                 Line data = new Line("menu", "", "", value.ToArray());
-                Line lin = DataBuff.FindLine("menulist");
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "menulist");
                 if (lin == null)
                 {
                     RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('menulist',@prop)", new MySQLHelper.Parameter("prop", data.ToString()));
@@ -379,14 +379,14 @@ namespace WordWebCMS
         {
             get
             {
-                var line = DataBuff.FindLine("sidebar1");
+                var line = DataBuff.Assemblage.Find(x => x.info == "sidebar1");
                 if (line != null)
                     return line.First().Info;
                 return "";
             }
             set
             {
-                Line lin = DataBuff.FindLine("sidebar1");
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "sidebar1");
                 if (lin == null)
                 {
                     RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('sidebar1',@prop)", new MySQLHelper.Parameter("prop", value));
@@ -403,14 +403,14 @@ namespace WordWebCMS
         {
             get
             {
-                var line = DataBuff.FindLine("sidebar2");
+                var line = DataBuff.Assemblage.Find(x => x.info == "sidebar2");
                 if (line != null)
                     return line.First().Info;
                 return "";
             }
             set
             {
-                Line lin = DataBuff.FindLine("sidebar2");
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "sidebar2");
                 if (lin == null)
                 {
                     RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('sidebar2',@prop)", new MySQLHelper.Parameter("prop", value));
@@ -427,14 +427,14 @@ namespace WordWebCMS
         {
             get
             {
-                var line = DataBuff.FindLine("sidebar3");
+                var line = DataBuff.Assemblage.Find(x => x.info == "sidebar3");
                 if (line != null)
                     return line.First().Info;
                 return "";
             }
             set
             {
-                Line lin = DataBuff.FindLine("sidebar3");
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "sidebar3");
                 if (lin == null)
                 {
                     RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('sidebar3',@prop)", new MySQLHelper.Parameter("prop", value));
@@ -451,14 +451,14 @@ namespace WordWebCMS
         {
             get
             {
-                var line = DataBuff.FindLine("webinfo");
+                var line = DataBuff.Assemblage.Find(x => x.info == "webinfo");
                 if (line != null)
                     return line.First().Info;
                 return $"Copyright {DateTime.Now.Year} , {WebTitle} , Power by WordWebCMS";
             }
             set
             {
-                Line lin = DataBuff.FindLine("webinfo");
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "webinfo");
                 if (lin == null)
                 {
                     RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('webinfo',@prop)", new MySQLHelper.Parameter("prop", value));
@@ -475,14 +475,14 @@ namespace WordWebCMS
         {
             get
             {
-                var line = DataBuff.FindLine("nomalindex");
+                var line = DataBuff.Assemblage.Find(x => x.info == "nomalindex");
                 if (line != null)
                     return line.First().InfoToInt;
                 return -1;
             }
             set
             {
-                Line lin = DataBuff.FindLine("nomalindex");
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "nomalindex");
                 if (lin == null)
                 {
                     RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('nomalindex',@prop)", new MySQLHelper.Parameter("prop", value));

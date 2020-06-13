@@ -11,11 +11,13 @@ namespace WordWebCMS
     public partial class Post : System.Web.UI.Page
     {
         int pID = -1;
-        int anser = int.MinValue;
         protected void Page_Load(object sender, EventArgs e)
         {
             //Important:把缓存交给设置
             Setting.Application = this.Application;
+
+            //临时数据id
+            string sessionid = Rnd.Next().ToString("x");
 
             //Header
             if (Application["MasterHeader"] == null)
@@ -76,16 +78,23 @@ namespace WordWebCMS
             LContentPage.Text = post.ToPost();
 
             LCatLink.Text = $"<span class=\"nav-previous\">张贴在<a href=\"{Setting.WebsiteURL}/Index.aspx?class={post.Classify}\" rel=\"category tag\">{post.Classify}</a></span>";
-            LikeNumber.Text = post.Likes.ToString(); 
-            if (Application[$"Likep{pID}u{usr.uID}"] != null)
+            Lpostlike.Text = $"{post.Likes}个赞<button ID=\"Like\" type=\"button\" onclick=\"LikePost({pID})\" style=\"border-style: none; width: 30px; height: 30px;" +
+                $"{(Application[$"Likep{pID}u{usr.uID}"] == null ? "background:url(Picture/like.png);" : "background:url(Picture/likeup.png);")}background-size:cover;\" />";
+
+
+            if (Application["postreview" + pID.ToString()] == null)
             {
-                Like.Style.Add("background", "url(Picture/likeup.png)");
+                List<Review> reviews = Review.GetReviewByPostID(pID);
+                if (reviews.Count != 0)
+                {
+                    LComments.Text = $"<h2 class=\"comments-title\">有{reviews.Count}个评论</h2><ol class=\"comment-list\">";
+                    foreach (Review rv in reviews)
+                        LComments.Text += rv.ToPostReview();
+                    Application["postreview" + pID.ToString()] = LComments.Text;
+                }
             }
             else
-            {
-                Like.Style.Add("background", "url(Picture/like.png)");
-            }
-            Like.Style.Add("background-size", "cover");
+                LComments.Text = (string)Application["postreview" + pID.ToString()];
 
             //添加评论
             if (post.AllowComments)
@@ -97,7 +106,7 @@ namespace WordWebCMS
                 else
                 {
                     commentspanel.Visible = true;
-                    captcha_question.Text = RndQuestion(out anser);
+                    //captcha_question.Text = RndQuestion(out int anser); 打不过就加入 不整回答数学题评论了
                 }
             }
             else
@@ -107,6 +116,9 @@ namespace WordWebCMS
 
 
             LSecondary.Text += post.ContentToIndex();
+
+            //ajaxscript.InnerText = ajaxscript.InnerText.Replace("{pid}", pID.ToString());
+
             //Footer
             if (Application["MasterFooter"] != null)
                 LFooter.Text = (string)Application["MasterFooter"];
@@ -125,7 +137,7 @@ namespace WordWebCMS
 
         protected void submit_Click(object sender, EventArgs e)
         {
-            Users usr = null;
+            Users usr;
             if (Session["User"] == null)
             {
                 MsgBox("登陆已失效,请重新登陆"); return;
@@ -134,45 +146,28 @@ namespace WordWebCMS
             {
                 usr = ((Users)Session["User"]);
             }
-            if (anser == int.MinValue)
-            {//如果出现了这个 肯定是bug
-                Goto404("commentpw");
-                return;
-            }
-            if (!int.TryParse(captcha_anser.Text, out int res))
-            {
-                MsgBox("验证码答案为纯数字,请检查输入"); return;
-            }
-            if (res != anser)
-            {
-                MsgBox("您输入了错误的验证码答案。请重试"); return;
-            }
-            Goto404(Review.CreatReview(pID, comment.Text, usr.uID, DateTime.Now, DateTime.Now).rID.ToString());
-        }
+            //if (!int.TryParse(captcha_anser.Text, out int res))
+            //{
+            //    MsgBox("验证码答案为纯数字,请检查输入"); return;
+            //}
+            //if (res != anser)
+            //{
+            //    MsgBox("您输入了错误的验证码答案。请重试"); return;
+            //}
+            Application["postreview" + pID.ToString()] = null;//更新post的评论
 
-        protected void Like_Click(object sender, EventArgs e)
-        {
-            Users usr = null;
-            if (Session["User"] == null)
-            {
-                MsgBox("请在登录后进行操作"); return;
-            }
+
+            var rev = Review.CreatReview(pID, comment.Text, usr.uID, DateTime.Now, DateTime.Now,
+                (usr.Authority == Setting.AuthLevel.Admin || usr.Authority == Setting.AuthLevel.Auditor ? Review.ReviewState.Published : Review.ReviewState.Default));
+          
+            if (rev.State == Review.ReviewState.Default)
+                MsgBox("提交评论成功," + (Setting.ReviewDefault == Review.ReviewState.Pending ? "等待审核中" : "已发布"));
+            else if (rev.State == Review.ReviewState.Published)
+                MsgBox("提交评论成功,已发布");
             else
-            {
-                usr = ((Users)Session["User"]);
-            }
-            if (Application[$"Likep{pID}u{usr.uID}"] == null)
-            {
-                Application[$"Likep{pID}u{usr.uID}"] = true;
-                Posts.GetPost(pID).Likes += 1;
-                Response.Redirect(HttpContext.Current.Request.Url.ToString() + "#respond");
-            }
-            else
-            {
-                Posts.GetPost(pID).Likes -= 1;
-                Application[$"Likep{pID}u{usr.uID}"] = null;
-                Response.Redirect(HttpContext.Current.Request.Url.ToString() + "#respond");
-            }
+                MsgBox("提交评论成功!");
+
+            Response.Redirect(HttpContext.Current.Request.Url.ToString() + "#comment-" + rev.rID.ToString());
         }
     }
 }
