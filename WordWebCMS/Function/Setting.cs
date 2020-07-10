@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Web;
 using LinePutScript;
 using LinePutScript.SQLHelper;
@@ -23,7 +24,18 @@ namespace WordWebCMS
         public static LpsDocument Data
         {
             //get => new LpsDocument();//Debug
-            get => RAW.ExecuteQuery("SELECT * FROM setting");
+            get
+            {
+            ReTry: try
+                {
+                    return RAW.ExecuteQuery("SELECT * FROM setting");
+                }
+                catch
+                {
+                    System.Threading.Thread.Sleep(1000);
+                    goto ReTry;
+                }
+            }
         }
         /// <summary>
         /// 从缓存中获取的元数据

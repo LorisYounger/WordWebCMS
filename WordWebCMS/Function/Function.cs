@@ -56,7 +56,7 @@ namespace WordWebCMS
             int previousLevel = 1;
 
             StringBuilder indexBuilder = new StringBuilder();
-            indexBuilder.Append("<aside id=\"widget-title\" class=\"widget-index\"><h2 class=\"widget-title\"><a href=\"#main\">目录</a></h2><ul>");
+            indexBuilder.Append("<aside id=\"widget-title\" class=\"widget-index\"><h2 class=\"widget-title\"><a href=\"#main\">目录</a><button id=\"index-fold\" onclick=\"ifold()\">折叠</button></h2><ul id=\"ul-index\">");
             foreach (Match headerMatch in headerMatches)
             {
                 int currentLevel = int.Parse(headerMatch.Groups["level"].Value);
@@ -106,7 +106,7 @@ namespace WordWebCMS
         /// <param name="AnalyzeHtml"></param>
         /// <returns></returns>
         public static string MarkdownParse(string markdown, bool usePragmaLines = false, bool AnalyzeHtml = false)
-            => Westwind.Web.Markdown.Markdown.Parse(markdown, usePragmaLines, false, !AnalyzeHtml);
+            => Westwind.Web.Markdown.Markdown.Parse(markdown.Replace("\n","\n\n"), usePragmaLines, false, !AnalyzeHtml).Replace("<p>", "<p class=\"md-p\">");
 
 
         public static Random Rnd = new Random();

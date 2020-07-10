@@ -418,7 +418,7 @@ namespace WordWebCMS
         /// 将文章内容转换成html
         /// </summary>
         /// <returns>转换成的HTML</returns>
-        public string ContentToHtml() => MarkdownParse(Content, false, !AnalyzeHtml);
+        public string ContentToHtml() => Function.MarkdownParse(Content, false, !AnalyzeHtml);
 
         /// <summary>
         /// 将文章内容转换成Index

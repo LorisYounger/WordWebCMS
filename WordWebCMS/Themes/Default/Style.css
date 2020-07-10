@@ -25,12 +25,16 @@
 .widget-index {
     text-decoration: none;
     position: fixed;
-    bottom: 5%;
+    bottom: 10%;
     z-index: 1;
     background-color: #F4F4F5;
 }
 
-
+#index-fold {
+    font-size: 20%;
+    float: right;
+    width: 60%;
+}
 
 .widget-index-h1 a {
     color: #444;
@@ -91,7 +95,9 @@
     font-size: 80%;
     font-weight: bolder;
 }
-
+.md-p {
+    margin: 0 auto;
+}
 
 /*
 Theme Name: pacify
