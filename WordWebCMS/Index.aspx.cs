@@ -22,6 +22,10 @@ namespace WordWebCMS
                 return;
             }
 
+            //在很远的将来TODO: ALLinONE
+            //可以通过域名判断网站类型,有专有的Style和内容,在主站则显示全部内容
+
+
             //Header
             if (Application["MasterHeader"] == null)
                 Application["MasterHeader"] = SMaster.GetHeaderHTML();
@@ -75,10 +79,9 @@ namespace WordWebCMS
                 LSecondary.Text = ((Users)Session["User"]).ToWidget();
 
             //Footer
-            if (Application["MasterFooter"] != null)
-                LFooter.Text = (string)Application["MasterFooter"];
-            else
-                LFooter.Text = SMaster.GetFooterHTML();
+            if (Application["MasterFooter"] == null)
+                Application["MasterFooter"] = (string)Application["MasterFooter"];
+            LFooter.Text = ((string)Application["MasterFooter"]);
         }
     }
 }

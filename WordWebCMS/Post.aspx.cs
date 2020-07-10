@@ -16,8 +16,8 @@ namespace WordWebCMS
             //Important:把缓存交给设置
             Setting.Application = this.Application;
 
-            //临时数据id
-            string sessionid = Rnd.Next().ToString("x");
+            ////临时数据id
+            //string sessionid = Rnd.Next().ToString("x");
 
             //Header
             if (Application["MasterHeader"] == null)
@@ -45,14 +45,14 @@ namespace WordWebCMS
                 Goto404();
                 return;
             }
-            Posts post = Posts.GetPost(pID);
+            Posts post = Posts.GetPost(pID);//获得post信息
             if (post == null)
             {
                 Goto404();
                 return;
             }
 
-            switch (post.State)
+            switch (post.State)//判断用户是否有权限查看文章
             {
                 case Posts.PostState.Delete:
                     if (usr == null || !(usr.Authority == Setting.AuthLevel.Admin || usr.Authority == Setting.AuthLevel.PostManager))
@@ -65,7 +65,7 @@ namespace WordWebCMS
                         Goto404("postpending");
                     return;
             }
-            if (!post.PasswordCheck(Request.QueryString["password"]))
+            if (!post.PasswordCheck(Request.QueryString["password"]))//查看是否有私人密码,若有,让用户输密码
             {
                 if (usr == null || !(usr.Authority == Setting.AuthLevel.Admin || usr.Authority == Setting.AuthLevel.PostManager))
                 {
@@ -74,8 +74,15 @@ namespace WordWebCMS
                     return;
                 }
             }
-
-            LContentPage.Text = post.ToPost();
+            if (Application["posttopost" + pID.ToString()] == null)
+            {
+                Application["posttopost" + pID.ToString()] = post.ToPost();
+                LContentPage.Text = (string)Application["posttopost" + pID.ToString()];
+            }
+            else
+            {
+                LContentPage.Text = (string)Application["posttopost" + pID.ToString()];
+            }
 
             LCatLink.Text = $"<span class=\"nav-previous\">张贴在<a href=\"{Setting.WebsiteURL}/Index.aspx?class={post.Classify}\" rel=\"category tag\">{post.Classify}</a></span>";
             Lpostlike.Text = $"{post.Likes}个赞<button ID=\"Like\" type=\"button\" onclick=\"LikePost({pID})\" style=\"border-style: none; width: 30px; height: 30px;" +
@@ -91,10 +98,15 @@ namespace WordWebCMS
                     foreach (Review rv in reviews)
                         LComments.Text += rv.ToPostReview();
                     Application["postreview" + pID.ToString()] = LComments.Text;
+                    Application["postContentToIndex" + pID.ToString()] = post.ContentToIndex();
+                    LSecondary.Text += (string)Application["postContentToIndex" + pID.ToString()];
                 }
             }
             else
+            {
                 LComments.Text = (string)Application["postreview" + pID.ToString()];
+                LSecondary.Text += (string)Application["postContentToIndex" + pID.ToString()];
+            }
 
             //添加评论
             if (post.AllowComments)
@@ -115,15 +127,14 @@ namespace WordWebCMS
             }
 
 
-            LSecondary.Text += post.ContentToIndex();
+
 
             //ajaxscript.InnerText = ajaxscript.InnerText.Replace("{pid}", pID.ToString());
 
             //Footer
-            if (Application["MasterFooter"] != null)
-                LFooter.Text = (string)Application["MasterFooter"];
-            else
-                LFooter.Text = SMaster.GetFooterHTML();
+            if (Application["MasterFooter"] == null)
+                Application["MasterFooter"] = (string)Application["MasterFooter"];
+            LFooter.Text = ((string)Application["MasterFooter"]);
         }
         public void Goto404(string type = "post")
         {

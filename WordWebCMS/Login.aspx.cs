@@ -11,7 +11,17 @@ namespace WordWebCMS
     {
         protected void Page_Load(object sender, EventArgs e)
         {
+            //Important:把缓存交给设置
+            Setting.Application = this.Application;
+            //Header
+            if (Application["MasterHeader"] == null)
+                Application["MasterHeader"] = SMaster.GetHeaderHTML();
+            LHeader.Text = ((string)Application["MasterHeader"]);
 
+            //Footer
+            if (Application["MasterFooter"] == null)
+                Application["MasterFooter"] = (string)Application["MasterFooter"];
+            LFooter.Text = ((string)Application["MasterFooter"]);
         }
     }
 }
