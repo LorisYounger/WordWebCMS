@@ -4,6 +4,41 @@
     Copy Form:  pacify
     Original Author:    Bishal Adhikary 
 */
+
+/*登陆页面*/
+.CenterBox {
+    margin-top: 20px;
+    margin-left: 0;
+    padding: 26px 24px 46px;
+    font-weight: 400;
+    overflow: hidden;
+    background: #fff;
+    margin: auto;
+    width: 500px;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+
+.singlelineinput {
+    font-size: 24px;
+    line-height: 1.33333333;
+    width: 100%;
+    border-width: .0625rem;
+    padding: .1875rem .3125rem;
+    margin: 0 6px 16px 0;
+    min-height: 40px;
+    max-height: none;
+}
+
+.BoxLable {
+    font-size: 14px;
+    line-height: 1.5;
+    display: inline-block;
+    margin-bottom: 3px;
+}
+
+/*Post和主页*/
+
 .user-avatar {
     max-width: 100%;
     max-height: 100%;

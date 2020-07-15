@@ -29,7 +29,6 @@ namespace WordWebCMS
             //Header
             if (Application["MasterHeader"] == null)
                 Application["MasterHeader"] = SMaster.GetHeaderHTML();
-
             LHeader.Text = ((string)Application["MasterHeader"]);
 
             //NomalIndex
@@ -80,7 +79,7 @@ namespace WordWebCMS
 
             //Footer
             if (Application["MasterFooter"] == null)
-                Application["MasterFooter"] = (string)Application["MasterFooter"];
+                Application["MasterFooter"] = SMaster.GetFooterHTML();
             LFooter.Text = ((string)Application["MasterFooter"]);
         }
     }
