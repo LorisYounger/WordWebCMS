@@ -20,7 +20,7 @@ namespace WordWebCMS
 
             //Footer
             if (Application["MasterFooter"] == null)
-                Application["MasterFooter"] = (string)Application["MasterFooter"];
+                Application["MasterFooter"] = SMaster.GetFooterHTML();
             LFooter.Text = ((string)Application["MasterFooter"]);
         }
     }

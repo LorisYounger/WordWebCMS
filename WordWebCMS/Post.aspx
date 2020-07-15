@@ -52,13 +52,13 @@
     function Reply(username) {
         document.getElementById("comment").innerText = "--回复:" + username + "--\n" + document.getElementById("comment").innerText
     }
-    function ifold() {
+    function Indexfold() {
         if (document.getElementById("index-fold").innerText == "折叠") {
-            document.getElementById("index-fold").innerText == "展开";
-            document.getElementById("ul-index").style.visibility == "hidden";
+            document.getElementById("index-fold").innerText = "展开";
+            document.getElementById("ul-index").style.visibility = "hidden";
         } else {
-            document.getElementById("index-fold").innerText == "折叠";
-            document.getElementById("ul-index").style.visibility == "visible";
+            document.getElementById("index-fold").innerText = "折叠";
+            document.getElementById("ul-index").style.visibility = "visible";
         }
     }
 </script>

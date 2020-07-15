@@ -98,16 +98,17 @@ namespace WordWebCMS
                     foreach (Review rv in reviews)
                         LComments.Text += rv.ToPostReview();
                     Application["postreview" + pID.ToString()] = LComments.Text;
-                    Application["postContentToIndex" + pID.ToString()] = post.ContentToIndex();
-                    LSecondary.Text += (string)Application["postContentToIndex" + pID.ToString()];
+
                 }
             }
             else
             {
                 LComments.Text = (string)Application["postreview" + pID.ToString()];
-                LSecondary.Text += (string)Application["postContentToIndex" + pID.ToString()];
             }
 
+            if (Application["postContentToIndex" + pID.ToString()] == null)
+                Application["postContentToIndex" + pID.ToString()] = post.ContentToIndex();
+            LSecondary.Text += (string)Application["postContentToIndex" + pID.ToString()];
             //添加评论
             if (post.AllowComments)
             {
@@ -133,7 +134,7 @@ namespace WordWebCMS
 
             //Footer
             if (Application["MasterFooter"] == null)
-                Application["MasterFooter"] = (string)Application["MasterFooter"];
+                Application["MasterFooter"] = SMaster.GetFooterHTML();
             LFooter.Text = ((string)Application["MasterFooter"]);
         }
         public void Goto404(string type = "post")
@@ -170,7 +171,7 @@ namespace WordWebCMS
 
             var rev = Review.CreatReview(pID, comment.Text, usr.uID, DateTime.Now, DateTime.Now,
                 (usr.Authority == Setting.AuthLevel.Admin || usr.Authority == Setting.AuthLevel.Auditor ? Review.ReviewState.Published : Review.ReviewState.Default));
-          
+
             if (rev.State == Review.ReviewState.Default)
                 MsgBox("提交评论成功," + (Setting.ReviewDefault == Review.ReviewState.Pending ? "等待审核中" : "已发布"));
             else if (rev.State == Review.ReviewState.Published)
