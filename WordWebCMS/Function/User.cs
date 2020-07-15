@@ -21,13 +21,13 @@ namespace WordWebCMS
     {
         #region "辅助构建函数"
         /// <summary>
-        /// 通过用户名获得用户信息
+        /// 通过用户名或者用户邮箱获得用户信息
         /// </summary>
-        /// <param name="UserName">用户名称</param>
+        /// <param name="UserName">用户名称或者用户邮箱</param>
         /// <returns></returns>
         public static Users GetUser(string UserName)
         {
-            LpsDocument data = RAWUser.ExecuteQuery("SELECT * FROM users WHERE username=@usrname", new MySQLHelper.Parameter("usrname", UserName));
+            LpsDocument data = RAWUser.ExecuteQuery("SELECT * FROM users WHERE name=@usrname OR email=@usrname", new MySQLHelper.Parameter("usrname", UserName));
             if (data.Assemblage.Count == 0)
                 return null;
             return new Users(data.First());
