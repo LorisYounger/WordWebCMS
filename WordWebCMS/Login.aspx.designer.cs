@@ -114,31 +114,31 @@ namespace WordWebCMS
         protected global::System.Web.UI.HtmlControls.HtmlGenericControl errorboxregister;
 
         /// <summary>
-        /// TextBox1 控件。
+        /// usernamereg 控件。
         /// </summary>
         /// <remarks>
         /// 自动生成的字段。
         /// 若要进行修改，请将字段声明从设计器文件移到代码隐藏文件。
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox TextBox1;
+        protected global::System.Web.UI.WebControls.TextBox usernamereg;
 
         /// <summary>
-        /// TextBox6 控件。
+        /// emailreg 控件。
         /// </summary>
         /// <remarks>
         /// 自动生成的字段。
         /// 若要进行修改，请将字段声明从设计器文件移到代码隐藏文件。
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox TextBox6;
+        protected global::System.Web.UI.WebControls.TextBox emailreg;
 
         /// <summary>
-        /// TextBox2 控件。
+        /// passwordreg 控件。
         /// </summary>
         /// <remarks>
         /// 自动生成的字段。
         /// 若要进行修改，请将字段声明从设计器文件移到代码隐藏文件。
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox TextBox2;
+        protected global::System.Web.UI.WebControls.TextBox passwordreg;
 
         /// <summary>
         /// CalregistKey 控件。
@@ -159,6 +159,15 @@ namespace WordWebCMS
         protected global::System.Web.UI.WebControls.TextBox checkregisterkey;
 
         /// <summary>
+        /// emailcheck 控件。
+        /// </summary>
+        /// <remarks>
+        /// 自动生成的字段。
+        /// 若要进行修改，请将字段声明从设计器文件移到代码隐藏文件。
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl emailcheck;
+
+        /// <summary>
         /// TextBox5 控件。
         /// </summary>
         /// <remarks>
@@ -168,13 +177,13 @@ namespace WordWebCMS
         protected global::System.Web.UI.WebControls.TextBox TextBox5;
 
         /// <summary>
-        /// button1 控件。
+        /// buttonregister 控件。
         /// </summary>
         /// <remarks>
         /// 自动生成的字段。
         /// 若要进行修改，请将字段声明从设计器文件移到代码隐藏文件。
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Button button1;
+        protected global::System.Web.UI.WebControls.Button buttonregister;
 
         /// <summary>
         /// LFooter 控件。

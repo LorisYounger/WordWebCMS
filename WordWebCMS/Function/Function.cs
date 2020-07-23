@@ -5,6 +5,12 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
+using System.Net.Mail;
+using System.IO;
+using System.Collections;
+using System.ComponentModel;
+using System.Web.UI.WebControls;
+using LinePutScript;
 
 namespace WordWebCMS
 {
@@ -106,7 +112,7 @@ namespace WordWebCMS
         /// <param name="AnalyzeHtml"></param>
         /// <returns></returns>
         public static string MarkdownParse(string markdown, bool usePragmaLines = false, bool AnalyzeHtml = false)
-            => Westwind.Web.Markdown.Markdown.Parse(markdown.Replace("\n","\n\n"), usePragmaLines, false, !AnalyzeHtml).Replace("<p>", "<p class=\"md-p\">");
+            => Westwind.Web.Markdown.Markdown.Parse(markdown.Replace("\n", "\n\n"), usePragmaLines, false, !AnalyzeHtml).Replace("<p>", "<p class=\"md-p\">");
 
 
         public static Random Rnd = new Random();
@@ -139,5 +145,116 @@ namespace WordWebCMS
             }
             return str + " = ";
         }
+
+        /// <summary>
+        /// 发送邮件
+        /// </summary>
+        /// <param name="sendToList">收件人列表</param>
+        /// <param name="subject">邮件主题</param>
+        /// <param name="mailBody">邮件内容</param>
+        /// <param name="sysEmail">使用的系统邮箱</param>
+        /// <param name="sysEmailPwd">系统邮箱密码</param>
+        /// <param name="smtpUrl">系统邮箱SMTP的URL</param>
+        /// <returns>返回空字符串代表成功，否则为错误信息字符串</returns>
+        public static string SendEmail(string[] sendToList, string subject, string mailBody,
+                                string sysEmail, string sysEmailPwd, string smtpUrl)
+        {
+            try
+            {
+                string strReturn = "";
+                //return strReturn;
+
+                MailMessage mail = new MailMessage();
+
+                if (sendToList.Length == 0)
+                {
+                    return "收件人地址为空";
+                }
+
+                mail.From = new MailAddress(sysEmail);
+                foreach (string to in sendToList)
+                {
+                    if (Regex.IsMatch(to, @"\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*"))
+                    {
+                        mail.To.Add(to);
+                    }
+                    else
+                    {
+                        strReturn += string.Format("{0}邮箱格式错误，未发送\\n", to);
+                    }
+                }
+
+                if (strReturn == "")
+                {
+                    //mail.IsBodyHtml = true;
+                    //mail.Body = mailBody.Replace("\n\r", "<br />");
+                    mail.IsBodyHtml = false;
+                    mail.Subject = subject;
+                    mail.Body = mailBody;
+                    mail.SubjectEncoding = Encoding.GetEncoding("UTF-8");
+                    mail.BodyEncoding = Encoding.GetEncoding("UTF-8");
+
+                    //if (attachment.Count > 0)
+                    //{
+                    //    //mail.Body = mailBody +"\n\r随邮件带附件：";
+                    //    string filePath;
+                    //    string fileOldName;
+                    //    //FileInfo fileInfo;
+
+                    //    foreach (DictionaryEntry objDE in attachment)
+                    //    {
+                    //        filePath = objDE.Key.ToString();
+                    //        fileOldName = objDE.Value.ToString();
+                    //        if (File.Exists(filePath))
+                    //        {
+                    //            //fileInfo = new FileInfo(filePath);
+                    //            //if (fileInfo.Length / 1024 >= 10240)//大于10MB
+                    //            //{
+                    //            //    mail.Body += "大附件：<a href='" + System.Web.HttpContext.Current.Request.Url.Host + "/UploadedFiles/" +
+                    //            //                  filePath.Split(new string[] { "\\UploadedFiles\\" }, StringSplitOptions.None)[1] + "'>" + fileOldName + "</a>";
+                    //            //    continue;
+                    //            //}
+
+                    //            System.Net.Mime.ContentType contentType = new System.Net.Mime.ContentType();
+                    //            contentType.Name = fileOldName;
+                    //            contentType.MediaType = GetContentTypeForFileName(filePath);
+                    //            Attachment mailAttach = new Attachment(new FileStream(objDE.Key.ToString(), FileMode.Open, FileAccess.Read, FileShare.Read), contentType);
+                    //            //Attachment mailAttach = new Attachment(objDE.Key.ToString());
+                    //            mail.Attachments.Add(mailAttach);
+                    //        }
+                    //    }
+                    //}
+
+                    SmtpClient smtp = new SmtpClient(smtpUrl);
+                    smtp.Credentials = new System.Net.NetworkCredential(sysEmail, sysEmailPwd);
+
+                    //smtp.Port = 25;
+                    //smtp.Timeout = 180000;//3分钟,默认为100秒
+                    //smtp.EnableSsl = false;
+
+                    smtp.Send(mail);
+
+                    //smtp.SendCompleted += new SendCompletedEventHandler(SendCompletedCallback);
+                    //smtp.SendAsync(mail, "异步发送邮件");
+
+                    mail.Dispose();
+                }
+
+                return strReturn;
+            }
+            catch (Exception ex)
+            {
+                return $"邮件发送异常:{ex.Message}\n在{ex.TargetSite},{ex.StackTrace}";        
+            }
+        }
+        /// <summary>
+        /// 发送邮件 使用设置的SMTP参数发送邮件
+        /// </summary>
+        /// <param name="sendToList">收件人列表</param>
+        /// <param name="subject">邮件主题</param>
+        /// <param name="mailBody">邮件内容</param>
+        /// <returns>返回空字符串代表成功，否则为错误信息字符串</returns>
+        public static string SendEmail(string subject, string mailBody, params string[] sendToList)
+            => SendEmail(sendToList, subject, mailBody, Setting.SMTPEmail, Setting.SMTPPassword, Setting.SMTPURL);
     }
 }

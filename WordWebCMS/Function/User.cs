@@ -226,9 +226,9 @@ namespace WordWebCMS
 
         #region 转换成HTML
         public string ToWidget()
-        => $"<aside id=\"widget-user\" class=\"widget widget-user\"><h2 class=\"widget-title\">Hi! {UserName}</h2><ul><a href=\"Users.aspx\"><li><img width=\"80\" height=\"80\" " +
-            $"class=\"user-avatar\" src={AvatarURL}></li></a><a href=\"Users.aspx?action=exp\" class=\"aclear\"><li>Lv:{Lv} Exp:{Exp}/{Lv * 10}</li></a><a href=\"Users.aspx?action=money\"><li>积分:{Money}</li></a><a href=\"Users.aspx\"><li>->前往用户主页</li></a>" +
-            (Authority == AuthLevel.Admin ? "<li><a href=\"admin.aspx\">->前往管理后台</a></li>" : "") +
+        => $"<aside id=\"widget-user\" class=\"widget widget-user\"><h2 class=\"widget-title\">Hi! {UserName}</h2><ul><a href=\"UserInfo.aspx\"><li><img width=\"80\" height=\"80\" " +
+            $"class=\"user-avatar\" src={AvatarURL}></li></a><a href=\"UserInfo.aspx?action=exp\" class=\"aclear\"><li>Lv:{Lv} Exp:{Exp}/{Lv * 10}</li></a><a href=\"UserInfo.aspx?action=money\"><li>积分:{Money}</li></a><a href=\"UserInfo.aspx\"><li>->前往用户主页</li></a>" +
+            (Authority == AuthLevel.Admin ? "<li><a href=\"WWCadmin.aspx\">->前往管理后台</a></li>" : "") +
             (Authority == AuthLevel.Auditor || Authority == AuthLevel.Admin ? "<li><a href=\"Auditor.aspx\">->前往审核中心</a></li>" : "") +
             (Authority == AuthLevel.Auditor || Authority == AuthLevel.Admin || Authority == AuthLevel.Author || Authority == AuthLevel.AuthorCertificate ? "<li><a href=\"Author.aspx\">->前往写作平台</a></li>" : "")
             + "</ul></aside>";
