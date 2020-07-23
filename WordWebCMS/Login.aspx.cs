@@ -15,7 +15,11 @@ namespace WordWebCMS
             Setting.Application = this.Application;
 
             //TODO:判断是不是已经登陆了,如果已经登陆了就直接跳转到用户中心,目前为了debug先不写
-
+#if !DEBUG
+            if (Session["User"] != null)
+                //已经登陆过了,直接跳转到用户信息页面
+                Response.Redirect(Setting.WebsiteURL + "/UserInfo.aspx" + type);
+#endif
 
             //Header
             if (Application["MasterHeader"] == null)
@@ -53,9 +57,17 @@ namespace WordWebCMS
 
             //看看action是注册还是登陆
             if (Request.QueryString["Action"] == "Register")
-            {
+            {                
                 divregister.Visible = true;
                 CalregistKey.Text = qus;
+                if (Setting.AlowRegister == false)
+                {//如果不允许注册
+                    errorboxregister.Visible = true;
+                    errorboxregister.InnerHtml = "当前网站未开放注册,如需注册请联系网站管理员<br/>如已有账户,请<a href=\"?Action=Login\">前往登陆</a>";
+                    buttonregister.Enabled = false;
+                    CalregistKey.Enabled = false;
+                    passwordreg.Enabled = false;
+                }
             }
             else
             {
@@ -74,7 +86,7 @@ namespace WordWebCMS
         //    Session["err" + ses] = msg;
         //    return "Error=" + ses;
         //}
-        //TODO: 通过cookie记录登陆信息
+        //TODO: 通过cookie记录登陆信息 长时间登陆
         protected void buttonlogin_Click(object sender, EventArgs e)
         {
             if (MasterKey.Text == "" || Session[MasterKey.Text + "ans"] == null)
@@ -86,7 +98,7 @@ namespace WordWebCMS
                 errorboxlogin.InnerText = "验证码缓存已丢失,请重试";
             }
             else if (int.TryParse(checkloginkey.Text, out int ans))
-            {               
+            {
                 if (Convert.ToInt32(Session[MasterKey.Text + "ans"]) == ans)
                 {
                     //全部正确,开始判断能否登陆

@@ -244,7 +244,7 @@ namespace WordWebCMS
                 var line = DataBuff.Assemblage.Find(x => x.info == "alowregister");
                 if (line != null)
                     return Convert.ToBoolean(line.First().info);
-                return false;//HttpContext.Current.Request.Url.Host
+                return true;//默认允许注册
             }
             set
             {
@@ -258,7 +258,103 @@ namespace WordWebCMS
                 DataBuff = null;
             }
         }
+        /// <summary>
+        /// 开启邮件功能 需要设置正确的SMTP才能使用
+        /// </summary>
+        public static bool EnabledEmail
+        {
+            get
+            {
+                var line = DataBuff.Assemblage.Find(x => x.info == "enabledemail");
+                if (line != null)
+                    return Convert.ToBoolean(line.First().info);
+                return false;//默认未开启邮件功能
+            }
+            set
+            {
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "enabledemail");
+                if (lin == null)
+                {
+                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('enabledemail',@prop)", new MySQLHelper.Parameter("prop", value));
+                }
+                else
+                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='enabledemail'",  new MySQLHelper.Parameter("prop", value));
+                DataBuff = null;
+            }
+        }
 
+        /// <summary>
+        /// SMTP使用的邮箱名
+        /// </summary>
+        public static string SMTPEmail
+        {
+            get
+            {
+                var line = DataBuff.Assemblage.Find(x => x.info == "smtpemail");
+                if (line != null)
+                    return line.First().Info;
+                return "SMTPEmail";
+            }
+            set
+            {
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "smtpemail");
+                if (lin == null)
+                {
+                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('smtpemail',@prop)", new MySQLHelper.Parameter("prop", value));
+                }
+                else
+                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='smtpemail'", new MySQLHelper.Parameter("prop", value));
+                DataBuff = null;
+            }
+        }
+        /// <summary>
+        /// SMTP使用的密码
+        /// </summary>
+        public static string SMTPPassword
+        {
+            get
+            {
+                var line = DataBuff.Assemblage.Find(x => x.info == "smtppassword");
+                if (line != null)
+                    return line.First().Info;
+                return "SMTPPassword";
+            }
+            set
+            {
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "smtppassword");
+                if (lin == null)
+                {
+                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('smtppassword',@prop)", new MySQLHelper.Parameter("prop", value));
+                }
+                else
+                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='smtppassword'", new MySQLHelper.Parameter("prop", value));
+                DataBuff = null;
+            }
+        }
+        /// <summary>
+        /// SMTP使用的发送URL
+        /// </summary>
+        public static string SMTPURL
+        {
+            get
+            {
+                var line = DataBuff.Assemblage.Find(x => x.info == "smtpurl");
+                if (line != null)
+                    return line.First().Info;
+                return "SMTPURL";
+            }
+            set
+            {
+                Line lin = DataBuff.Assemblage.Find(x => x.info == "smtpurl");
+                if (lin == null)
+                {
+                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('smtpurl',@prop)", new MySQLHelper.Parameter("prop", value));
+                }
+                else
+                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='smtpurl'", new MySQLHelper.Parameter("prop", value));
+                DataBuff = null;
+            }
+        }
         /// <summary>
         /// 网站使用的主题 (Themes\..)
         /// </summary>

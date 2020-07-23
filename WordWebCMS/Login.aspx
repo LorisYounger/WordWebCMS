@@ -23,22 +23,22 @@
         <h1 style="text-align: center">注册</h1>
         <p id="errorboxregister" runat="server" class="errorbox" visible="false"></p>
         <p class="BoxLable">用户名</p>
-        <asp:TextBox runat="server" ID="TextBox1" class="singlelineinput"></asp:TextBox>
+        <asp:TextBox runat="server" ID="usernamereg" class="singlelineinput"></asp:TextBox>
         <p class="BoxLable">电子邮件</p>
-        <asp:TextBox runat="server" ID="TextBox6" class="singlelineinput"></asp:TextBox>
+        <asp:TextBox runat="server" ID="emailreg" class="singlelineinput"></asp:TextBox>
         <p class="BoxLable">密码</p>
-        <asp:TextBox runat="server" ID="TextBox2" TextMode="Password" class="singlelineinput"></asp:TextBox>
+        <asp:TextBox runat="server" ID="passwordreg" TextMode="Password" class="singlelineinput"></asp:TextBox>
         <p class="BoxLable">请计算: </p>
         <asp:Label runat="server" Text="0+0=" ID="CalregistKey"></asp:Label>
         <asp:TextBox runat="server" ID="checkregisterkey" class="singlelineinput"></asp:TextBox>
         <br>
-        <div id="emailcheck">
+        <div id="emailcheck" runat="server" visible="false">
             <p class="BoxLable">邮箱验证码</p>
             <asp:Button runat="server" Text="获取验证码" style="float: right; font-size: 50%;" />
             <asp:TextBox runat="server" ID="TextBox5" class="singlelineinput"></asp:TextBox>
             <br>
         </div>
-        <asp:Button runat="server" Text="注册" ID="button1" />
+        <asp:Button runat="server" Text="注册" ID="buttonregister" />
         <br />
         <br />
         <a href="?Action=Login">已有账户?立即登陆</a>
