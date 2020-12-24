@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.Linq;
-using System.Net.Http.Headers;
 using System.Web;
 using LinePutScript;
 using LinePutScript.SQLHelper;
@@ -78,7 +75,7 @@ namespace WordWebCMS
             if (lin == null)
                 return UserAuthorityDefault;
             return (AuthLevel)Convert.ToSByte(lin.First().info);
-        }//set => RAWUser.ExecuteNonQuery($"UPDATE user SET auth=@auth WHERE Uid=@uid", new MySQLHelper.Parameter("auth", (byte)value), new MySQLHelper.Parameter("uid", uID));
+        }//set => RAW.ExecuteNonQuery($"UPDATE user SET auth=@auth WHERE Uid=@uid", new MySQLHelper.Parameter("auth", (byte)value), new MySQLHelper.Parameter("uid", uID));
         /// <summary>
         /// 获得用户的权限辨识
         /// </summary>
@@ -87,7 +84,7 @@ namespace WordWebCMS
             Line lin = DataBuff.Assemblage.Find(x => x.info == "auth_" + uID.ToString());
             if (lin == null)
             {
-                RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "auth_" + uID.ToString()), new MySQLHelper.Parameter("prop", ((short)auth).ToString()));
+                RAW.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "auth_" + uID.ToString()), new MySQLHelper.Parameter("prop", ((short)auth).ToString()));
             }
             else
                 RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector=@sele", new MySQLHelper.Parameter("sele", "auth_" + uID.ToString()), new MySQLHelper.Parameter("prop", ((short)auth).ToString()));
@@ -109,7 +106,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "defaultuserauth");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "defaultuserauth"), new MySQLHelper.Parameter("prop", ((short)value).ToString()));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "defaultuserauth"), new MySQLHelper.Parameter("prop", ((short)value).ToString()));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector=@sele", new MySQLHelper.Parameter("sele", "defaultuserauth"), new MySQLHelper.Parameter("prop", ((short)value).ToString()));
@@ -179,7 +176,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "webtitle");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "webtitle"), new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "webtitle"), new MySQLHelper.Parameter("prop", value));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector=@sele", new MySQLHelper.Parameter("sele", "webtitle"), new MySQLHelper.Parameter("prop", value));
@@ -203,7 +200,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "websubtitle");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "websubtitle"), new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "websubtitle"), new MySQLHelper.Parameter("prop", value));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector=@sele", new MySQLHelper.Parameter("sele", "websubtitle"), new MySQLHelper.Parameter("prop", value));
@@ -227,7 +224,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "websideurl");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "websiteurl"), new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "websiteurl"), new MySQLHelper.Parameter("prop", value));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector=@sele", new MySQLHelper.Parameter("sele", "websiteurl"), new MySQLHelper.Parameter("prop", value));
@@ -251,7 +248,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "alowregister");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "alowregister"), new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "alowregister"), new MySQLHelper.Parameter("prop", value));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector=@sele", new MySQLHelper.Parameter("sele", "alowregister"), new MySQLHelper.Parameter("prop", value));
@@ -275,7 +272,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "enabledemail");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('enabledemail',@prop)", new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('enabledemail',@prop)", new MySQLHelper.Parameter("prop", value));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='enabledemail'",  new MySQLHelper.Parameter("prop", value));
@@ -300,7 +297,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "smtpemail");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('smtpemail',@prop)", new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('smtpemail',@prop)", new MySQLHelper.Parameter("prop", value));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='smtpemail'", new MySQLHelper.Parameter("prop", value));
@@ -324,7 +321,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "smtppassword");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('smtppassword',@prop)", new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('smtppassword',@prop)", new MySQLHelper.Parameter("prop", value));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='smtppassword'", new MySQLHelper.Parameter("prop", value));
@@ -348,7 +345,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "smtpurl");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('smtpurl',@prop)", new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('smtpurl',@prop)", new MySQLHelper.Parameter("prop", value));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='smtpurl'", new MySQLHelper.Parameter("prop", value));
@@ -372,7 +369,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "themes");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('themes',@prop)", new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('themes',@prop)", new MySQLHelper.Parameter("prop", value));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='themes'", new MySQLHelper.Parameter("prop", value));
@@ -397,7 +394,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "defaultuserauth");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('defaultreview',@prop)", new MySQLHelper.Parameter("prop", ((short)value).ToString()));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('defaultreview',@prop)", new MySQLHelper.Parameter("prop", ((short)value).ToString()));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='defaultreview'", new MySQLHelper.Parameter("prop", ((short)value).ToString()));
@@ -421,7 +418,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "defaultpost");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('defaultpost',@prop)", new MySQLHelper.Parameter("prop", ((short)value).ToString()));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('defaultpost',@prop)", new MySQLHelper.Parameter("prop", ((short)value).ToString()));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='defaultpost'", new MySQLHelper.Parameter("prop", ((short)value).ToString()));
@@ -445,7 +442,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "toplogo");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('toplogo',@prop)", new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('toplogo',@prop)", new MySQLHelper.Parameter("prop", value));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='toplogo'", new MySQLHelper.Parameter("prop", value));
@@ -471,7 +468,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "menulist");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('menulist',@prop)", new MySQLHelper.Parameter("prop", data.ToString()));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('menulist',@prop)", new MySQLHelper.Parameter("prop", data.ToString()));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='menulist'", new MySQLHelper.Parameter("prop", data.ToString()));
@@ -497,7 +494,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "sidebar1");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('sidebar1',@prop)", new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('sidebar1',@prop)", new MySQLHelper.Parameter("prop", value));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='sidebar1'", new MySQLHelper.Parameter("prop", value));
@@ -521,7 +518,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "sidebar2");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('sidebar2',@prop)", new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('sidebar2',@prop)", new MySQLHelper.Parameter("prop", value));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='sidebar2'", new MySQLHelper.Parameter("prop", value));
@@ -545,7 +542,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "sidebar3");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('sidebar3',@prop)", new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('sidebar3',@prop)", new MySQLHelper.Parameter("prop", value));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='sidebar3'", new MySQLHelper.Parameter("prop", value));
@@ -569,7 +566,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "webinfo");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('webinfo',@prop)", new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('webinfo',@prop)", new MySQLHelper.Parameter("prop", value));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='webinfo'", new MySQLHelper.Parameter("prop", value));
@@ -593,7 +590,7 @@ namespace WordWebCMS
                 Line lin = DataBuff.Assemblage.Find(x => x.info == "nomalindex");
                 if (lin == null)
                 {
-                    RAWUser.ExecuteNonQuery($"INSERT INTO setting VALUES ('nomalindex',@prop)", new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('nomalindex',@prop)", new MySQLHelper.Parameter("prop", value));
                 }
                 else
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='nomalindex'", new MySQLHelper.Parameter("prop", value));

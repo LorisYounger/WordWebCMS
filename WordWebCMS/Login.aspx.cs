@@ -57,7 +57,7 @@ namespace WordWebCMS
 
             //看看action是注册还是登陆
             if (Request.QueryString["Action"] == "Register")
-            {                
+            {
                 divregister.Visible = true;
                 CalregistKey.Text = qus;
                 if (Setting.AlowRegister == false)
@@ -68,11 +68,13 @@ namespace WordWebCMS
                     CalregistKey.Enabled = false;
                     passwordreg.Enabled = false;
                 }
+                LHeader.Text = LHeader.Text.Replace("<!--WWC:head-->", $"<title>{Setting.WebTitle} - 注册</title>");
             }
             else
             {
                 divlogin.Visible = true;
                 CalloginKey.Text = qus;
+                LHeader.Text = LHeader.Text.Replace("<!--WWC:head-->", $"<title>{Setting.WebTitle} - 登录</title>");
             }
 
             //Footer
@@ -99,7 +101,7 @@ namespace WordWebCMS
             }
             else if (int.TryParse(checkloginkey.Text, out int ans))
             {
-                if (Convert.ToInt32(Session[MasterKey.Text + "ans"]) == ans)
+                if ((int)Session[MasterKey.Text + "ans"] == ans)
                 {
                     //全部正确,开始判断能否登陆
                     if (usernamelogin.Text == "")
@@ -130,9 +132,12 @@ namespace WordWebCMS
                         errorboxlogin.Visible = true;
                         errorboxlogin.InnerHtml = "未找到账号信息,请检查输入或<a href=\"?Action=Register\">注册新账号</a>";
                         //由于涉及到了判断,清空验证码要求重新输入
-                        Session[MasterKey.Text + "qus"] = "";
-                        Session[MasterKey.Text + "ans"] = "";
-                        MasterKey.Text = "";
+                        string qus = RndQuestion(out int anser);
+                        string SessionID = Rnd.Next().ToString("x");
+                        MasterKey.Text = SessionID;
+                        Session[SessionID + "qus"] = qus;
+                        Session[SessionID + "ans"] = anser;
+                        CalloginKey.Text = qus;
 
                         if (Application["BAN" + ip] == null)
                         {
@@ -150,9 +155,12 @@ namespace WordWebCMS
                         errorboxlogin.Visible = true;
                         errorboxlogin.InnerText = "密码输入错误,请检查输入";
                         //由于涉及到了判断,清空验证码要求重新输入
-                        Session[MasterKey.Text + "qus"] = "";
-                        Session[MasterKey.Text + "ans"] = "";
-                        MasterKey.Text = "";
+                        string qus = RndQuestion(out int anser);
+                        string SessionID = Rnd.Next().ToString("x");
+                        MasterKey.Text = SessionID;
+                        Session[SessionID + "qus"] = qus;
+                        Session[SessionID + "ans"] = anser;
+                        CalloginKey.Text = qus;
 
                         if (Application["BAN" + ip] == null)//验证密码错误的惩罚多来点
                         {
@@ -167,8 +175,8 @@ namespace WordWebCMS
                     //登陆成功: 把数据存Session
 
                     Session["User"] = usr;
-                    Response.Write($"<script language='javascript'>alert('登陆成功!\n欢迎回来,{usr.UserName}');window.open('{(Request.UrlReferrer == null || Request.UrlReferrer.ToString().ToLower().Contains("login.aspx") ? "\\Index.aspx" : Request.UrlReferrer.ToString())}')</script>");
 
+                  Response.Write($"<script language='javascript'>alert('登陆成功!\\n欢迎回来,{usr.UserName}');window.location.href='{(Request.UrlReferrer == null || Request.UrlReferrer.ToString().ToLower().Contains("login.aspx") ? "\\index.aspx" : Request.UrlReferrer.ToString())}'</script>");
                 }
                 else
                 {

@@ -10,8 +10,8 @@ CREATE TABLE `setting` ( `selector` VARCHAR(64) NOT NULL COMMENT '设置项目' 
 CREATE TABLE `users` ( `Uid` INT NOT NULL AUTO_INCREMENT COMMENT '用户id' , `name` VARCHAR(30) NOT NULL COMMENT '用户名' , `email` VARCHAR(40) NOT NULL COMMENT '电子邮件' , `password` VARCHAR(32) NOT NULL COMMENT '密码md5s' , `isroot` BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是超级管理员' , `money` INT NOT NULL DEFAULT '0' COMMENT '金钱' , `exp` INT NOT NULL DEFAULT '0' COMMENT '经验值' , `lv` INT NULL DEFAULT '1' COMMENT '等级' , `headport` TINYTEXT NULL DEFAULT NULL COMMENT '头像url' , PRIMARY KEY (`Uid`), INDEX (`name`)) ENGINE = InnoDB COMMENT = '用户表';
 
 #创建第一个默认用户
-#账号 admin 密码 WWCMSpassword    Md5s=>5b3bc38e260129ec8a2f478f64b6b4a7
-INSERT INTO `users` (`Uid`, `name`, `email`, `password`, `isroot`, `money`, `exp`, `lv`, `headport`) VALUES (NULL, 'admin', 'admin@exlb.org', '5b3bc38e260129ec8a2f478f64b6b4a7', '1', '100', '0', '10', NULL);
+#账号 admin 密码 WWCMSpassword    Md5s=> bae82cfd819d8819e1011e944973af68
+INSERT INTO `users` (`Uid`, `name`, `email`, `password`, `isroot`, `money`, `exp`, `lv`, `headport`) VALUES (NULL, 'admin', 'admin@exlb.org', 'bae82cfd819d8819e1011e944973af68', '1', '100', '0', '10', NULL);
 
 #--------------------------------------------
 

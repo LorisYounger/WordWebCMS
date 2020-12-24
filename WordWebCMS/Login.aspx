@@ -42,6 +42,6 @@
         <br />
         <br />
         <a href="?Action=Login">已有账户?立即登陆</a>
-    </div>
+    </div>    
 </form>
 <asp:Literal ID="LFooter" runat="server" />
