@@ -13,6 +13,10 @@ namespace WordWebCMS
         {
             //Important:把缓存交给设置
             Setting.Application = this.Application;
+
+            if (Application["MasterHeader"] == null)
+                Application["MasterHeader"] = SMaster.GetHeaderHTML();
+            LHeader.Text = ((string)Application["MasterHeader"]);
         }
     }
 }

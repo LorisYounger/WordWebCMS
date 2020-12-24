@@ -74,6 +74,9 @@ namespace WordWebCMS
                     return;
                 }
             }
+            //网站标题
+            LHeader.Text = LHeader.Text.Replace("<!--WWC:head-->", $"<title>{post.Name} - {Setting.WebTitle}</title>");
+
             if (Application["posttopost" + pID.ToString()] == null)
             {
                 Application["posttopost" + pID.ToString()] = post.ToPost();
