@@ -256,7 +256,7 @@ namespace WordWebCMS
             }
         }
         /// <summary>
-        /// 开启邮件功能 需要设置正确的SMTP才能使用
+        /// 指示有无启用邮件功能 需要设置正确的SMTP才能使用
         /// </summary>
         public static bool EnabledEmail
         {
@@ -281,7 +281,7 @@ namespace WordWebCMS
         }
 
         /// <summary>
-        /// SMTP使用的邮箱名
+        /// 邮箱SMTP使用的邮箱名
         /// </summary>
         public static string SMTPEmail
         {
@@ -305,7 +305,7 @@ namespace WordWebCMS
             }
         }
         /// <summary>
-        /// SMTP使用的密码
+        /// 邮箱SMTP使用的密码
         /// </summary>
         public static string SMTPPassword
         {
@@ -329,7 +329,7 @@ namespace WordWebCMS
             }
         }
         /// <summary>
-        /// SMTP使用的发送URL
+        /// 邮箱SMTP服务器的链接
         /// </summary>
         public static string SMTPURL
         {
@@ -559,7 +559,7 @@ namespace WordWebCMS
                 var line = DataBuff.Assemblage.Find(x => x.info == "webinfo");
                 if (line != null)
                     return line.First().Info;
-                return $"Copyright {DateTime.Now.Year} , {WebTitle} , Power by WordWebCMS";
+                return $"Copyright {DateTime.Now.Year} , {WebTitle} , Power by <a href=\"https://github.com/LorisYounger/WordWebCMS\">WordWebCMS";
             }
             set
             {

@@ -154,7 +154,7 @@ namespace WordWebCMS
         /// <param name="mailBody">邮件内容</param>
         /// <param name="sysEmail">使用的系统邮箱</param>
         /// <param name="sysEmailPwd">系统邮箱密码</param>
-        /// <param name="smtpUrl">系统邮箱SMTP的URL</param>
+        /// <param name="smtpUrl">系统邮箱SMTP服务器的链接</param>
         /// <returns>返回空字符串代表成功，否则为错误信息字符串</returns>
         public static string SendEmail(string[] sendToList, string subject, string mailBody,
                                 string sysEmail, string sysEmailPwd, string smtpUrl)

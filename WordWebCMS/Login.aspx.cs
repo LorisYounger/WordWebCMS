@@ -68,6 +68,11 @@ namespace WordWebCMS
                     CalregistKey.Enabled = false;
                     passwordreg.Enabled = false;
                 }
+                else if (Setting.EnabledEmail)
+                {
+                    emailcheck.Visible = true;//只有开启发送邮件功能,会发送验证码
+
+                }
                 LHeader.Text = LHeader.Text.Replace("<!--WWC:head-->", $"<title>{Setting.WebTitle} - 注册</title>");
             }
             else
@@ -124,6 +129,7 @@ namespace WordWebCMS
                         errorboxlogin.Visible = true;
                         errorboxlogin.InnerText = "由于错误次数过多,今日已无法重新尝试登陆";
                         return;//TODO:永久性的黑名单,使用数据库
+                        //TODO:储存错误尝试到数据库,给后台看
                     }
 
                     Users usr = Users.GetUser(usernamelogin.Text);
@@ -192,5 +198,6 @@ namespace WordWebCMS
                 errorboxlogin.InnerText = "验证码为纯数字,请检查输入";
             }
         }
+       
     }
 }

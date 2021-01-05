@@ -2939,6 +2939,11 @@
             Gets the character position before the indent occurred.
             </summary>
         </member>
+        <member name="P:Markdig.Parsers.BlockProcessor.IsLazy">
+            <summary>
+            Gets a boolean indicating whether the current line being parsed is lazy continuation.
+            </summary>
+        </member>
         <member name="P:Markdig.Parsers.BlockProcessor.OpenedBlocks">
             <summary>
             Gets the current stack of <see cref="T:Markdig.Syntax.Block"/> being processed.
@@ -4990,6 +4995,11 @@
             A base class for container for <see cref="T:Markdig.Syntax.Inlines.Inline"/>.
             </summary>
             <seealso cref="T:Markdig.Syntax.Inlines.Inline" />
+        </member>
+        <member name="P:Markdig.Syntax.Inlines.ContainerInline.ParentBlock">
+            <summary>
+            Gets the parent block of this inline.
+            </summary>
         </member>
         <member name="P:Markdig.Syntax.Inlines.ContainerInline.FirstChild">
             <summary>

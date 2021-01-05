@@ -4,21 +4,22 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Web;
 using System.Web.SessionState;
+using System.Web.UI;
 
 namespace WordWebCMS
 {
     /// <summary>
     /// 作为动态的ajax获取
     /// </summary>
-    public class AJAX : IHttpHandler, IRequiresSessionState
+    public class AJAX : Page, IHttpHandler, IRequiresSessionState
     {
 
-        public void ProcessRequest(HttpContext context)
+        public override void ProcessRequest(HttpContext context)
         {
             context.Response.ContentType = "text/plain";
             switch (context.Request.QueryString["action"])
             {
-                case "postlike":
+                case "postlike"://点赞
                     int id;
                     if (!int.TryParse(context.Request.QueryString["ID"], out id))
                         break;
@@ -54,16 +55,17 @@ namespace WordWebCMS
                             $"background:url(Picture/like.png);background-size:cover;\" />");
                     }
                     return;
+                case "regemail"://注册时发验证EMAIL
+                    string MasterKey = context.Request.QueryString["ID"];
+                    //if (Session[MasterKey + "ans"] == null)
+                    //{
+                    //    context.Response.Write("缓存失效");
+                    //    return;
+                    //}
+                    context.Response.Write("发送成功:" + MasterKey + context.Request.QueryString["email"]);
+                    return;
             }
             context.Response.Write("错误的AJAX调用");
-        }
-
-        public bool IsReusable
-        {
-            get
-            {
-                return false;
-            }
         }
     }
 }
