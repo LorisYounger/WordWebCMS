@@ -18,7 +18,7 @@ namespace WordWebCMS
 #if !DEBUG
             if (Session["User"] != null)
                 //已经登陆过了,直接跳转到用户信息页面
-                Response.Redirect(Setting.WebsiteURL + "/UserInfo.aspx" + type);
+                Response.Redirect(Setting.WebsiteURL + "/UserInfo.aspx");
 #endif
 
             //Header
@@ -54,12 +54,13 @@ namespace WordWebCMS
             //    errorboxregister.InnerText = errormessage;
             //}
 
+            CalloginKey.Text = qus;
 
             //看看action是注册还是登陆
             if (Request.QueryString["Action"] == "Register")
             {
-                divregister.Visible = true;
                 CalregistKey.Text = qus;
+                divregister.Visible = true;
                 if (Setting.AlowRegister == false)
                 {//如果不允许注册
                     errorboxregister.Visible = true;
@@ -78,7 +79,6 @@ namespace WordWebCMS
             else
             {
                 divlogin.Visible = true;
-                CalloginKey.Text = qus;
                 LHeader.Text = LHeader.Text.Replace("<!--WWC:head-->", $"<title>{Setting.WebTitle} - 登录</title>");
             }
 
@@ -182,7 +182,7 @@ namespace WordWebCMS
 
                     Session["User"] = usr;
 
-                  Response.Write($"<script language='javascript'>alert('登陆成功!\\n欢迎回来,{usr.UserName}');window.location.href='{(Request.UrlReferrer == null || Request.UrlReferrer.ToString().ToLower().Contains("login.aspx") ? "\\index.aspx" : Request.UrlReferrer.ToString())}'</script>");
+                    Response.Write($"<script language='javascript'>alert('登陆成功!\\n欢迎回来,{usr.UserName}');window.location.href='{(Request.UrlReferrer == null || Request.UrlReferrer.ToString().ToLower().Contains("login.aspx") ? "\\index.aspx" : Request.UrlReferrer.ToString())}'</script>");
                 }
                 else
                 {
@@ -198,6 +198,102 @@ namespace WordWebCMS
                 errorboxlogin.InnerText = "验证码为纯数字,请检查输入";
             }
         }
-       
+
+        protected void buttonregister_Click(object sender, EventArgs e)
+        {
+            if (MasterKey.Text == "" || Session[MasterKey.Text + "ans"] == null)
+            //连接丢失,请重试
+            {
+                errorboxregister.Visible = true;
+                errorboxregister.InnerText = "验证码缓存已丢失,请重试";
+            }
+            else if (Setting.AlowRegister == false)
+            {
+                errorboxregister.Visible = true;
+                errorboxregister.InnerHtml = "当前网站未开放注册,如需注册请联系网站管理员<br/>如已有账户,请<a href=\"?Action=Login\">前往登陆</a>";
+                buttonregister.Enabled = false;
+                CalregistKey.Enabled = false;
+                passwordreg.Enabled = false;
+            }
+            else if (int.TryParse(checkregisterkey.Text, out int ans))
+            {
+                if ((int)Session[MasterKey.Text + "ans"] == ans)
+                {
+                    string ip = HttpContext.Current.Request.UserHostAddress;
+
+                    if (Application["BAN" + ip] != null && (int)Application["BAN" + ip] > 11)
+                    {
+                        errorboxregister.Visible = true;
+                        errorboxregister.InnerText = "由于错误次数过多,今日已无法重新尝试登陆";
+                        return;//TODO:永久性的黑名单,使用数据库
+                        //TODO:储存错误尝试到数据库,给后台看
+                    }
+
+                    //判断邮箱激活
+                    if (Setting.EnabledEmail)
+                    {
+                        if (string.IsNullOrEmpty(emailcode.Text) || !int.TryParse(emailcode.Text, out int emc))
+                        {
+                            errorboxregister.Visible = true;
+                            errorboxregister.InnerText = "请输入邮件验证码";
+                            return;
+                        }
+                        else if (emc != (int)Session[MasterKey.Text + "mail"])
+                        {
+                            errorboxregister.Visible = true;
+                            errorboxregister.InnerText = "邮件验证码有误,请重试";
+                            if (Application["BAN" + ip] == null)
+                            {
+                                Application["BAN" + ip] = 1;
+                            }
+                            else
+                            {
+                                Application["BAN" + ip] = (int)Application["BAN" + ip] + 1;
+                            }
+                            return;
+                        }
+                    }
+
+                    //全部正确,开始判断注册
+                    if (usernamereg.Text == "")
+                    {
+                        errorboxregister.Visible = true;
+                        errorboxregister.InnerText = "请输入账号";
+                        return;
+                    }
+                    if (passwordreg.Text == "")
+                    {
+                        errorboxregister.Visible = true;
+                        errorboxregister.InnerText = "请输入密码";
+                        return;
+                    }
+
+                    Users usr = Users.GetUser(usernamereg.Text);
+                    if (usr == null)
+                        usr = Users.GetUser(emailreg.Text);
+                    if (usr != null)
+                    {
+                        errorboxregister.Visible = true;
+                        errorboxregister.InnerHtml = "该用户名或邮件账户已存在";                        
+                        return;
+                    }
+                    //开始注册
+                    usr = Users.CreatUser(usernamereg.Text, emailreg.Text, passwordreg.Text);
+                    //把数据存Session
+                    Session["User"] = usr;
+                    Response.Write($"<script language='javascript'>alert('注册成功!\\n欢迎新用户,{usr.UserName}');window.location.href='{(Request.UrlReferrer == null || Request.UrlReferrer.ToString().ToLower().Contains("login.aspx") ? "\\index.aspx" : Request.UrlReferrer.ToString())}'</script>");
+                }
+                else
+                {
+                    errorboxregister.Visible = true;
+                    errorboxregister.InnerText = "验证码错误,请重新计算";
+                }
+            }
+            else
+            {
+                errorboxregister.Visible = true;
+                errorboxregister.InnerText = "验证码为纯数字,请检查输入";
+            }
+        }
     }
 }

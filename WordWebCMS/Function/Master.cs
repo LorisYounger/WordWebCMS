@@ -26,10 +26,11 @@ namespace WordWebCMS
 
         }
         public static string ReplaceHTML(string html)
-            => html.Replace("<!--WWC:themepath-->", $"Themes/{Setting.Themes}").Replace("<!--WWC:webinfo-->",Setting.WebInfo)
+            => html.Replace("<!--WWC:themepath-->", $"Themes/{Setting.Themes}").Replace("<!--WWC:webinfo-->", Setting.WebInfo)
                 .Replace("<!--WWC:webtitle-->", Setting.WebTitle).Replace("<!--WWC:websubtitle-->", Setting.WebSubTitle)
                 .Replace("<!--WWC:menuitem-->", GetHTML.MenuItem()).Replace("<!--WWC:websiteurl-->", Setting.WebsiteURL)
                 .Replace("<!--WWC:sidebar1-->", Setting.SideBar1).Replace("<!--WWC:sidebar2-->", Setting.SideBar2).Replace("<!--WWC:sidebar3-->", Setting.SideBar3)
+            .Replace("<!--WWC:icon-->", Setting.Icon)
             ;
         public static string GetHeaderHTML()
             => ReplaceHTML(System.IO.File.ReadAllText(HttpContext.Current.Server.MapPath($"Themes/{Setting.Themes}/header.html")));

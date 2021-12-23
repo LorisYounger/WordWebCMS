@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Web;
 using System.Web.SessionState;
 using System.Web.UI;
+using static WordWebCMS.Function;
 
 namespace WordWebCMS
 {
@@ -57,12 +58,48 @@ namespace WordWebCMS
                     return;
                 case "regemail"://注册时发验证EMAIL
                     string MasterKey = context.Request.QueryString["ID"];
-                    //if (Session[MasterKey + "ans"] == null)
-                    //{
-                    //    context.Response.Write("缓存失效");
-                    //    return;
-                    //}
-                    context.Response.Write("发送成功:" + MasterKey + context.Request.QueryString["email"]);
+                    string anser = context.Request.QueryString["key"];
+                    string email = context.Request.QueryString["email"];
+                    if (Session[MasterKey + "ans"] == null)
+                    //连接丢失,请重试
+                    {
+                        context.Response.Write("验证码缓存已丢失,请刷新重试");
+                    }
+                    else if (string.IsNullOrEmpty(anser))
+                    {
+                        context.Response.Write("验证码不能为空");
+                    }
+                    else if (!int.TryParse(anser, out int ans))
+                    {
+                        context.Response.Write("验证码为纯数字,请检查输入");
+                    }
+                    else if (string.IsNullOrEmpty(email))
+                    {
+                        context.Response.Write("请输入邮件账号");
+                    }
+                    else if ((int)Session[MasterKey + "ans"] == ans)
+                    {
+                        if (!(Session["MailTimeing"] == null))
+                        {
+                            int waitsec = (int)DateTime.Now.Subtract((DateTime)Session["MailTimeing"]).TotalSeconds;
+                            if (waitsec < 60)
+                            {
+                                context.Response.Write($"请等待{60 - waitsec}秒后重试");
+                                return;
+                            }
+                        }
+                        Session[MasterKey + "mail"] = Rnd.Next(100000, 999999);
+                        string msg = SendEmail(Setting.WebTitle + " 邮箱验证码", $"感谢您使用 {Setting.WebTitle}\n您的激活码为: {Session[MasterKey + "mail"]}\n该仅用于注册,请不要将该验证码泄露给他人. \n如果此活动不是您本人操作,请无视该邮件", email);
+                        if (string.IsNullOrEmpty(msg))
+                            context.Response.Write("邮件发送成功");
+                        else
+                            context.Response.Write("邮件发送失败:" + msg);
+                        Session["MailTimeing"] = DateTime.Now;
+                    }
+                    else
+                    {
+                        context.Response.Write("验证码错误,请重新计算");
+                    }
                     return;
             }
             context.Response.Write("错误的AJAX调用");

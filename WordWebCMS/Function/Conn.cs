@@ -17,11 +17,7 @@ namespace WordWebCMS
         /// <summary>
         /// 该系统的全部数据 (包括文章啥的)
         /// </summary>
-        public static MySQLHelper RAW = new MySQLHelper(ConfigurationManager.ConnectionStrings["connStr"].ConnectionString);
-
-
-
-        
+        public static MySQLHelper RAW = new MySQLHelper(ConfigurationManager.ConnectionStrings["connStr"].ConnectionString);        
 
     }
 }

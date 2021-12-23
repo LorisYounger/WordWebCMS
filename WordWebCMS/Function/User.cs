@@ -14,7 +14,7 @@ namespace WordWebCMS
     //用户表格式:
     //   -users
     //     Uid(int)|name(string30)|email(string40)|password(string32)|isroot(bool)|money(int)|exp(int)|lv(int)|headport(tinytext)|
-    //     用户id  |    用户名    |   电子邮件    |      密码md5s    |是超级管理员|   金钱   | 经验值 | 等级  |      头像url     |
+    //      用户id  |    用户名    |   电子邮件    |      密码md5s     |是超级管理员 |   金钱   | 经验值 | 等级  |      头像url     |
     //     主键递增|  --------------------------------------------   |  false     |   0      |  0     | 1     |        空        |
     //建议手动在sql新建一个账户作为超级管理员=>admin
     public class Users
@@ -48,7 +48,7 @@ namespace WordWebCMS
         /// </summary>
         public static Users CreatUser(string UserName, string Email, string Password)
         {//注意 此方法并没有检查是否存在该用户
-            RAWUser.ExecuteNonQuery($"INSERT INTO users VALUES (NULL,@usrname,@email,@pw)", new MySQLHelper.Parameter("usrname", UserName),
+            RAWUser.ExecuteNonQuery($"INSERT INTO users VALUES (NULL,@usrname,@email,@pw,0,{NewUserMoney},0,1,NULL)", new MySQLHelper.Parameter("usrname", UserName),
                 new MySQLHelper.Parameter("email", Email), new MySQLHelper.Parameter("pw", Function.MD5salt(Password)));
             return GetUser(RAW.ExecuteQuery("select LAST_INSERT_ID()").First().InfoToInt);
         }
