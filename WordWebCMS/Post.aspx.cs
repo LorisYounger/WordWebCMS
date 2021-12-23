@@ -89,7 +89,7 @@ namespace WordWebCMS
 
             LCatLink.Text = $"<span class=\"nav-previous\">张贴在<a href=\"{Setting.WebsiteURL}/Index.aspx?class={post.Classify}\" rel=\"category tag\">{post.Classify}</a></span>";
             Lpostlike.Text = $"{post.Likes}个赞<button ID=\"Like\" type=\"button\" onclick=\"LikePost({pID})\" style=\"border-style: none; width: 30px; height: 30px;" +
-                $"{(Application[$"Likep{pID}u{usr.uID}"] == null ? "background:url(Picture/like.png);" : "background:url(Picture/likeup.png);")}background-size:cover;\" />";
+                $"{(usr== null || (Application[$"Likep{pID}u{usr.uID}"] == null) ? "background:url(Picture/like.png);" : "background:url(Picture/likeup.png);")}background-size:cover;\" />";
 
 
             if (Application["postreview" + pID.ToString()] == null)

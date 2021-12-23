@@ -8,9 +8,9 @@ namespace WordWebCMS
 {//TODO:摘录要清空html
     //文章表格式:select LAST_INSERT_ID()  gifts
     //   -post 
-    //     Pid(int)|name(string100)|content(midtext)|author(int)|excerpt(string400)|postdate(date)|modifydate(date)|classify(string200)|state(byte)|attachment(tinytext)|password(string32) |   anzhtml  |allowcomments|readers(int)|likes(int)|
-    //     文章id  |    文章名     |      内容      |   作者id  |   摘录/简介      |   发布日期   |    修改日期    |     分类目录      |  文章类型 |         附图       |      密码md5s     |是否分析html|   允许评论  |   阅读量   |  赞同数  |
-    //     主键递增|   --------------------------------------------------------------------------------------------------------------- |   0-默认  |   空-无图片 or url |   空-不需要密码   |    false   |    true     |    0       |   0      |
+    //     Pid(int)|name(string100)|content(midtext)|author(int)|excerpt(string400)|postdate(date)|modifydate(date)|classify(string200)|state(sbyte)|attachment(tinytext)|password(string32) |   anzhtml  |allowcomments|readers(int)|likes(int)|
+    //     文章id  |    文章名      |      内容      |   作者id  |   摘录/简介      |   发布日期    |    修改日期     |     分类目录      |   文章类型  |         附图       |      密码md5s      |是否分析html|   允许评论   |   阅读量    |  赞同数  |
+    //     主键递增|   --------------------------------------------------------------------------------------------------------------- |    0-默认   |   空-无图片 or url |   空-不需要密码    |    false   |    true      |    0       |   0      |
     public class Posts
     {
         #region "辅助构建函数"
@@ -466,10 +466,10 @@ namespace WordWebCMS
             set
             {
                 databf = null;
-                RAW.ExecuteNonQuery($"UPDATE post SET state=@state WHERE Pid=@pid", new MySQLHelper.Parameter("state", ((short)value).ToString()), new MySQLHelper.Parameter("pid", pID));
+                RAW.ExecuteNonQuery($"UPDATE post SET state=@state WHERE Pid=@pid", new MySQLHelper.Parameter("state", (sbyte)value), new MySQLHelper.Parameter("pid", pID));
             }
         }
-        public enum PostState : byte
+        public enum PostState : sbyte
         {
             /// <summary>
             /// 封禁/删除 不会被显示

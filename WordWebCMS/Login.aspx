@@ -33,18 +33,17 @@
         <asp:Label runat="server" Text="0+0=" ID="CalregistKey"></asp:Label>
         <asp:TextBox runat="server" ID="checkregisterkey" class="singlelineinput"></asp:TextBox>
         <br>
-        <div id="emailcheck" runat="server" style="display: none" visible="false">
+        <div id="emailcheck" runat="server" visible="false">
             <p class="BoxLable">邮箱验证码</p>
             <button id="bottonsendregemail" style="float: right; font-size: 50%;" onclick="sendregemail()" type="button">获取验证码</button>
             <asp:TextBox runat="server" ID="emailcode" class="singlelineinput"></asp:TextBox>
             <br>
         </div>
-        <asp:Button runat="server" Text="注册" ID="buttonregister" />
+        <asp:Button runat="server" Text="注册" ID="buttonregister" OnClick="buttonregister_Click" />
         <br />
         <br />
         <a href="?Action=Login">已有账户?立即登陆</a>
         <a href="?Action=Forget" style="text-align: right">忘记密码?通过邮件找回</a>
-
     </div>
 </form>
 <script type="text/javascript">
@@ -65,7 +64,7 @@
                 document.getElementById("bottonsendregemail").innerText = xmlhttp.responseText;
             }
         }
-        xmlhttp.open("GET", "ajax.ashx?action=regemail&ID=" + document.getElementById("MasterKey").innerHTML + "&email=" + document.getElementById("emailreg").innerHTML, true);
+        xmlhttp.open("GET", "ajax.ashx?action=regemail&ID=" + document.getElementById("MasterKey").value + "&email=" + document.getElementById("emailreg").value + "&key=" + document.getElementById("checkregisterkey").value, true);
         xmlhttp.send();
     }
 </script>

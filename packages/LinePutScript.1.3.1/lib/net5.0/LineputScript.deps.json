@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v5.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v5.0": {
+      "LineputScript/1.1.4": {
+        "runtime": {
+          "LineputScript.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "LineputScript/1.1.4": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

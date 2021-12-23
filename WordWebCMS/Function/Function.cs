@@ -152,7 +152,7 @@ namespace WordWebCMS
         /// <param name="sendToList">收件人列表</param>
         /// <param name="subject">邮件主题</param>
         /// <param name="mailBody">邮件内容</param>
-        /// <param name="sysEmail">使用的系统邮箱</param>
+        /// <param name="sysEmail">使用的系统邮箱号</param>
         /// <param name="sysEmailPwd">系统邮箱密码</param>
         /// <param name="smtpUrl">系统邮箱SMTP服务器的链接</param>
         /// <returns>返回空字符串代表成功，否则为错误信息字符串</returns>
@@ -227,10 +227,9 @@ namespace WordWebCMS
 
                     SmtpClient smtp = new SmtpClient(smtpUrl);
                     smtp.Credentials = new System.Net.NetworkCredential(sysEmail, sysEmailPwd);
-
-                    //smtp.Port = 25;
+                    //smtp.Port = 465;
                     //smtp.Timeout = 180000;//3分钟,默认为100秒
-                    //smtp.EnableSsl = false;
+                    //smtp.EnableSsl = true;
 
                     smtp.Send(mail);
 
@@ -244,7 +243,7 @@ namespace WordWebCMS
             }
             catch (Exception ex)
             {
-                return $"邮件发送异常:{ex.Message}\n在{ex.TargetSite},{ex.StackTrace}";        
+                return $"邮件发送异常:{ex.Message}\n在{ex.TargetSite},{ex.StackTrace}";
             }
         }
         /// <summary>
