@@ -231,6 +231,32 @@ namespace WordWebCMS
                 DataBuff = null;
             }
         }
+
+        /// <summary>
+        /// 联系方式 用户联系客服等
+        /// </summary>
+        public static string ContactLink
+        {
+            get
+            {
+                var line = DataBuff.FindLineInfo("contactlink");
+                if (line != null)
+                    return line.First().Info;
+                return "<a href=\"/\">联系信息</a>";
+            }
+            set
+            {
+                Line lin = DataBuff.FindLineInfo("contactlink");
+                if (lin == null)
+                {
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "contactlink"), new MySQLHelper.Parameter("prop", value));
+                }
+                else
+                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector=@sele", new MySQLHelper.Parameter("sele", "contactlink"), new MySQLHelper.Parameter("prop", value));
+                DataBuff = null;
+            }
+        }
+
         /// <summary>
         /// 允许注册
         /// </summary>
@@ -329,7 +355,7 @@ namespace WordWebCMS
                 DataBuff = null;
             }
         }
-  
+
         /// <summary>
         /// 邮箱SMTP使用的密码
         /// </summary>
@@ -402,7 +428,9 @@ namespace WordWebCMS
                 DataBuff = null;
             }
         }
-
+        /// <summary>
+        /// 网站图标地址
+        /// </summary>
         public static string Icon
         {
             get
@@ -524,7 +552,6 @@ namespace WordWebCMS
             }
         }
 
-
         /// <summary>
         /// 用户自定义界面内容1(HTML)
         /// </summary>
@@ -644,6 +671,37 @@ namespace WordWebCMS
                     RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='nomalindex'", new MySQLHelper.Parameter("prop", value));
                 DataBuff = null;
             }
+        }
+
+
+
+        /// <summary>
+        /// 为IP提供等级警告封禁
+        /// </summary>
+        /// <param name="ip">封禁IP</param>
+        /// <param name="level">封禁等级</param>
+        public static void BanIP(string ip, int level)
+        {
+            if (Application["BAN" + ip] == null)
+            {
+                Application["BAN" + ip] = level;
+            }
+            else
+            {
+                Application["BAN" + ip] = (int)Application["BAN" + ip] + level;
+            }
+        }
+        /// <summary>
+        /// 判断该ip是否能够通过验证
+        /// </summary>
+        /// <param name="ip">IP</param>
+        /// <param name="maxlevel">允许最多的封禁等级</param>
+        /// <returns></returns>
+        public static bool BanIPCheck(string ip, int maxlevel = 10)
+        {
+            return Application["BAN" + ip] != null && (int)Application["BAN" + ip] > maxlevel;
+            //TODO:永久性的黑名单,使用数据库
+            //TODO:储存错误尝试到数据库,给后台看
         }
     }
 }

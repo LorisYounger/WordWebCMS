@@ -89,7 +89,7 @@ namespace WordWebCMS
                             }
                         }
                         Session[MasterKey + "mail"] = Rnd.Next(100000, 999999);
-                        string msg = SendEmail(Setting.WebTitle + " 邮箱验证码", $"感谢您使用 {Setting.WebTitle}\n您的激活码为: {Session[MasterKey + "mail"]}\n该仅用于注册,请不要将该验证码泄露给他人. \n如果此活动不是您本人操作,请无视该邮件", email);
+                        string msg = SendEmail(Setting.WebTitle + " 邮箱验证码", $"感谢您使用 {Setting.WebTitle}\n您的激活码为: {Session[MasterKey + "mail"]}\n该激活码仅用于注册,请不要将该验证码泄露给他人. \n如果此活动不是您本人操作,请无视该邮件\n如需帮助,请联系 {Setting.ContactLink}", email);
                         if (string.IsNullOrEmpty(msg))
                             context.Response.Write("邮件发送成功");
                         else

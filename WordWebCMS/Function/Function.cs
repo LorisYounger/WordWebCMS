@@ -105,14 +105,14 @@ namespace WordWebCMS
             .Replace("<h1", "<span class=\"down-h1\"").Replace("</h1>", "</span>");
 
         /// <summary>
-        /// 
+        /// 转换Markdown为HTML
         /// </summary>
-        /// <param name="markdown"></param>
-        /// <param name="usePragmaLines"></param>
-        /// <param name="AnalyzeHtml"></param>
-        /// <returns></returns>
+        /// <param name="markdown">MD文本</param>
+        /// <param name="usePragmaLines">使用行数</param>
+        /// <param name="AnalyzeHtml">是否允许使用HTML</param>
+        /// <returns>HTML文本</returns>
         public static string MarkdownParse(string markdown, bool usePragmaLines = false, bool AnalyzeHtml = false)
-            => Westwind.Web.Markdown.Markdown.Parse(markdown.Replace("\n", "\n\n"), usePragmaLines, false, !AnalyzeHtml).Replace("<p>", "<p class=\"md-p\">");
+            => Westwind.Web.Markdown.Markdown.Parse(markdown.Replace("\n", "  \n"), usePragmaLines, false, !AnalyzeHtml).Replace("<p>", "<p class=\"md-p\">");
 
 
         public static Random Rnd = new Random();
@@ -186,11 +186,9 @@ namespace WordWebCMS
 
                 if (strReturn == "")
                 {
-                    //mail.IsBodyHtml = true;
-                    //mail.Body = mailBody.Replace("\n\r", "<br />");
-                    mail.IsBodyHtml = false;
+                    mail.IsBodyHtml = true;
+                    mail.Body = mailBody.Replace("\n", "<br />");
                     mail.Subject = subject;
-                    mail.Body = mailBody;
                     mail.SubjectEncoding = Encoding.GetEncoding("UTF-8");
                     mail.BodyEncoding = Encoding.GetEncoding("UTF-8");
 
@@ -255,5 +253,11 @@ namespace WordWebCMS
         /// <returns>返回空字符串代表成功，否则为错误信息字符串</returns>
         public static string SendEmail(string subject, string mailBody, params string[] sendToList)
             => SendEmail(sendToList, subject, mailBody, Setting.SMTPEmail, Setting.SMTPPassword, Setting.SMTPURL);
+        /// <summary>
+        /// 判断string是否是邮件格式
+        /// </summary>
+        /// <param name="email">邮件string</param>
+        /// <returns>True为邮件格式 False不是正确的邮件格式</returns>
+        public static bool TypeEmail(string email) => Regex.IsMatch(email, @"\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*");
     }
 }
