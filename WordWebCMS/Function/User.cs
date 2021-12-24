@@ -50,7 +50,8 @@ namespace WordWebCMS
         {//注意 此方法并没有检查是否存在该用户
             RAWUser.ExecuteNonQuery($"INSERT INTO users VALUES (NULL,@usrname,@email,@pw,0,{NewUserMoney},0,1,NULL)", new MySQLHelper.Parameter("usrname", UserName),
                 new MySQLHelper.Parameter("email", Email), new MySQLHelper.Parameter("pw", Function.MD5salt(Password)));
-            return GetUser(RAW.ExecuteQuery("select LAST_INSERT_ID()").First().InfoToInt);
+            return GetUser(RAW.ExecuteQuery("SELECT MAX(uID) FROM users").First().InfoToInt);
+            //return GetUser(RAW.ExecuteQuery("select LAST_INSERT_ID()").First().InfoToInt); //不起作用,返回0
         }
         #endregion
 

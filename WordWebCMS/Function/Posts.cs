@@ -177,7 +177,8 @@ namespace WordWebCMS
                 new MySQLHelper.Parameter("excerpt", excerpt), new MySQLHelper.Parameter("postdate", postdate), new MySQLHelper.Parameter("modifydate", modifydate),
                 new MySQLHelper.Parameter("class", classify), new MySQLHelper.Parameter("state", ((int)state).ToString()), new MySQLHelper.Parameter("attach", attachment),
                 new MySQLHelper.Parameter("password", (password == "" ? "" : Function.MD5salt(password))), new MySQLHelper.Parameter("anzhtml", anzhtml));
-            return new Posts(RAW.ExecuteQuery("select LAST_INSERT_ID()").First().InfoToInt);//如果这个没有生效就使用 SELECT MAX(ID) FROM post
+            return new Posts(RAW.ExecuteQuery("SELECT MAX(Pid) FROM post").First().InfoToInt);//如果这个没有生效就使用 SELECT MAX(Pid) FROM post
+            //return new Posts(RAW.ExecuteQuery("select LAST_INSERT_ID()").First().InfoToInt);//如果这个没有生效就使用 SELECT MAX(Pid) FROM post
         }
         #endregion
 

@@ -101,7 +101,6 @@ namespace WordWebCMS
                     foreach (Review rv in reviews)
                         LComments.Text += rv.ToPostReview();
                     Application["postreview" + pID.ToString()] = LComments.Text;
-
                 }
             }
             else
@@ -117,7 +116,7 @@ namespace WordWebCMS
             {
                 if (usr == null)
                 {
-                    LContentPage.Text += $"<h3 id=\"none-reply-title\" class=\"comment-reply-title\">您还没有登陆 无法发表评论 <a href=\"{Setting.WebsiteURL}/login.asp\"><em>->前往登陆</em></a></h3>";
+                    LContentPage.Text += $"<h3 id=\"none-reply-title\" class=\"comment-reply-title\">您还没有登陆 无法发表评论 <a href=\"{Setting.WebsiteURL}/login.aspx\"><em>->前往登陆</em></a></h3>";
                 }
                 else
                 {
@@ -129,10 +128,6 @@ namespace WordWebCMS
             {
                 LContentPage.Text += "<h3 id=\"none-reply-title\" class=\"comment-reply-title\">这篇文章已关闭评论</h3>";
             }
-
-
-
-
             //ajaxscript.InnerText = ajaxscript.InnerText.Replace("{pid}", pID.ToString());
 
             //Footer
@@ -161,14 +156,6 @@ namespace WordWebCMS
             {
                 usr = ((Users)Session["User"]);
             }
-            //if (!int.TryParse(captcha_anser.Text, out int res))
-            //{
-            //    MsgBox("验证码答案为纯数字,请检查输入"); return;
-            //}
-            //if (res != anser)
-            //{
-            //    MsgBox("您输入了错误的验证码答案。请重试"); return;
-            //}
             Application["postreview" + pID.ToString()] = null;//更新post的评论
 
 

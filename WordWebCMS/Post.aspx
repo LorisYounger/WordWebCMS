@@ -24,7 +24,7 @@
                             <asp:TextBox runat="server" id="comment" name="comment" cols="45" rows="8" maxlength="65525" TextMode="MultiLine"></asp:TextBox>
                         </p>
                         <p>
-                            <asp:CheckBox runat="server" id="comment_mail_notify" checked="true" Text="有人回复时邮件通知我"></asp:CheckBox>
+                            <asp:CheckBox runat="server" id="comment_mail_notify" checked="false" visable="false" Text="有人回复时邮件通知我"></asp:CheckBox>
                         </p>
                         <p class="form-submit">
                             <asp:Button runat="server" name="submit" type="submit" id="submit" class="submit" text="发表评论" OnClick="submit_Click" />
@@ -49,8 +49,8 @@
         xmlhttp.open("GET", "ajax.ashx?action=postlike&ID=" + pid, true);
         xmlhttp.send();
     }
-    function Reply(username) {
-        document.getElementById("comment").innerText = "--回复:" + username + "--\n" + document.getElementById("comment").innerText
+    function Reply(rid) {
+        document.getElementById("comment").innerHTML = "wwcms:|reply#" + rid + ":|&#13;"
     }
     function Indexfold() {
         if (document.getElementById("index-fold").innerText == "折叠") {

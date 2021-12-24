@@ -121,26 +121,32 @@
     font-size: 150%;
     font-weight: bolder;
 }
+
 .down-h2 {
     font-size: 125%;
     font-weight: bolder;
 }
+
 .down-h3 {
     font-size: 110%;
     font-weight: bolder;
 }
+
 .down-h4 {
     font-size: 100%;
     font-weight: bolder;
 }
+
 .down-h5 {
     font-size: 90%;
     font-weight: bolder;
 }
+
 .down-h6 {
     font-size: 80%;
     font-weight: bolder;
 }
+
 .md-p {
     margin: 0 auto;
 }
@@ -267,6 +273,19 @@ blockquote,
 q {
     quotes: "" "";
 }
+
+blockquote {
+    padding: 20px;
+    background-color: #ccc8;
+    border-left: 6px solid #999;
+    word-break: break-word;
+    display: block;
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+    margin-inline-start: 40px;
+    margin-inline-end: 40px;
+}
+
 
 a:focus {
     outline: thin dotted;

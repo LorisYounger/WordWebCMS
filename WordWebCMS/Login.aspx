@@ -26,7 +26,7 @@
         <p class="BoxLable">用户名</p>
         <asp:TextBox runat="server" ID="usernamereg" class="singlelineinput"></asp:TextBox>
         <p class="BoxLable">电子邮件</p>
-        <asp:TextBox runat="server" ID="emailreg" class="singlelineinput" onchange="emailregtextchange()"></asp:TextBox>
+        <asp:TextBox runat="server" ID="emailreg" class="singlelineinput"></asp:TextBox>
         <p class="BoxLable">密码</p>
         <asp:TextBox runat="server" ID="passwordreg" TextMode="Password" class="singlelineinput"></asp:TextBox>
         <p class="BoxLable">请计算: </p>
@@ -45,18 +45,34 @@
         <a href="?Action=Login">已有账户?立即登陆</a>
         <a href="?Action=Forget" style="text-align: right">忘记密码?通过邮件找回</a>
     </div>
+    <div id="divforget" runat="server" visible="false">
+        <h1 style="text-align: center">忘记密码</h1>
+        <p id="errorboxforget" runat="server" class="errorbox" visible="false"></p>
+        <p class="BoxLable">电子邮件</p>
+        <asp:TextBox runat="server" ID="emailforget" class="singlelineinput"></asp:TextBox>
+        <p class="BoxLable">请计算: </p>
+        <asp:Label runat="server" Text="0+0=" ID="Calforgetkey"></asp:Label>
+        <asp:TextBox runat="server" ID="checkforgetkey" class="singlelineinput"></asp:TextBox>
+        <br>
+        <asp:Button runat="server" Text="发送重置密码链接至邮箱" ID="buttonsendmail" OnClick="buttonsendmail_Click" />
+        <br />
+        <br />
+        <a href="?Action=Login">想起密码?立即登陆</a>
+        <a href="?Action=Register" style="text-align: right">没有账户?立即注册</a>
+    </div>
+    <div id="divfindmy" runat="server" visible="false">
+        <h1 style="text-align: center">重置密码</h1>
+        <p id="errorboxfindmy" runat="server" class="errorbox" visible="false"></p>
+        <br />
+        <h3>您的密码已重置,请记录您的新密码</h3>
+        <br />
+        <p class="BoxLable">账户名称</p>
+        <asp:TextBox runat="server" ID="emailfindmy" class="singlelineinput" ReadOnly="True"></asp:TextBox>
+        <p class="BoxLable">新密码</p>
+        <asp:TextBox runat="server" ID="passwordfindmy" class="singlelineinput" ReadOnly="True"></asp:TextBox>
+    </div>
 </form>
-<script type="text/javascript">
-    var showemail = false;
-    if (document.getElementById("emailcheck")) {
-        showemail = true;
-    }
-    function emailregtextchange() {
-        if (showemail) {
-            //showemail = false;
-            document.getElementById("emailcheck").style.display = "";
-        }
-    }
+<script type="text/javascript">    
     function sendregemail() {
         var xmlhttp = new XMLHttpRequest();
         xmlhttp.onreadystatechange = function () {
