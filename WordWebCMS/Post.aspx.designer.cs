@@ -75,34 +75,16 @@ namespace WordWebCMS
         /// 自动生成的字段。
         /// 若要进行修改，请将字段声明从设计器文件移到代码隐藏文件。
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Panel commentspanel;
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl commentspanel;
 
         /// <summary>
-        /// comment 控件。
+        /// commentssubmit 控件。
         /// </summary>
         /// <remarks>
         /// 自动生成的字段。
         /// 若要进行修改，请将字段声明从设计器文件移到代码隐藏文件。
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox comment;
-
-        /// <summary>
-        /// comment_mail_notify 控件。
-        /// </summary>
-        /// <remarks>
-        /// 自动生成的字段。
-        /// 若要进行修改，请将字段声明从设计器文件移到代码隐藏文件。
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.CheckBox comment_mail_notify;
-
-        /// <summary>
-        /// submit 控件。
-        /// </summary>
-        /// <remarks>
-        /// 自动生成的字段。
-        /// 若要进行修改，请将字段声明从设计器文件移到代码隐藏文件。
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Button submit;
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl commentssubmit;
 
         /// <summary>
         /// LSecondary 控件。

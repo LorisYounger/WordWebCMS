@@ -111,7 +111,7 @@
     <Content Include="Themes\Default\js\navigation.js" />
     <Content Include="Themes\Default\ReadMe.txt" />
     <Content Include="Themes\Default\Style.css" />
-    <Content Include="UserInfo.aspx" />
+    <Content Include="User.aspx" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
@@ -148,12 +148,12 @@
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Function\Setting.cs" />
-    <Compile Include="UserInfo.aspx.cs">
-      <DependentUpon>UserInfo.aspx</DependentUpon>
+    <Compile Include="User.aspx.cs">
+      <DependentUpon>User.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
-    <Compile Include="UserInfo.aspx.designer.cs">
-      <DependentUpon>UserInfo.aspx</DependentUpon>
+    <Compile Include="User.aspx.designer.cs">
+      <DependentUpon>User.aspx</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>

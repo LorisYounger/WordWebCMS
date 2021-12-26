@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Web;
 using System.Web.SessionState;
 using System.Web.UI;
 using static WordWebCMS.Function;
+using System.IO;
 
 namespace WordWebCMS
 {
@@ -44,7 +46,7 @@ namespace WordWebCMS
                     {
                         context.Application[$"Likep{id}u{usr.uID}"] = true;
                         post.Likes += 1;
-                        context.Response.Write($"{post.Likes}个赞<button ID=\"Like\" type=\"button\" onclick=\"LikePost({id})\" style=\"border-style: none; width: 30px; height: 30px;" +
+                        context.Response.Write($"{post.Likes}个赞<button type=\"button\" onclick=\"LikePost({id})\" class=\"like-post\" style=\"" +
                             $"background:url(Picture/likeup.png);background-size:cover;\" />");
 
                     }
@@ -52,9 +54,44 @@ namespace WordWebCMS
                     {
                         post.Likes -= 1;
                         context.Application[$"Likep{id}u{usr.uID}"] = null;
-                        context.Response.Write($"{post.Likes}个赞<button ID=\"Like\" type=\"button\" onclick=\"LikePost({id})\" style=\"border-style: none; width: 30px; height: 30px;" +
+                        context.Response.Write($"{post.Likes}个赞<button type=\"button\" onclick=\"LikePost({id})\" class=\"like-post\" style=\"" +
                             $"background:url(Picture/like.png);background-size:cover;\" />");
                     }
+                    return;
+                case "reviewlike":
+                    if (!int.TryParse(context.Request.QueryString["ID"], out id))
+                        break;
+                    if (context.Session["User"] == null)
+                    {
+                        context.Response.Write($"请登录后操作<a href=\"{Setting.WebsiteURL}/login.aspx\">");
+                        return;
+                    }
+                    else
+                    {
+                        usr = (Users)context.Session["User"];
+                    }
+
+                    Review review = Review.GetReviewByID(id);
+                    if (review == null)
+                        break;
+
+                    if (context.Application[$"Liker{id}u{usr.uID}"] == null)
+                    {
+                        context.Application[$"Liker{id}u{usr.uID}"] = true;
+                        review.Likes += 1;
+                        context.Response.Write($"{review.Likes}个赞<button type=\"button\" onclick=\"LikeReview({id})\" class=\"like-review\" style=\"" +
+                            $"background:url(Picture/likeup.png);background-size:cover;\" />");
+
+                    }
+                    else
+                    {
+                        review.Likes -= 1;
+                        context.Application[$"Liker{id}u{usr.uID}"] = null;
+                        context.Response.Write($"{review.Likes}个赞<button type=\"button\" onclick=\"LikeReview({id})\" class=\"like-review\" style=\"" +
+                            $"background:url(Picture/like.png);background-size:cover;\" />");
+                    }
+                    //清除缓存
+                    Setting.Application["postreview" + review.pID.ToString()] = null;
                     return;
                 case "regemail"://注册时发验证EMAIL
                     string MasterKey = context.Request.QueryString["ID"];
@@ -100,6 +137,50 @@ namespace WordWebCMS
                     {
                         context.Response.Write("验证码错误,请重新计算");
                     }
+                    return;
+                case "sendreview":
+                    if (!int.TryParse(context.Request.QueryString["ID"], out int pID))
+                        break;
+
+                    StreamReader sr = new StreamReader(context.Request.InputStream, Encoding.UTF8);
+                    string comment = sr.ReadToEnd();
+                    sr.Close();
+                    if (string.IsNullOrWhiteSpace(comment))
+                    {
+                        context.Response.Write("评论内容为空"); return;
+                    }
+                    if (Session["User"] == null)
+                    {
+                        context.Response.Write("登陆已失效,请重新登陆"); return;
+                    }
+                    else
+                    {
+                        usr = ((Users)Session["User"]);
+                    }
+                    context.Application["postreview" + pID.ToString()] = null;//更新post的评论
+                    comment = HttpUtility.UrlDecode(comment);
+                    var lstr = comment.Split(new char[] { '\n' }, 2);
+                    Review rev;
+                    if (lstr[0].StartsWith("wwcms:\\|"))
+                    {
+                        lstr[0] = lstr[0].Replace(@"\|", "|").Replace(@"\#", "#");
+                        if (lstr.Length == 2)
+                            lstr[0] += '\n' + lstr[1];
+                        rev = Review.CreatReview(pID, lstr[0], usr.uID, DateTime.Now, DateTime.Now,
+                        (usr.Authority == Setting.AuthLevel.Admin || usr.Authority == Setting.AuthLevel.Auditor ? Review.ReviewState.Published : Review.ReviewState.Default));
+                    }
+                    else
+                    {
+                        rev = Review.CreatReview(pID, comment, usr.uID, DateTime.Now, DateTime.Now,
+                        (usr.Authority == Setting.AuthLevel.Admin || usr.Authority == Setting.AuthLevel.Auditor ? Review.ReviewState.Published : Review.ReviewState.Default));
+                    }
+
+                    if (rev.State == Review.ReviewState.Default)
+                        context.Response.Write("评论提交成功," + (Setting.ReviewDefault == Review.ReviewState.Pending ? "等待审核中" : "已发布"));
+                    else if (rev.State == Review.ReviewState.Published)
+                        context.Response.Write("评论提交成功,已发布");
+                    else
+                        context.Response.Write("评论提交成功!");
                     return;
             }
             context.Response.Write("错误的AJAX调用");

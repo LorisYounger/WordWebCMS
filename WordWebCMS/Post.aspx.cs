@@ -25,6 +25,9 @@ namespace WordWebCMS
 
             LHeader.Text = ((string)Application["MasterHeader"]);
 
+            //添加Toast MD编辑器
+            LHeader.Text += "<link rel=\"stylesheet\" href=\"https://uicdn.toast.com/editor/latest/toastui-editor.min.css\" /><script src=\"https://unpkg.com/babel-standalone@6.26.0/babel.min.js\"></script><script src=\"https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js\"></script>";
+
             //User
             //用户相关
             Users usr = null;
@@ -88,8 +91,8 @@ namespace WordWebCMS
             }
 
             LCatLink.Text = $"<span class=\"nav-previous\">张贴在<a href=\"{Setting.WebsiteURL}/Index.aspx?class={post.Classify}\" rel=\"category tag\">{post.Classify}</a></span>";
-            Lpostlike.Text = $"{post.Likes}个赞<button ID=\"Like\" type=\"button\" onclick=\"LikePost({pID})\" style=\"border-style: none; width: 30px; height: 30px;" +
-                $"{(usr== null || (Application[$"Likep{pID}u{usr.uID}"] == null) ? "background:url(Picture/like.png);" : "background:url(Picture/likeup.png);")}background-size:cover;\" />";
+            Lpostlike.Text = $"{post.Likes}个赞<button type =\"button\" onclick=\"LikePost({pID})\" class=\"like-post\" style=\"" +
+                $"{(usr == null || (Application[$"Likep{pID}u{usr.uID}"] == null) ? "background:url(Picture/like.png);" : "background:url(Picture/likeup.png);")} background-size:cover;\" />";
 
 
             if (Application["postreview" + pID.ToString()] == null)
@@ -97,9 +100,9 @@ namespace WordWebCMS
                 List<Review> reviews = Review.GetReviewByPostID(pID);
                 if (reviews.Count != 0)
                 {
-                    LComments.Text = $"<h2 class=\"comments-title\">有{reviews.Count}个评论</h2><ol class=\"comment-list\">";
+                    LComments.Text = $"<h2 class=\"comments-title\">共有{reviews.Count}个评论</h2><a href=\"#reply-title\" class=\"nav-next\"><ol class=\"comment-list\">";
                     foreach (Review rv in reviews)
-                        LComments.Text += rv.ToPostReview();
+                        LComments.Text += rv.ToPostReview(usr);
                     Application["postreview" + pID.ToString()] = LComments.Text;
                 }
             }
@@ -116,12 +119,18 @@ namespace WordWebCMS
             {
                 if (usr == null)
                 {
-                    LContentPage.Text += $"<h3 id=\"none-reply-title\" class=\"comment-reply-title\">您还没有登陆 无法发表评论 <a href=\"{Setting.WebsiteURL}/login.aspx\"><em>->前往登陆</em></a></h3>";
+                    LContentPage.Text += $"<h3 id=\"reply-title\" class=\"comment-reply-title\">您还没有登陆 无法发表评论 <a href=\"{Setting.WebsiteURL}/login.aspx\"><em>->前往登陆</em></a></h3>";
                 }
                 else
                 {
                     commentspanel.Visible = true;
                     //captcha_question.Text = RndQuestion(out int anser); 打不过就加入 不整回答数学题评论了
+                    //判断能不能发邮件,如果能就支持邮件回复
+                    //if (Setting.EnabledEmail)
+                    //{
+                    //    comment_mail_notify.Visible = true;
+                    //}//邮件相关判断更改至个人设置 是否接受通知
+                    commentssubmit.InnerHtml = $"<button class=\"submit\" onclick=\"SendReview({pID})\">发表评论</button>";
                 }
             }
             else
@@ -140,36 +149,6 @@ namespace WordWebCMS
             Response.Redirect(Setting.WebsiteURL + "/404.aspx?type=" + type);
             Response.End();
             return;
-        }
-
-
-        private void MsgBox(string msg) => Page.ClientScript.RegisterStartupScript(this.GetType(), "", $"<script>alert('{msg}');</script>");
-
-        protected void submit_Click(object sender, EventArgs e)
-        {
-            Users usr;
-            if (Session["User"] == null)
-            {
-                MsgBox("登陆已失效,请重新登陆"); return;
-            }
-            else
-            {
-                usr = ((Users)Session["User"]);
-            }
-            Application["postreview" + pID.ToString()] = null;//更新post的评论
-
-
-            var rev = Review.CreatReview(pID, comment.Text, usr.uID, DateTime.Now, DateTime.Now,
-                (usr.Authority == Setting.AuthLevel.Admin || usr.Authority == Setting.AuthLevel.Auditor ? Review.ReviewState.Published : Review.ReviewState.Default));
-
-            if (rev.State == Review.ReviewState.Default)
-                MsgBox("提交评论成功," + (Setting.ReviewDefault == Review.ReviewState.Pending ? "等待审核中" : "已发布"));
-            else if (rev.State == Review.ReviewState.Published)
-                MsgBox("提交评论成功,已发布");
-            else
-                MsgBox("提交评论成功!");
-
-            Response.Redirect(HttpContext.Current.Request.Url.ToString() + "#comment-" + rev.rID.ToString());
         }
     }
 }

@@ -18,7 +18,7 @@ namespace WordWebCMS
 #if !DEBUG
             if (Session["User"] != null)
                 //已经登陆过了,直接跳转到用户信息页面
-                Response.Redirect(Setting.WebsiteURL + "/UserInfo.aspx");
+                Response.Redirect(Setting.WebsiteURL + "/User.aspx");
 #endif
 
             //Header

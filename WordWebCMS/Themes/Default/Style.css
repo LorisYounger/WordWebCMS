@@ -5,6 +5,15 @@
     Original Author:    Bishal Adhikary 
 */
 
+/*全局*/
+
+.error {
+    color: #e53935;
+    font-weight: bolder;
+}
+
+
+
 /*登陆页面*/
 .CenterBox {
     margin-top: 20px;
@@ -149,6 +158,18 @@
 
 .md-p {
     margin: 0 auto;
+}
+
+.like-post {
+    border-style: none;
+    height: 32px;
+    font-size: 16px;
+}
+
+.like-review {
+    border-style: none;
+    height: 24px;
+    font-size: 12px;
 }
 
 /*
