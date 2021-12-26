@@ -16,20 +16,13 @@
                         </div>
                     </footer>
                     <asp:Literal ID="LComments" runat="server" />
-                    <asp:Panel id="commentspanel" class="comment-respond" visible="false" runat="server">
+                    <div id="commentspanel" class="comment-respond" visible="false" runat="server">
                         <h3 id="reply-title" class="comment-reply-title">发表评论</h3>
                         <p class="comment-notes">请自觉遵守互联网相关的政策法规，严禁发布色情、暴力、反动的言论。  支持<img src="Picture/markdown.png" width="20" /></p>
-                        <p class="comment-form-comment">
-                            <label for="comment">评论</label>
-                            <asp:TextBox runat="server" id="comment" name="comment" cols="45" rows="8" maxlength="65525" TextMode="MultiLine"></asp:TextBox>
-                        </p>
-                        <p>
-                            <asp:CheckBox runat="server" id="comment_mail_notify" checked="false" visable="false" Text="有人回复时邮件通知我"></asp:CheckBox>
-                        </p>
-                        <p class="form-submit">
-                            <asp:Button runat="server" name="submit" type="submit" id="submit" class="submit" text="发表评论" OnClick="submit_Click" />
-                        </p>
-                    </asp:Panel>
+                        <div id="editor"></div>
+                        <%--<asp:CheckBox runat="server" id="comment_mail_notify" checked="false" visible="false" Text="有人回复时邮件通知我"></asp:CheckBox>--%>
+                        <div id="commentssubmit" runat="server"></div>
+                    </div>
                 </form>
             </main>
         </div>
@@ -39,6 +32,13 @@
     </div>
 </div>
 <script>
+    const editor = new toastui.Editor({
+        el: document.querySelector('#editor'),
+        height: '300px',
+        initialValue: '',
+        initialEditType: 'wysiwyg',
+        previewStyle: 'vertical',
+    });
     function LikePost(pid) {
         var xmlhttp = new XMLHttpRequest();
         xmlhttp.onreadystatechange = function () {
@@ -46,11 +46,41 @@
                 document.getElementById("postlike").innerHTML = xmlhttp.responseText;
             }
         }
-        xmlhttp.open("GET", "ajax.ashx?action=postlike&ID=" + pid, true);
+        xmlhttp.open("GET", "ajax.ashx?action=postlike&ID=" + pid);
+        xmlhttp.send();
+    }
+    function LikeReview(pid) {
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.onreadystatechange = function () {
+            if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+                document.getElementById("reviewlike" + pid).innerHTML = xmlhttp.responseText;
+            }
+        }
+        xmlhttp.open("GET", "ajax.ashx?action=reviewlike&ID=" + pid);
         xmlhttp.send();
     }
     function Reply(rid) {
-        document.getElementById("comment").innerHTML = "wwcms:|reply#" + rid + ":|&#13;"
+        //document.getElementById("comment").innerHTML = "wwcms:|reply#" + rid + ":|&#13;"
+        editor.setHTML("wwcms:|reply#" + rid + ":|<br />");
+    }
+    function SendReview(pid) {
+        //var mail_notify = document.getElementById("comment");
+        //var mail_notify_str = "false";
+        //if (mail_notify != null) {
+        //    if (mail_notify.checked) {
+        //        mail_notify_str = "true";
+        //    }
+        //}//邮件相关功能更改至用户设置
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.onreadystatechange = function () {
+            if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+                alert(xmlhttp.responseText);
+            }
+        }
+        //xmlhttp.open("POST", "ajax.ashx?action=sendreview&ID=" + pid + "&mail=" + mail_notify_str);
+        xmlhttp.open("POST", "ajax.ashx?action=sendreview&ID=" + pid);
+        xmlhttp.setRequestHeader('Content-type', 'raw');
+        xmlhttp.send(encodeURI(editor.getMarkdown()));
     }
     function Indexfold() {
         if (document.getElementById("index-fold").innerText == "折叠") {

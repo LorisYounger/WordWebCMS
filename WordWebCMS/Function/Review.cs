@@ -10,8 +10,8 @@ namespace WordWebCMS
     //评论表格式:
     //   -review 
     //     Rid(int)|Pid(int)|content(text)|author(int)|postdate(date)|modifydate(date)|state(byte)|   anzhtml  |likes(int)|
-    //     评论id  | 文章id |     内容    |   作者id  |   发布日期   |    修改日期    |  评论类型 |是否分析html|  赞同数  |
-    //     主键递增|   -------------------------------------------------------------- |   0-默认  |    false   |    0     |
+    //     评论id  | 文章id |     内容     |   作者id  |   发布日期    |    修改日期    |  评论类型 |是否分析html |  赞同数  |
+    //     主键递增|   -------------------------------------------------------------- |   0-默认  |    false    |    0     |
 
     public class Review
     {
@@ -133,7 +133,7 @@ namespace WordWebCMS
             RAW.ExecuteNonQuery($"INSERT INTO review VALUES (NULL,@pid,@content,@author,@postdate,@modifydate,@state,@anzhtml,0)",
                 new MySQLHelper.Parameter("pid", pid), new MySQLHelper.Parameter("content", cont), new MySQLHelper.Parameter("author", authid),
                 new MySQLHelper.Parameter("postdate", postdate), new MySQLHelper.Parameter("modifydate", modifydate),
-                new MySQLHelper.Parameter("state", ((int)state).ToString()), new MySQLHelper.Parameter("anzhtml", anzhtml));
+                new MySQLHelper.Parameter("state", (int)state), new MySQLHelper.Parameter("anzhtml", anzhtml));
             return new Review(RAW.ExecuteQuery("SELECT MAX(Rid) FROM review").First().InfoToInt);//如果这个没有生效就使用 SELECT MAX(ID) FROM post
         }
         #endregion
@@ -169,6 +169,21 @@ namespace WordWebCMS
         /// Reviewid
         /// </summary>
         public readonly int rID;
+        /// <summary>
+        /// Postid
+        /// </summary>
+        public int pID
+        {
+            get
+            {
+                return DataBuff.Find("Pid").InfoToInt;
+            }
+            set
+            {
+                databf = null;
+                RAW.ExecuteNonQuery($"UPDATE review SET Pid=@pid WHERE Rid=@rid", new MySQLHelper.Parameter("pid", value), new MySQLHelper.Parameter("rid", rID));
+            }
+        }
         /// <summary>
         /// 文章作者ID
         /// </summary>
@@ -295,32 +310,40 @@ namespace WordWebCMS
             {
                 string output = "";
                 Sub reply = first.Find("reply");
-                if (reply != null)
+                if (reply != null)//引用了评论
                 {
-                    Review rv = GetReviewByID(reply.InfoToInt);
-                    if (rv == null)
-                        output += $"<blockquote>引用评论为空 Rid:{reply.info}</blockquote>";
+                    int rid = reply.InfoToInt;
+                    if (rid >= rID)
+                    {
+                        output += $"<blockquote><span class=\"error\">引用评论不能为将来的评论 Rid:{reply.info}>={rID}</span></blockquote>";
+                    }
                     else
                     {
-                        var state = rv.State;
-                    switchstate:
-                        switch (state)
+                        Review rv = GetReviewByID(rid);
+                        if (rv == null)
+                            output += $"<blockquote><span class=\"error\">引用评论为空 Rid:{reply.info}</span></blockquote>";
+                        else
                         {
-                            case ReviewState.Delete:
-                                output += $"<blockquote><b>{rv.Author.UserName}</b><br />评论已被删除</blockquote>";
-                                break;
-                            case ReviewState.Default:
-                                if (Setting.ReviewDefault == ReviewState.Default)
-                                    goto case default;
-                                state = Setting.ReviewDefault;
-                                goto switchstate;
-                            case ReviewState.None:
-                            case ReviewState.Pending:
-                                output += $"<blockquote><b>{rv.Author.UserName}</b><br />评论等待审核</blockquote>";
-                                break;
-                            default:
-                                output += $"<blockquote><b>{rv.Author.UserName}</b><br />{rv.ContentToHtml()}</blockquote>";
-                                break;
+                            var state = rv.State;
+                        switchstate:
+                            switch (state)
+                            {
+                                case ReviewState.Delete:
+                                    output += $"<blockquote><b>{rv.Author.UserName}</b><br /><span class=\"error\">评论已被删除</span></blockquote>";
+                                    break;
+                                case ReviewState.Default:
+                                    if (Setting.ReviewDefault == ReviewState.Default)
+                                        goto case default;
+                                    state = Setting.ReviewDefault;
+                                    goto switchstate;
+                                case ReviewState.None:
+                                case ReviewState.Pending:
+                                    output += $"<blockquote><b>{rv.Author.UserName}</b><br /><span class=\"error\">评论等待审核</span></blockquote>";
+                                    break;
+                                default:
+                                    output += $"<blockquote><b>{rv.Author.UserName}</b><br />{rv.ContentToHtml()}</blockquote>";
+                                    break;
+                            }
                         }
                     }
                 }
@@ -401,11 +424,13 @@ namespace WordWebCMS
         #endregion
 
         #region 转换成HTML
-        public string ToPostReview() => $"<li id=\"comment-{rID}\"><article id=\"div-comment-{rID}\" class=\"comment-body\"><footer class=\"comment-meta\">" +
+        public string ToPostReview(Users usr = null) => $"<li id=\"comment-{rID}\"><article id=\"div-comment-{rID}\" class=\"comment-body\"><footer class=\"comment-meta\">" +
                 $"<div class=\"comment-author vcard\"><img src=\"{Author.AvatarURL}\" class=\"avatar avatar-60 photo\" height=\"60\" width=\"60\">" +
                 $"<a href=\"{Setting.WebsiteURL}/User.aspx?ID={AuthorID}\"><b class=\"fn\">{Author.UserName}</b></a><span class=\"says\">评论道：</span></div>" +
                 $"<div class=\"comment-metadata\"><a href=\"#comment-{rID}\">{Modifydate.ToShortDateString()} {Modifydate.ToShortTimeString()}</a></div></footer>" +
-                $"<div class=\"comment-content\">{ContentToHtml()}</div><div class=\"reply\"><button type=\"button\" onclick=\"Reply('{rID}')\"/>回复</button></div></article></li>";
+                $"<div class=\"comment-content\">{ContentToHtml()}</div><div class=\"reply\"><button type=\"button\" onclick=\"Reply('{rID}')\"/>回复</button>" +
+                $"<div class=\"nav-next\" id=\"reviewlike{rID}\">{Likes}个赞<button ID=\"Like\" type=\"button\" onclick=\"LikeReview({rID})\" class=\"like-review\" style=\"" +
+                $"{(usr == null || (Setting.Application[$"Liker{rID}u{usr.uID}"] == null) ? "background:url(Picture/like.png);" : "background:url(Picture/likeup.png);")}background-size:cover;\" /></div></div></article></li>";
         #endregion
     }
 }

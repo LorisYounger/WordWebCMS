@@ -37,6 +37,7 @@ WordWebCMS暂时未开发完毕 不推荐进行部署 (虽然说你也可以自�
 
 见[Project](https://github.com/LorisYounger/WordWebCMS/projects/1)
 - [x] 实现登陆和注册
+- [ ] 消息管理 包括收到回复,收到点赞等
 - [ ] 实现管理后台
 - [ ] 实现写作后台
 - [ ] 实现审核后台

@@ -527,8 +527,9 @@ namespace WordWebCMS
             $"<a href=\"{Setting.WebsiteURL}/Post.aspx?ID={pID}\">{Name}</a></h1><div class=\"entry-meta\">" +
             $"<span class=\"posted-on\">时间:<a href=\"{Setting.WebsiteURL}/Index.aspx?Date={PostDate.ToShortDateString()}\">{PostDate.ToShortDateString()}" +
             $"</a> </span><span class=\"poster-author\" id=user-{Author}> <span class=\"author vcard\"> 作者:<a href=\"{Setting.WebsiteURL}/User.aspx?ID={AuthorID}\">{Author.UserName}</a></span></span>" +
-           (AllowComments ? $"<span class=\"comments-link\"><a href=\"{Setting.WebsiteURL}/Post.aspx?ID={pID}#respond\">发表回复</a></span>" : "") +
-            $"</div></header><div class=\"entry-content\">{(Attachment == "" ? "" : $"<img width=\"150\" height=\"150\" src=\"{Attachment}\" class=\"wp-post-image\">")}<p>{Excerpt.Replace("\n", "<br />")}</p></div></article>";
+           (AllowComments ? $"<span class=\"comments-link\"><a href=\"{Setting.WebsiteURL}/Post.aspx?ID={pID}#reply-title\">发表回复</a></span>" : "") +
+            $"</div></header><div class=\"entry-content\">{(Attachment == "" ? "" : $"<img width=\"150\" src=\"{Attachment}\" class=\"wp-post-image\">")}<p>{Excerpt.Replace("\n", "<br />")}</p></div>" +
+            $"<div style=\"text-align: right;\"><a href=\"{Setting.WebsiteURL}/Post.aspx?ID={pID}\">查看文章-></a></div></article>";
 
         public string ToPost()
         {
@@ -537,7 +538,7 @@ namespace WordWebCMS
                    $"{Name}</h1><div class=\"entry-meta\"><span class=\"posted-on\">在 <a href=\"{Setting.WebsiteURL}/Index.aspx?Date={PostDate.ToShortDateString()}\" rel=\"bookmark\">" +
                    $"{PostDate.ToShortDateString()}</a> 上张贴</span><span class=\"poster-author\" id=user-{AuthorID}> 由 <span class=\"author vcard\">" +
                    $"<a href=\"{Setting.WebsiteURL}/User.aspx?ID={AuthorID}\"><img src={Author.AvatarURL} width=\"20\" height=\"20\">{Author.UserName}</a></span></span>" +
-                  (AllowComments ? $"<span class=\"comments-link\"><a href=\"#respond\">发表回复</a></span>" : "") +
+                  (AllowComments ? $"<span class=\"comments-link\"><a href=\"#reply-title\">发表回复</a></span>" : "") +
                    $"</div></header><div class=\"entry-content\">{ContentToHtml()}</div></article>";
         }
 
