@@ -14,8 +14,9 @@ namespace WordWebCMS
             //Important:把缓存交给设置
             Setting.Application = this.Application;
 
-            //TODO:判断是不是已经登陆了,如果已经登陆了就直接跳转到用户中心,目前为了debug先不写
+
 #if !DEBUG
+            //TODO:判断是不是已经登陆了,如果已经登陆了就直接跳转到用户中心,目前为了debug先不写
             if (Session["User"] != null)
                 //已经登陆过了,直接跳转到用户信息页面
                 Response.Redirect(Setting.WebsiteURL + "/User.aspx");
@@ -62,7 +63,7 @@ namespace WordWebCMS
                 case "Register":
                     CalregistKey.Text = qus;
                     divregister.Visible = true;
-                    if (Setting.AlowRegister == false)
+                    if (Setting.AllowRegister == false)
                     {//如果不允许注册
                         errorboxregister.Visible = true;
                         errorboxregister.InnerHtml = "当前网站未开放注册,如需注册请联系网站管理员<br/>如已有账户,请<a href=\"?Action=Login\">前往登陆</a>";
@@ -140,6 +141,10 @@ namespace WordWebCMS
                         emailfindmy.Text = usr.UserName;
                         passwordfindmy.Text = newpass;
                     }
+                    break;
+                case "Logout":
+                    //TODO:登出做到User.aspx
+                    divlogout.Visible = true;
                     break;
                 default:
                     divlogin.Visible = true;
@@ -254,7 +259,7 @@ namespace WordWebCMS
                 errorboxregister.Visible = true;
                 errorboxregister.InnerText = "验证码缓存已丢失,请重试";
             }
-            else if (Setting.AlowRegister == false)
+            else if (Setting.AllowRegister == false)
             {
                 errorboxregister.Visible = true;
                 errorboxregister.InnerHtml = "当前网站未开放注册,如需注册请联系网站管理员<br/>如已有账户,请<a href=\"?Action=Login\">前往登陆</a>";

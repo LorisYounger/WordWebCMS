@@ -53,6 +53,15 @@ namespace WordWebCMS
             return GetUser(RAW.ExecuteQuery("SELECT MAX(uID) FROM users").First().InfoToInt);
             //return GetUser(RAW.ExecuteQuery("select LAST_INSERT_ID()").First().InfoToInt); //不起作用,返回0
         }
+        /// <summary>
+        /// 创建一个被不存在移除的用户信息
+        /// </summary>
+        /// <param name="UserName">用户名称或者用户邮箱</param>
+        /// <returns></returns>
+        public static Users GetRemovedUser(int UserID,string name = "Removed User",string email="removed@email",string AvatarURL = "",int lv = -1,int exp = -1)
+        {
+            return new Users(UserID, new Line("removed","","",new Sub("name", name),new Sub("email",email),new Sub("exp",exp.ToString()),new Sub("lv", lv.ToString()),new Sub("headport",AvatarURL)), true);
+        }
         #endregion
 
         #region 数据库Data
@@ -100,24 +109,28 @@ namespace WordWebCMS
                     username = DataBuff.Find("name").Info;
                 return username;
             }
-            //set//用户名暂时不可以更改 顺便偷个懒
-            //{
-            //    RAWUser.ExecuteNonQuery($"UPDATE users SET money={Convert.ToInt32(value * 10)} WHERE Uid={Uid}", CommandType.Text);
-            //}
+            set//用户名没有检查重复性,修改前注意检查
+            {
+                if (uID < 0) return;
+                databf = null;
+                username = null;
+                RAWUser.ExecuteNonQuery($"UPDATE users SET name=@name WHERE Uid=@uid", new MySQLHelper.Parameter("name", value), new MySQLHelper.Parameter("uid", uID));
+            }
         }
         private string username;
         /// <summary>
         /// 密码确认 确认这个密码是否符合
         /// </summary>
         /// <param name="pw">要确认的密码</param>
-        /// <returns></returns>
-        public bool PasswordCheck(string pw) => Function.MD5salt(pw) == Data.Find("password").info;
+        /// <returns>True 通过密码验证</returns>
+        public bool PasswordCheck(string pw) { if (uID < 0) return false; return Function.MD5salt(pw) == Data.Find("password").info; }
         /// <summary>
         /// 设置新密码
         /// </summary>
         /// <param name="pw">新密码</param>
         public void PasswordSet(string pw)
         {
+            if (uID < 0) return;
             RAWUser.ExecuteNonQuery($"UPDATE users SET password=@pw WHERE Uid=@uid", new MySQLHelper.Parameter("pw", Function.MD5salt(pw)), new MySQLHelper.Parameter("uid", uID));
         }
 
@@ -132,6 +145,7 @@ namespace WordWebCMS
             }
             set
             {
+                if (uID < 0) return;
                 databf = null;
                 RAWUser.ExecuteNonQuery($"UPDATE users SET email=@email WHERE Uid=@uid", new MySQLHelper.Parameter("email", value), new MySQLHelper.Parameter("uid", uID));
             }
@@ -141,8 +155,8 @@ namespace WordWebCMS
         /// </summary>
         public double Money
         {//钱是重要的 所以无论增改都不使用缓存
-            get => Data.Find("money").InfoToInt * 0.1;
-            set => RAWUser.ExecuteNonQuery($"UPDATE users SET money=@money WHERE Uid=@uid", new MySQLHelper.Parameter("money", Convert.ToInt32(value * 10)), new MySQLHelper.Parameter("uid", uID));
+            get { if (uID < 0) return -1; return Data.Find("money").InfoToInt * 0.1; }
+            set { if (uID < 0) return; RAWUser.ExecuteNonQuery($"UPDATE users SET money=@money WHERE Uid=@uid", new MySQLHelper.Parameter("money", Convert.ToInt32(value * 10)), new MySQLHelper.Parameter("uid", uID)); }
         }
 
         /// <summary>
@@ -151,6 +165,7 @@ namespace WordWebCMS
         /// <param name="exp">要增加的经验值</param>
         public void ExpAdd(int exp)
         {
+            if (uID < 0) return;
             Line data = Data;
             exp += data.Find("exp").InfoToInt;
             int lv = Data.Find("lv").InfoToInt;
@@ -185,11 +200,12 @@ namespace WordWebCMS
         {//用户权限并非储存在用户里的 而是储存在网站设置里的(保证所有网站权限不互通) 除了超级管理员除外
             get
             {
+                if (uID < 0) return AuthLevel.Ban;
                 if (Convert.ToBoolean(Data.Find("isroot").info))
                     return AuthLevel.Admin;//如果是root直接无脑admin
                 return GetUserAuthority(uID);
             }
-            set => SetUserAuthority(uID, value);
+            set { if (uID < 0) return; SetUserAuthority(uID, value); }
         }
 
         /// <summary>
@@ -206,17 +222,29 @@ namespace WordWebCMS
             }
             set
             {
+                if (uID < 0) return;
                 databf = null;
                 RAWUser.ExecuteNonQuery($"UPDATE users SET headport=@headp WHERE Uid=@uid", new MySQLHelper.Parameter("headp", value), new MySQLHelper.Parameter("uid", uID));
             }
         }
-
 
         #region "构造函数"
         public Users(int uid, Line raw = null)
         {
             uID = uid;
             databf = raw;
+        }
+        public Users(int uid, Line raw = null, bool removed = true)
+        {
+            databf = raw;
+            if (removed)
+            {
+                uID = -uid;
+            }
+            else
+            {
+                uID = uid;
+            }
         }
         public Users(Line raw)
         {
@@ -232,7 +260,7 @@ namespace WordWebCMS
             (Authority == AuthLevel.Admin ? "<li><a href=\"WWCadmin.aspx\">->前往管理后台</a></li>" : "") +
             (Authority == AuthLevel.Auditor || Authority == AuthLevel.Admin ? "<li><a href=\"Auditor.aspx\">->前往审核中心</a></li>" : "") +
             (Authority == AuthLevel.Auditor || Authority == AuthLevel.Admin || Authority == AuthLevel.Author || Authority == AuthLevel.AuthorCertificate ? "<li><a href=\"Author.aspx\">->前往写作平台</a></li>" : "")
-            + "</ul></aside>";
+            + "<a href=\"login.aspx?Action=Logout\"><li>->登出</li></a></ul></aside>";
         #endregion
     }
 }

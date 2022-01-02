@@ -4,8 +4,8 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
 -->
 <Project>
   <PropertyGroup>
-    <History>True|2021-12-23T06:31:22.6415205Z;True|2021-12-23T14:09:49.5263343+08:00;False|2021-12-23T14:08:29.2615003+08:00;False|2021-12-23T14:08:09.2010103+08:00;False|2021-12-23T14:07:56.7396962+08:00;False|2021-12-23T13:55:12.5631498+08:00;</History>
-    <_PublishTargetUrl>C:\Users\ZouJin\Documents\Visual Studio 2022\Projects\WordWebCMS.old\WordWebCMS\bin\app.publish\</_PublishTargetUrl>
+    <History>True|2021-12-27T15:01:52.3123492Z;True|2021-12-23T14:31:22.6415205+08:00;True|2021-12-23T14:09:49.5263343+08:00;False|2021-12-23T14:08:29.2615003+08:00;False|2021-12-23T14:08:09.2010103+08:00;False|2021-12-23T14:07:56.7396962+08:00;False|2021-12-23T13:55:12.5631498+08:00;</History>
+    <_PublishTargetUrl>C:\Users\ZouJin\Documents\Visual Studio 2022\Projects\WordWebCMS\WordWebCMS\bin\app.publish\</_PublishTargetUrl>
   </PropertyGroup>
   <ItemGroup>
     <File Include="AJAX.ashx">
@@ -180,13 +180,13 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>11/01/2018 17:08:18</publishTime>
     </File>
     <File Include="bin/System.Buffers.dll">
-      <publishTime>11/19/2021 11:12:29</publishTime>
+      <publishTime>12/06/2021 16:15:23</publishTime>
     </File>
     <File Include="bin/System.Diagnostics.DiagnosticSource.dll">
       <publishTime>10/23/2021 07:41:28</publishTime>
     </File>
     <File Include="bin/System.Memory.dll">
-      <publishTime>11/19/2021 11:12:29</publishTime>
+      <publishTime>12/06/2021 16:15:23</publishTime>
     </File>
     <File Include="bin/System.Numerics.Vectors.dll">
       <publishTime>05/15/2018 11:29:44</publishTime>
@@ -201,31 +201,37 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>07/06/2019 04:19:40</publishTime>
     </File>
     <File Include="bin/WordWebCMS.dll">
-      <publishTime>12/23/2021 14:31:22</publishTime>
+      <publishTime>12/27/2021 23:01:51</publishTime>
     </File>
     <File Include="bin/WordWebCMS.pdb">
-      <publishTime>12/23/2021 14:31:22</publishTime>
+      <publishTime>12/27/2021 23:01:51</publishTime>
     </File>
     <File Include="Index.aspx">
       <publishTime>06/04/2020 11:58:43</publishTime>
     </File>
     <File Include="Login.aspx">
-      <publishTime>09/03/2021 00:31:38</publishTime>
+      <publishTime>12/24/2021 18:52:38</publishTime>
     </File>
     <File Include="Picture/avatar.png">
-      <publishTime>05/18/2020 23:53:35</publishTime>
+      <publishTime>12/26/2021 21:09:11</publishTime>
     </File>
     <File Include="Picture/like.png">
-      <publishTime>06/12/2020 15:42:01</publishTime>
+      <publishTime>12/26/2021 21:07:55</publishTime>
     </File>
     <File Include="Picture/likeup.png">
-      <publishTime>06/12/2020 16:25:03</publishTime>
+      <publishTime>12/26/2021 21:07:49</publishTime>
     </File>
     <File Include="Picture/markdown.png">
-      <publishTime>06/12/2020 13:56:59</publishTime>
+      <publishTime>12/26/2021 21:09:25</publishTime>
+    </File>
+    <File Include="Picture/WWC.png">
+      <publishTime>12/23/2021 22:04:42</publishTime>
     </File>
     <File Include="Post.aspx">
-      <publishTime>07/11/2020 00:02:24</publishTime>
+      <publishTime>12/26/2021 21:29:45</publishTime>
+    </File>
+    <File Include="Setup.aspx">
+      <publishTime>12/27/2021 19:36:24</publishTime>
     </File>
     <File Include="setup.sql">
       <publishTime>12/24/2020 09:31:40</publishTime>
@@ -234,7 +240,7 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>05/25/2020 14:29:16</publishTime>
     </File>
     <File Include="Themes/Default/header.html">
-      <publishTime>07/15/2020 07:52:50</publishTime>
+      <publishTime>12/26/2021 12:17:39</publishTime>
     </File>
     <File Include="Themes/Default/images/clock.png">
       <publishTime>05/25/2020 00:19:37</publishTime>
@@ -252,13 +258,16 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>06/05/2020 02:07:14</publishTime>
     </File>
     <File Include="Themes/Default/Style.css">
-      <publishTime>07/16/2020 03:15:08</publishTime>
+      <publishTime>12/26/2021 21:28:57</publishTime>
+    </File>
+    <File Include="User.aspx">
+      <publishTime>12/25/2021 12:33:51</publishTime>
     </File>
     <File Include="UserInfo.aspx">
       <publishTime>07/23/2020 02:17:28</publishTime>
     </File>
     <File Include="Web.config">
-      <publishTime>12/23/2021 14:09:46</publishTime>
+      <publishTime>12/27/2021 23:01:51</publishTime>
     </File>
   </ItemGroup>
 </Project>

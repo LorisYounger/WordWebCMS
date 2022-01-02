@@ -10,7 +10,7 @@ namespace WordWebCMS
     //评论表格式:
     //   -review 
     //     Rid(int)|Pid(int)|content(text)|author(int)|postdate(date)|modifydate(date)|state(byte)|   anzhtml  |likes(int)|
-    //     评论id  | 文章id |     内容     |   作者id  |   发布日期    |    修改日期    |  评论类型 |是否分析html |  赞同数  |
+    //     评论id  | 评论id |     内容     |   作者id  |   发布日期    |    修改日期    |  评论类型 |是否分析html |  赞同数  |
     //     主键递增|   -------------------------------------------------------------- |   0-默认  |    false    |    0     |
 
     public class Review
@@ -185,7 +185,7 @@ namespace WordWebCMS
             }
         }
         /// <summary>
-        /// 文章作者ID
+        /// 评论作者ID
         /// </summary>
         public int AuthorID
         {
@@ -198,14 +198,18 @@ namespace WordWebCMS
             }
         }
         /// <summary>
-        /// 文章作者
+        /// 评论作者
         /// </summary>
         public Users Author
         {
             get
             {
                 if (author == null)
-                    author = Users.GetUser(DataBuff.Find("author").InfoToInt);
+                {
+                    author = Users.GetUser(AuthorID);
+                    if (author == null)
+                        author = Users.GetRemovedUser(AuthorID);
+                }
                 return author;
             }
             set

@@ -24,7 +24,7 @@ namespace WordWebCMS
             {
                 case "postlike"://点赞
                     int id;
-                    if (!int.TryParse(context.Request.QueryString["ID"], out id))
+                    if (!int.TryParse(context.Request.QueryString["id"], out id))
                         break;
                     Users usr;
                     if (context.Session["User"] == null)
@@ -59,7 +59,7 @@ namespace WordWebCMS
                     }
                     return;
                 case "reviewlike":
-                    if (!int.TryParse(context.Request.QueryString["ID"], out id))
+                    if (!int.TryParse(context.Request.QueryString["id"], out id))
                         break;
                     if (context.Session["User"] == null)
                     {
@@ -94,7 +94,7 @@ namespace WordWebCMS
                     Setting.Application["postreview" + review.pID.ToString()] = null;
                     return;
                 case "regemail"://注册时发验证EMAIL
-                    string MasterKey = context.Request.QueryString["ID"];
+                    string MasterKey = context.Request.QueryString["id"];
                     string anser = context.Request.QueryString["key"];
                     string email = context.Request.QueryString["email"];
                     if (Session[MasterKey + "ans"] == null)
@@ -139,7 +139,7 @@ namespace WordWebCMS
                     }
                     return;
                 case "sendreview":
-                    if (!int.TryParse(context.Request.QueryString["ID"], out int pID))
+                    if (!int.TryParse(context.Request.QueryString["id"], out int pID))
                         break;
 
                     StreamReader sr = new StreamReader(context.Request.InputStream, Encoding.UTF8);

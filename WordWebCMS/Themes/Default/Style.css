@@ -1128,8 +1128,11 @@ miscellaneous*/
     background-image: url(images/clock.png);
 }
 
+.reader-num {
+    background-image: url(images/readnum.png);
+}
 
-.comments-link, .posted-on, .poster-author {
+.comments-link, .posted-on, .poster-author, .reader-num {
     background-repeat: no-repeat;
     padding-left: 1.6em;
     margin-right: 10px;

@@ -14,12 +14,28 @@ namespace WordWebCMS
         {
             //Important:把缓存交给设置
             Setting.Application = this.Application;
-
-            if (Setting.NomalIndex != -1 && Request.QueryString["page"] == null)
-            {//主页是post 跳转到post
-                Response.Redirect(Setting.WebsiteURL + "/Post.aspx?ID=" + Setting.NomalIndex.ToString());
-                Response.End();
-                return;
+            try
+            {
+                if (Setting.NomalIndex != -1 && Request.QueryString["page"] == null)
+                {//主页是post 跳转到post
+                    Server.Transfer(Setting.WebsiteURL + "/Post.aspx?ID=" + Setting.NomalIndex.ToString());
+                    Response.End();
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {//如果读取数据库出现了一些问题
+                if (ex.Message.StartsWith("WWCMS"))
+                {
+                    switch (ex.Message)
+                    {
+                        case "WWCMS:无法连接数据库":
+                            Response.Redirect(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Authority) + "/Setup.aspx?step=1");
+                            Response.End();
+                            break;
+                    }
+                }
+                throw (ex);
             }
 
             //在很远的将来TODO: ALLinONE
