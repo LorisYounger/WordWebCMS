@@ -17,6 +17,11 @@ namespace WordWebCMS
             if (Application["MasterHeader"] == null)
                 Application["MasterHeader"] = SMaster.GetHeaderHTML();
             LHeader.Text = ((string)Application["MasterHeader"]);
+
+            //Footer
+            if (Application["MasterFooter"] == null)
+                Application["MasterFooter"] = SMaster.GetFooterHTML();
+            LFooter.Text = ((string)Application["MasterFooter"]);
         }
     }
 }

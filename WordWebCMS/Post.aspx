@@ -46,7 +46,7 @@
                 document.getElementById("postlike").innerHTML = xmlhttp.responseText;
             }
         }
-        xmlhttp.open("GET", "ajax.ashx?action=postlike&ID=" + pid);
+        xmlhttp.open("GET", "ajax.ashx?action=postlike&id=" + pid);
         xmlhttp.send();
     }
     function LikeReview(pid) {
@@ -56,7 +56,7 @@
                 document.getElementById("reviewlike" + pid).innerHTML = xmlhttp.responseText;
             }
         }
-        xmlhttp.open("GET", "ajax.ashx?action=reviewlike&ID=" + pid);
+        xmlhttp.open("GET", "ajax.ashx?action=reviewlike&id=" + pid);
         xmlhttp.send();
     }
     function Reply(rid) {
@@ -77,8 +77,8 @@
                 alert(xmlhttp.responseText);
             }
         }
-        //xmlhttp.open("POST", "ajax.ashx?action=sendreview&ID=" + pid + "&mail=" + mail_notify_str);
-        xmlhttp.open("POST", "ajax.ashx?action=sendreview&ID=" + pid);
+        //xmlhttp.open("POST", "ajax.ashx?action=sendreview&id=" + pid + "&mail=" + mail_notify_str);
+        xmlhttp.open("POST", "ajax.ashx?action=sendreview&id=" + pid);
         xmlhttp.setRequestHeader('Content-type', 'raw');
         xmlhttp.send(encodeURI(editor.getMarkdown()));
     }

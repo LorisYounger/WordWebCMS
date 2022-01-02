@@ -71,8 +71,13 @@
         <p class="BoxLable">新密码</p>
         <asp:TextBox runat="server" ID="passwordfindmy" class="singlelineinput" ReadOnly="True"></asp:TextBox>
     </div>
+    <div id="divlogout" runat="server" visible="false">
+        <h1 style="text-align: center">登出成功</h1>
+        <p>您已经成功登出网站</p>
+        <a href="?Action=Login">重新登陆</a>
+    </div>
 </form>
-<script type="text/javascript">    
+<script type="text/javascript">
     function sendregemail() {
         var xmlhttp = new XMLHttpRequest();
         xmlhttp.onreadystatechange = function () {
@@ -80,7 +85,7 @@
                 document.getElementById("bottonsendregemail").innerText = xmlhttp.responseText;
             }
         }
-        xmlhttp.open("GET", "ajax.ashx?action=regemail&ID=" + document.getElementById("MasterKey").value + "&email=" + document.getElementById("emailreg").value + "&key=" + document.getElementById("checkregisterkey").value, true);
+        xmlhttp.open("GET", "ajax.ashx?action=regemail&id=" + document.getElementById("MasterKey").value + "&email=" + document.getElementById("emailreg").value + "&key=" + document.getElementById("checkregisterkey").value, true);
         xmlhttp.send();
     }
 </script>

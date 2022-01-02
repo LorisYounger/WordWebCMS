@@ -8,9 +8,9 @@ namespace WordWebCMS
 {//TODO:摘录要清空html
     //文章表格式:select LAST_INSERT_ID()  gifts
     //   -post 
-    //     Pid(int)|name(string100)|content(midtext)|author(int)|excerpt(string400)|postdate(date)|modifydate(date)|classify(string200)|state(sbyte)|attachment(tinytext)|password(string32) |   anzhtml  |allowcomments|readers(int)|likes(int)|
-    //     文章id  |    文章名      |      内容      |   作者id  |   摘录/简介      |   发布日期    |    修改日期     |     分类目录      |   文章类型  |         附图       |      密码md5s      |是否分析html|   允许评论   |   阅读量    |  赞同数  |
-    //     主键递增|   --------------------------------------------------------------------------------------------------------------- |    0-默认   |   空-无图片 or url |   空-不需要密码    |    false   |    true      |    0       |   0      |
+    //     Pid(int)|name(string256)|shortname(string64)|excerpt(string512)|content(midtext)|author(int)|postdate(date)|modifydate(date)|classify(string256)|state(sbyte)|attachment(tinytext)|password(string32) |   anzhtml  |allowcomments|readers(int)|likes(int)|
+    //     文章id  |    文章名      |     短名   唯一    |   摘录/简介      |      内容      |   作者id  |   发布日期    |    修改日期     |     分类目录      |   文章类型  |         附图       |      密码md5s      |是否分析html|   允许评论   |   阅读量    |  赞同数  |
+    //     主键递增|   -------------------------------------------------------------------------------------------------------------------------------    |    0-默认   |   空-无图片 or url |   空-不需要密码    |    false   |    true      |    0       |   0      |
     public class Posts
     {
         #region "辅助构建函数"
@@ -18,7 +18,7 @@ namespace WordWebCMS
         /// 通过文章id获得文章
         /// </summary>
         /// <param name="PostID">文章id</param>
-        /// <returns></returns>
+        /// <returns>文章</returns>
         public static Posts GetPost(int PostID)
         {
             LpsDocument data = RAW.ExecuteQuery("SELECT * FROM post WHERE Pid=@pid", new MySQLHelper.Parameter("pid", PostID));
@@ -41,6 +41,18 @@ namespace WordWebCMS
                 Posts.Add(new Posts(line.InfoToInt, line));
             }
             return Posts;
+        }
+        /// <summary>
+        /// 通过文章短名称获得文章
+        /// </summary>
+        /// <param name="ShortName">文章名</param>
+        /// <returns>文章</returns>
+        public static Posts GetPostFormShortName(string ShortName)
+        {
+            LpsDocument data = RAW.ExecuteQuery("SELECT * FROM post WHERE shortname=@pid", new MySQLHelper.Parameter("pid", ShortName));
+            if (data.Assemblage.Count == 0)
+                return null;
+            return new Posts(data.First().InfoToInt, data.First());
         }
         /// <summary>
         /// 通过分类目录获得文章
@@ -170,13 +182,13 @@ namespace WordWebCMS
         /// <summary>
         /// 创建新文章
         /// </summary>
-        public static Posts CreatPost(string name, string cont, int authid, string excerpt, DateTime postdate, DateTime modifydate, string classify, PostState state = PostState.Default, string password = "", string attachment = "", bool anzhtml = false)
-        {
-            RAW.ExecuteNonQuery($"INSERT INTO post VALUES (NULL,@name,@content,@author,@excerpt,@postdate,@modifydate,@class,@state,@attach,@password,@anzhtml)",
-                new MySQLHelper.Parameter("name", name), new MySQLHelper.Parameter("content", cont), new MySQLHelper.Parameter("author", authid),
+        public static Posts CreatPost(string name, string shortname, string cont, int authid, string excerpt, DateTime postdate, DateTime modifydate, string classify, PostState state = PostState.Default, string password = "", string attachment = "", bool anzhtml = false, bool allowcomm = true, int readers = 0, int like = 0)
+        {//(`Pid`, `name`, `shortname`, `excerpt`, `content`, `author`, `postdate`, `modifydate`, `classify`, `state`, `attachment`, `password`, `anzhtml`, `allowcomments`, `readers`, `likes`)
+            RAW.ExecuteNonQuery($"INSERT INTO post VALUES (NULL,@name,@shortname,@excerpt,@content,@author,@postdate,@modifydate,@class,@state,@attach,@password,@anzhtml,@allowcomm,@readers,@likes)",
+                new MySQLHelper.Parameter("name", name), new MySQLHelper.Parameter("shortname", shortname), new MySQLHelper.Parameter("content", cont), new MySQLHelper.Parameter("author", authid),
                 new MySQLHelper.Parameter("excerpt", excerpt), new MySQLHelper.Parameter("postdate", postdate), new MySQLHelper.Parameter("modifydate", modifydate),
                 new MySQLHelper.Parameter("class", classify), new MySQLHelper.Parameter("state", ((int)state).ToString()), new MySQLHelper.Parameter("attach", attachment),
-                new MySQLHelper.Parameter("password", (password == "" ? "" : Function.MD5salt(password))), new MySQLHelper.Parameter("anzhtml", anzhtml));
+                new MySQLHelper.Parameter("password", (password == "" ? "" : Function.MD5salt(password))), new MySQLHelper.Parameter("anzhtml", anzhtml), new MySQLHelper.Parameter("allowcomm", allowcomm), new MySQLHelper.Parameter("readers", readers), new MySQLHelper.Parameter("likes", like));
             return new Posts(RAW.ExecuteQuery("SELECT MAX(Pid) FROM post").First().InfoToInt);//如果这个没有生效就使用 SELECT MAX(Pid) FROM post
             //return new Posts(RAW.ExecuteQuery("select LAST_INSERT_ID()").First().InfoToInt);//如果这个没有生效就使用 SELECT MAX(Pid) FROM post
         }
@@ -213,6 +225,7 @@ namespace WordWebCMS
         /// Postid
         /// </summary>
         public readonly int pID;
+
         /// <summary>
         /// 文章作者ID
         /// </summary>
@@ -234,7 +247,11 @@ namespace WordWebCMS
             get
             {
                 if (author == null)
-                    author = Users.GetUser(DataBuff.Find("author").InfoToInt);
+                {
+                    author = Users.GetUser(AuthorID);
+                    if (author == null)
+                        author = Users.GetRemovedUser(AuthorID);
+                }
                 return author;
             }
             set
@@ -353,6 +370,21 @@ namespace WordWebCMS
             {
                 databf = null;
                 RAW.ExecuteNonQuery($"UPDATE post SET name=@name WHERE Pid=@pid", new MySQLHelper.Parameter("name", Function.SanitizeHtml(value)), new MySQLHelper.Parameter("pid", pID));
+            }
+        }
+        /// <summary>
+        /// 文章短名称 唯一
+        /// </summary>
+        public string ShortName
+        {
+            get
+            {
+                return DataBuff.Find("shortname").Info;
+            }
+            set
+            {
+                databf = null;
+                RAW.ExecuteNonQuery($"UPDATE post SET shortname=@name WHERE Pid=@pid", new MySQLHelper.Parameter("name", Function.SanitizeHtml(value)), new MySQLHelper.Parameter("pid", pID));
             }
         }
         /// <summary>
@@ -522,23 +554,30 @@ namespace WordWebCMS
         #endregion
 
         #region 转换成HTML
+        public string GetLink()
+        {
+            if (Setting.EnabledUrlRewrite)
+                return Setting.WebsiteURL + '/' + ShortName;
+            else
+                return Setting.WebsiteURL + "/Post.aspx?ID=" + pID;
+        }
         public string ToIndex()
             => $"<article id=\"post-{pID}\" class=\"post-{pID} post hentry State-{State}\">	<header class=\"entry-header\"> <h1 class=\"entry-title\">" +
-            $"<a href=\"{Setting.WebsiteURL}/Post.aspx?ID={pID}\">{Name}</a></h1><div class=\"entry-meta\">" +
+            $"<a href=\"{GetLink()}\">{Name}</a></h1><div class=\"entry-meta\">" +
             $"<span class=\"posted-on\">时间:<a href=\"{Setting.WebsiteURL}/Index.aspx?Date={PostDate.ToShortDateString()}\">{PostDate.ToShortDateString()}" +
             $"</a> </span><span class=\"poster-author\" id=user-{Author}> <span class=\"author vcard\"> 作者:<a href=\"{Setting.WebsiteURL}/User.aspx?ID={AuthorID}\">{Author.UserName}</a></span></span>" +
-           (AllowComments ? $"<span class=\"comments-link\"><a href=\"{Setting.WebsiteURL}/Post.aspx?ID={pID}#reply-title\">发表回复</a></span>" : "") +
-            $"</div></header><div class=\"entry-content\">{(Attachment == "" ? "" : $"<img width=\"150\" src=\"{Attachment}\" class=\"wp-post-image\">")}<p>{Excerpt.Replace("\n", "<br />")}</p></div>" +
-            $"<div style=\"text-align: right;\"><a href=\"{Setting.WebsiteURL}/Post.aspx?ID={pID}\">查看文章-></a></div></article>";
+           (AllowComments ? $"<span class=\"comments-link\"><a href=\"{GetLink()}#reply-title\">发表回复</a></span>" : "") +
+            $"<span class=\"reader-num\">阅读量: {Readers}</span></div></header><div class=\"entry-content\">{(Attachment == "" ? "" : $"<img width=\"150\" src=\"{Attachment}\" class=\"wp-post-image\">")}<p>{Excerpt.Replace("\n", "<br />")}</p></div>" +
+            $"<div style=\"text-align: right;\"><a href=\"{GetLink()}\">查看文章-></a></div></article>";
 
         public string ToPost()
         {
-            Readers += 1;
             return $"<article class=\"post hentry post-{pID} {State}\"><header class=\"entry-header\"><h1 class=\"entry-title\">" +
                    $"{Name}</h1><div class=\"entry-meta\"><span class=\"posted-on\">在 <a href=\"{Setting.WebsiteURL}/Index.aspx?Date={PostDate.ToShortDateString()}\" rel=\"bookmark\">" +
                    $"{PostDate.ToShortDateString()}</a> 上张贴</span><span class=\"poster-author\" id=user-{AuthorID}> 由 <span class=\"author vcard\">" +
                    $"<a href=\"{Setting.WebsiteURL}/User.aspx?ID={AuthorID}\"><img src={Author.AvatarURL} width=\"20\" height=\"20\">{Author.UserName}</a></span></span>" +
                   (AllowComments ? $"<span class=\"comments-link\"><a href=\"#reply-title\">发表回复</a></span>" : "") +
+                   $"<span class=\"reader-num\">阅读量: {Readers}</span>" +
                    $"</div></header><div class=\"entry-content\">{ContentToHtml()}</div></article>";
         }
 

@@ -10,7 +10,9 @@ namespace WordWebCMS
 {
     public partial class Post : System.Web.UI.Page
     {
-        int pID = -1;
+        Posts post = null;
+        int pID => post.pID;
+
         protected void Page_Load(object sender, EventArgs e)
         {
             //Important:把缓存交给设置
@@ -39,22 +41,22 @@ namespace WordWebCMS
                 LSecondary.Text = usr.ToWidget();
             }
 
-            if (Request.QueryString["ID"] != null)
+            //通过id获得文章
+            if (Request.QueryString["id"] != null)
             {
-                int.TryParse(Request.QueryString["ID"], out pID);
+                if (int.TryParse(Request.QueryString["id"], out int pID))
+                    post = Posts.GetPost(pID);//获得post信息                
             }
-            if (pID == -1)
+            else if (Request.QueryString["shortname"] != null)
             {
-                Goto404();
-                return;
+                post = Posts.GetPostFormShortName(Request.QueryString["shortname"]);
             }
-            Posts post = Posts.GetPost(pID);//获得post信息
+
             if (post == null)
             {
                 Goto404();
                 return;
             }
-
             switch (post.State)//判断用户是否有权限查看文章
             {
                 case Posts.PostState.Delete:
@@ -72,7 +74,7 @@ namespace WordWebCMS
             {
                 if (usr == null || !(usr.Authority == Setting.AuthLevel.Admin || usr.Authority == Setting.AuthLevel.PostManager))
                 {
-                    Response.Redirect(Setting.WebsiteURL + "/password.aspx?type=post&ID=" + pID);
+                    Response.Redirect(Setting.WebsiteURL + "/password.aspx?type=post&id=" + pID);
                     Response.End();
                     return;
                 }
@@ -81,14 +83,9 @@ namespace WordWebCMS
             LHeader.Text = LHeader.Text.Replace("<!--WWC:head-->", $"<title>{post.Name} - {Setting.WebTitle}</title>");
 
             if (Application["posttopost" + pID.ToString()] == null)
-            {
                 Application["posttopost" + pID.ToString()] = post.ToPost();
-                LContentPage.Text = (string)Application["posttopost" + pID.ToString()];
-            }
-            else
-            {
-                LContentPage.Text = (string)Application["posttopost" + pID.ToString()];
-            }
+            LContentPage.Text = (string)Application["posttopost" + pID.ToString()];
+            post.Readers += 1;
 
             LCatLink.Text = $"<span class=\"nav-previous\">张贴在<a href=\"{Setting.WebsiteURL}/Index.aspx?class={post.Classify}\" rel=\"category tag\">{post.Classify}</a></span>";
             Lpostlike.Text = $"{post.Likes}个赞<button type =\"button\" onclick=\"LikePost({pID})\" class=\"like-post\" style=\"" +

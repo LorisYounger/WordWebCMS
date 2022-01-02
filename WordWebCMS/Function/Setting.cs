@@ -23,12 +23,17 @@ namespace WordWebCMS
             //get => new LpsDocument();//Debug
             get
             {
-            ReTry: try
+                int times = 0;
+            ReTry:
+                try
                 {
+                    times++;
                     return RAW.ExecuteQuery("SELECT * FROM setting");
                 }
                 catch
                 {
+                    if (times >= 10)
+                        throw new Exception("WWCMS:无法连接数据库");
                     System.Threading.Thread.Sleep(1000);
                     goto ReTry;
                 }
@@ -98,7 +103,7 @@ namespace WordWebCMS
             {
                 var line = DataBuff.FindLineInfo("defaultuserauth");
                 if (line == null)
-                    return AuthLevel.Default;
+                    return AuthLevel.Subscriber;
                 return (AuthLevel)Convert.ToSByte(line.First().info);
             }
             set
@@ -221,7 +226,7 @@ namespace WordWebCMS
             }
             set
             {
-                Line lin = DataBuff.FindLineInfo("websideurl");
+                Line lin = DataBuff.FindLineInfo("websiteurl");
                 if (lin == null)
                 {
                     RAW.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "websiteurl"), new MySQLHelper.Parameter("prop", value));
@@ -260,24 +265,24 @@ namespace WordWebCMS
         /// <summary>
         /// 允许注册
         /// </summary>
-        public static bool AlowRegister
+        public static bool AllowRegister
         {
             get
             {
-                var line = DataBuff.FindLineInfo("alowregister");
+                var line = DataBuff.FindLineInfo("allowregister");
                 if (line != null)
-                    return Convert.ToBoolean(line.First().info);
+                    return Convert.ToBoolean(line.First().InfoToInt);
                 return true;//默认允许注册
             }
             set
             {
-                Line lin = DataBuff.FindLineInfo("alowregister");
+                Line lin = DataBuff.FindLineInfo("allowregister");
                 if (lin == null)
                 {
-                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "alowregister"), new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "allowregister"), new MySQLHelper.Parameter("prop", value));
                 }
                 else
-                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector=@sele", new MySQLHelper.Parameter("sele", "alowregister"), new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector=@sele", new MySQLHelper.Parameter("sele", "allowregister"), new MySQLHelper.Parameter("prop", value));
                 DataBuff = null;
             }
         }
@@ -305,7 +310,54 @@ namespace WordWebCMS
                 DataBuff = null;
             }
         }
-
+        /// <summary>
+        /// 使用 URLRewrite
+        /// </summary>
+        public static bool EnabledUrlRewrite
+        {
+            get
+            {
+                var line = DataBuff.FindLineInfo("enableurlrewrite");
+                if (line != null)
+                    return Convert.ToBoolean(line.First().InfoToInt);
+                return false;//默认未使用URLRewrite
+            }
+            set
+            {
+                Line lin = DataBuff.FindLineInfo("enableurlrewrite");
+                if (lin == null)
+                {
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "enableurlrewrite"), new MySQLHelper.Parameter("prop", value));
+                }
+                else
+                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector=@sele", new MySQLHelper.Parameter("sele", "enableurlrewrite"), new MySQLHelper.Parameter("prop", value));
+                DataBuff = null;
+            }
+        }
+        /// <summary>
+        /// 指示能否运行Setup 是第二重保险
+        /// </summary>
+        public static bool DisableSetup
+        {
+            get
+            {
+                var line = DataBuff.FindLineInfo("disablesetup");
+                if (line != null)
+                    return Convert.ToBoolean(line.First().InfoToInt);
+                return false;
+            }
+            set
+            {
+                Line lin = DataBuff.FindLineInfo("disablesetup");
+                if (lin == null)
+                {
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('disablesetup',@prop)", new MySQLHelper.Parameter("prop", value));
+                }
+                else
+                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='disablesetup'", new MySQLHelper.Parameter("prop", value));
+                DataBuff = null;
+            }
+        }
         /// <summary>
         /// 指示有无启用邮件功能 需要设置正确的SMTP才能使用
         /// </summary>
@@ -315,7 +367,7 @@ namespace WordWebCMS
             {
                 var line = DataBuff.FindLineInfo("enabledemail");
                 if (line != null)
-                    return Convert.ToBoolean(line.First().info);
+                    return Convert.ToBoolean(line.First().InfoToInt);
                 return false;//默认未开启邮件功能
             }
             set
@@ -341,7 +393,7 @@ namespace WordWebCMS
                 var line = DataBuff.FindLineInfo("smtpemail");
                 if (line != null)
                     return line.First().Info;
-                return "SMTPEmail";
+                return "no-reply@exlb.net";
             }
             set
             {
@@ -390,7 +442,7 @@ namespace WordWebCMS
                 var line = DataBuff.FindLineInfo("smtpurl");
                 if (line != null)
                     return line.First().Info;
-                return "SMTPURL";
+                return "smtp.exlb.net";
             }
             set
             {
