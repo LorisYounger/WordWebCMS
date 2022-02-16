@@ -6,9 +6,8 @@
 
         <div id="primary" class="content-area">
             <main id="main" class="site-main" role="main">
-                <div id="userinfo">
-                    <div class="page type-page hentry" runat="server" visible="false">
-                    </div>
+                <div id="userinfo" class="post">
+                    
                 </div>
             </main>
         </div>

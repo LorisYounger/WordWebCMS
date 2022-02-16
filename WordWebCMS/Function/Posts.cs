@@ -86,6 +86,22 @@ namespace WordWebCMS
             return Posts;
         }
         /// <summary>
+        /// 通过目录获得文章
+        /// </summary>
+        /// <param name="classify">分类目录顶级名称</param>
+        /// <returns>文章列表</returns>
+        public static List<Posts> GetPostFormDate(DateTime before, DateTime after)
+        {
+            List<Posts> Posts = new List<Posts>();
+            LpsDocument data = RAW.ExecuteQuery("SELECT * FROM post WHERE `modifydate` < '@aft' AND `modifydate` > '@bef' ORDER BY modifydate DESC",
+                new MySQLHelper.Parameter("bef", before.ToString()), new MySQLHelper.Parameter("aft", after.ToString()));
+            foreach (Line line in data)
+            {
+                Posts.Add(new Posts(line.InfoToInt, line));
+            }
+            return Posts;
+        }
+        /// <summary>
         /// 通过搜索相似文章名称获得文章
         /// </summary>
         /// <param name="key">关键字 要求%作为通配符</param>
@@ -333,12 +349,12 @@ namespace WordWebCMS
         {
             get
             {
-                return Convert.ToBoolean(DataBuff.Find("anzhtml").info);
+                return Convert.ToBoolean(DataBuff.Find("anzhtml").InfoToInt);
             }
             set
             {
                 databf = null;
-                RAW.ExecuteNonQuery($"UPDATE post SET anzhtml=@cont WHERE Pid=@pid", new MySQLHelper.Parameter("cont", value), new MySQLHelper.Parameter("pid", pID));
+                RAW.ExecuteNonQuery($"UPDATE post SET anzhtml=@cont WHERE Pid=@pid", new MySQLHelper.Parameter("cont", value ? 1 : 0), new MySQLHelper.Parameter("pid", pID));
             }
         }
         /// <summary>
@@ -348,12 +364,12 @@ namespace WordWebCMS
         {
             get
             {
-                return Convert.ToBoolean(DataBuff.Find("allowcomments").info);
+                return Convert.ToBoolean(DataBuff.Find("allowcomments").InfoToInt);
             }
             set
             {
                 databf = null;
-                RAW.ExecuteNonQuery($"UPDATE post SET allowcomments=@cont WHERE Pid=@pid", new MySQLHelper.Parameter("cont", value), new MySQLHelper.Parameter("pid", pID));
+                RAW.ExecuteNonQuery($"UPDATE post SET allowcomments=@cont WHERE Pid=@pid", new MySQLHelper.Parameter("cont", value ? 1 : 0), new MySQLHelper.Parameter("pid", pID));
             }
         }
 

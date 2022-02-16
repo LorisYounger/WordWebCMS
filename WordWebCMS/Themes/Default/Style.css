@@ -157,7 +157,7 @@
 }
 
 .md-p {
-    margin: 0 auto;
+    margin: auto;
 }
 
 .like-post {
@@ -369,9 +369,9 @@ h1 {
     color: #222;
 }
 
-    h1.site-title a {
+/*    h1.site-title a {
         font-family: 'Lobster', cursive !important;
-    }
+    }*/
 
 h2 {
     font-size: 1.5em;

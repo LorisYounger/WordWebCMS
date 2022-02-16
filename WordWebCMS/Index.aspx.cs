@@ -16,7 +16,7 @@ namespace WordWebCMS
             Setting.Application = this.Application;
             try
             {
-                if (Setting.NomalIndex != -1 && Request.QueryString["page"] == null)
+                if (Setting.NomalIndex != -1 && (Request.QueryString["page"] == null || Request.QueryString["class"] == null))
                 {//主页是post 跳转到post
                     Server.Transfer(Setting.WebsiteURL + "/Post.aspx?ID=" + Setting.NomalIndex.ToString());
                     Response.End();
@@ -41,7 +41,6 @@ namespace WordWebCMS
             //在很远的将来TODO: ALLinONE
             //可以通过域名判断网站类型,有专有的Style和内容,在主站则显示全部内容
 
-
             //Header
             if (Application["MasterHeader"] == null)
                 Application["MasterHeader"] = SMaster.GetHeaderHTML();
@@ -49,13 +48,100 @@ namespace WordWebCMS
 
             //NomalIndex
             List<string> MasterIndex;
+            string WebTitle = Setting.WebTitle;
+            string WebSubTitle = Setting.WebSubTitle;
 
-            if (Request.QueryString["class"] != null)
+            if (Request.QueryString["class"] != null || Request.QueryString["shortname"] != null)
             {
-                MasterIndex = new List<string>();
-                foreach (Posts post in Posts.GetPostFormClassify(Request.QueryString["class"]))
-                    MasterIndex.Add(post.ToIndex());
-                Application["MasterIndex" + Request.QueryString["class"]] = MasterIndex;
+                //shortname是从Post借来的
+                string cfy;
+                if (Request.QueryString["class"] != null)
+                    cfy = Request.QueryString["class"];
+                else
+                    cfy = Request.QueryString["shortname"];
+
+                if (Application["MasterIndex" + cfy] != null)
+                {
+                    MasterIndex = (List<string>)Application["MasterIndex" + cfy];
+                }
+                else
+                {
+                    MasterIndex = new List<string>();
+                    foreach (Posts post in Posts.GetPostFormTopClassify(cfy))
+                        MasterIndex.Add(post.ToIndex());
+
+                    Application["MasterIndex" + cfy] = MasterIndex;
+                }
+                WebSubTitle = WebTitle;
+                WebTitle = $"[{cfy}]";
+            }
+            else if (Request.QueryString["date"] != null)
+            {
+                string date = Request.QueryString["date"];
+                //日期分类
+                //先看看有没有给具体的日期
+                if (DateTime.TryParse(date, out DateTime bef))
+                {
+                    bef = bef.Date;
+                    if (Application["MasterIndex" + bef.ToShortDateString()] == null)
+                    {
+                        MasterIndex = new List<string>();
+                        foreach (Posts post in Posts.GetPostFormDate(bef, bef.AddDays(1)))
+                            MasterIndex.Add(post.ToIndex());
+                        Application["MasterIndex" + bef.ToShortDateString()] = MasterIndex;
+                    }
+                    else
+                    {
+                        MasterIndex = (List<string>)Application["MasterIndex" + bef.ToShortDateString()];
+                    }
+                }
+                else
+                {
+                    var spl = date.Split('/');
+                    if (spl.Length == 2 && int.TryParse(spl[0], out int y) && int.TryParse(spl[1], out int m))
+                    {                       
+                        if (Application[$"MasterIndexDy{y}m{m}"] == null)
+                        {
+                            bef = new DateTime(y, m, 1);
+                            MasterIndex = new List<string>();
+                            foreach (Posts post in Posts.GetPostFormDate(bef, bef.AddMonths(1)))
+                                MasterIndex.Add(post.ToIndex());
+                            Application[$"MasterIndexDy{y}m{m}"] = MasterIndex;
+                        }
+                        else
+                        {
+                            MasterIndex = (List<string>)Application[$"MasterIndexDy{y}m{m}"];
+                        }
+                    }
+                    else if (spl.Length == 1 && int.TryParse(spl[0], out y))
+                    {
+                        if (Application[$"MasterIndexDy{y}"] == null)
+                        {
+                            bef = new DateTime(y, 1, 1);
+                            MasterIndex = new List<string>();
+                            foreach (Posts post in Posts.GetPostFormDate(bef, bef.AddYears(1)))
+                                MasterIndex.Add(post.ToIndex());
+                            Application[$"MasterIndexDy{y}"] = MasterIndex;
+                        }
+                        else
+                        {
+                            MasterIndex = (List<string>)Application[$"MasterIndexDy{y}"];
+                        }
+                    }
+                    else
+                    {
+                        //参考下方NOMALINDEX代码
+                        if (Application["MasterNomalIndex"] != null)
+                            MasterIndex = (List<string>)Application["MasterNomalIndex"];
+                        else
+                        {
+                            MasterIndex = new List<string>();
+                            foreach (Posts post in Posts.GetAllAvailablePost())
+                                MasterIndex.Add(post.ToIndex());
+                            Application["MasterNomalIndex"] = MasterIndex;
+                        }
+                    }
+                }
             }
             else
             {
@@ -75,7 +161,7 @@ namespace WordWebCMS
             {
                 int.TryParse(Request.QueryString["page"], out page);
             }
-            LHeader.Text = LHeader.Text.Replace("<!--WWC:head-->", $"<title>{Setting.WebTitle} - {(page == 0 ? Setting.WebSubTitle : $"第{page + 1}页")}</title>");
+            LHeader.Text = LHeader.Text.Replace("<!--WWC:head-->", $"<title>{WebTitle} - {(page == 0 ? WebSubTitle : $"第{page + 1}页")}</title>");
 
             if ((page + 1) * 10 < MasterIndex.Count)
                 LNavLinks.Text = $"<div class=\"nav-previous\"><a href=\"?page={page + 1}\"><span class=\"meta-nav\">←</span> 早期文章</a></div>";

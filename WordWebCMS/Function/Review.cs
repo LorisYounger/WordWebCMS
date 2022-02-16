@@ -278,12 +278,12 @@ namespace WordWebCMS
         {
             get
             {
-                return Convert.ToBoolean(DataBuff.Find("anzhtml").info);
+                return Convert.ToBoolean(DataBuff.Find("anzhtml").InfoToInt);
             }
             set
             {
                 databf = null;
-                RAW.ExecuteNonQuery($"UPDATE review SET anzhtml=@cont WHERE Rid=@rid", new MySQLHelper.Parameter("cont", value), new MySQLHelper.Parameter("rid", rID));
+                RAW.ExecuteNonQuery($"UPDATE review SET anzhtml=@cont WHERE Rid=@rid", new MySQLHelper.Parameter("cont", value ? 1 : 0), new MySQLHelper.Parameter("rid", rID));
             }
         }
 
