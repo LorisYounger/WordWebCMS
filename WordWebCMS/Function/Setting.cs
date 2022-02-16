@@ -279,10 +279,10 @@ namespace WordWebCMS
                 Line lin = DataBuff.FindLineInfo("allowregister");
                 if (lin == null)
                 {
-                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "allowregister"), new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "allowregister"), new MySQLHelper.Parameter("prop", value ? 1 : 0));
                 }
                 else
-                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector=@sele", new MySQLHelper.Parameter("sele", "allowregister"), new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector=@sele", new MySQLHelper.Parameter("sele", "allowregister"), new MySQLHelper.Parameter("prop", value ? 1 : 0));
                 DataBuff = null;
             }
         }
@@ -327,10 +327,10 @@ namespace WordWebCMS
                 Line lin = DataBuff.FindLineInfo("enableurlrewrite");
                 if (lin == null)
                 {
-                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "enableurlrewrite"), new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES (@sele,@prop)", new MySQLHelper.Parameter("sele", "enableurlrewrite"), new MySQLHelper.Parameter("prop", value ? 1 : 0));
                 }
                 else
-                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector=@sele", new MySQLHelper.Parameter("sele", "enableurlrewrite"), new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector=@sele", new MySQLHelper.Parameter("sele", "enableurlrewrite"), new MySQLHelper.Parameter("prop", value ? 1 : 0));
                 DataBuff = null;
             }
         }
@@ -351,10 +351,10 @@ namespace WordWebCMS
                 Line lin = DataBuff.FindLineInfo("disablesetup");
                 if (lin == null)
                 {
-                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('disablesetup',@prop)", new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('disablesetup',@prop)", new MySQLHelper.Parameter("prop", value ? 1 : 0));
                 }
                 else
-                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='disablesetup'", new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='disablesetup'", new MySQLHelper.Parameter("prop", value ? 1 : 0));
                 DataBuff = null;
             }
         }
@@ -375,10 +375,10 @@ namespace WordWebCMS
                 Line lin = DataBuff.FindLineInfo("enabledemail");
                 if (lin == null)
                 {
-                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('enabledemail',@prop)", new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"INSERT INTO setting VALUES ('enabledemail',@prop)", new MySQLHelper.Parameter("prop", value ? 1 : 0));
                 }
                 else
-                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='enabledemail'", new MySQLHelper.Parameter("prop", value));
+                    RAW.ExecuteNonQuery($"UPDATE setting SET property=@prop WHERE selector='enabledemail'", new MySQLHelper.Parameter("prop", value ? 1 : 0));
                 DataBuff = null;
             }
         }

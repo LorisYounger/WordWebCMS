@@ -201,7 +201,7 @@ namespace WordWebCMS
             get
             {
                 if (uID < 0) return AuthLevel.Ban;
-                if (Convert.ToBoolean(Data.Find("isroot").info))
+                if (Convert.ToBoolean(Data.Find("isroot").InfoToInt))
                     return AuthLevel.Admin;//如果是root直接无脑admin
                 return GetUserAuthority(uID);
             }

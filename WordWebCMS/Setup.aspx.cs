@@ -102,6 +102,7 @@ namespace WordWebCMS
                     {
                         Session["setupstop2"] = true;
                         CheckBoxemail.Checked = true;
+                        divemail.Visible = true;
                     }
 
                     SetTextBox(TextBoxwebemailsmtp, Setting.SMTPEmail);

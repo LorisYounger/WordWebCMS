@@ -8,7 +8,7 @@ using static WordWebCMS.Function;
 
 namespace WordWebCMS
 {
-    public partial class Post : System.Web.UI.Page
+    public partial class Post : Page
     {
         Posts post = null;
         int pID => post.pID;
@@ -20,6 +20,25 @@ namespace WordWebCMS
 
             ////临时数据id
             //string sessionid = Rnd.Next().ToString("x");
+
+            //通过id获得文章
+            if (Request.QueryString["id"] != null && int.TryParse(Request.QueryString["id"], out int pid))
+            {
+                post = Posts.GetPost(pid);//获得post信息                
+            }
+            else if (Request.QueryString["shortname"] != null)
+            {
+                post = Posts.GetPostFormShortName(Request.QueryString["shortname"]);
+                if (post == null)
+                {//跳转到主页的搜索
+                    Server.Transfer("Index.aspx", true);
+                }
+            }
+            else
+            {
+                Goto404();
+                return;
+            }
 
             //Header
             if (Application["MasterHeader"] == null)
@@ -41,22 +60,7 @@ namespace WordWebCMS
                 LSecondary.Text = usr.ToWidget();
             }
 
-            //通过id获得文章
-            if (Request.QueryString["id"] != null)
-            {
-                if (int.TryParse(Request.QueryString["id"], out int pID))
-                    post = Posts.GetPost(pID);//获得post信息                
-            }
-            else if (Request.QueryString["shortname"] != null)
-            {
-                post = Posts.GetPostFormShortName(Request.QueryString["shortname"]);
-            }
 
-            if (post == null)
-            {
-                Goto404();
-                return;
-            }
             switch (post.State)//判断用户是否有权限查看文章
             {
                 case Posts.PostState.Delete:
