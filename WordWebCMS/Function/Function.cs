@@ -225,15 +225,15 @@ namespace WordWebCMS
 
                     SmtpClient smtp = new SmtpClient(smtpUrl);
                     smtp.Credentials = new System.Net.NetworkCredential(sysEmail, sysEmailPwd);
-                    //smtp.Port = 465;
+                    smtp.Port = 587 ;
                     //smtp.Timeout = 180000;//3分钟,默认为100秒
-                    //smtp.EnableSsl = true;
+                    smtp.EnableSsl = true;
+                    //smtp.UseDefaultCredentials = true;
 
                     smtp.Send(mail);
 
                     //smtp.SendCompleted += new SendCompletedEventHandler(SendCompletedCallback);
                     //smtp.SendAsync(mail, "异步发送邮件");
-
                     mail.Dispose();
                 }
 

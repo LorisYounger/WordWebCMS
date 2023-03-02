@@ -310,6 +310,12 @@ namespace WordWebCMS
                             errorboxregister.InnerText = "请输入邮件验证码";
                             return;
                         }
+                        else if (Session[MasterKey.Text + "mail"] == null)
+                        {
+                            errorboxregister.Visible = true;
+                            errorboxregister.InnerText = "请先发送邮件验证码";
+                            return;
+                        }
                         else if (emc != (int)Session[MasterKey.Text + "mail"])
                         {
                             errorboxregister.Visible = true;

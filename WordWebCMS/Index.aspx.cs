@@ -67,9 +67,12 @@ namespace WordWebCMS
                 else
                 {
                     MasterIndex = new List<string>();
-                    foreach (Posts post in Posts.GetPostFormTopClassify(cfy))
+                    foreach (Posts post in Posts.GetPostFormTopClassify(cfy).FindAll(x =>
+                    {
+                        var state = x.State;
+                        return state != Posts.PostState.Delete && state != Posts.PostState.Pending;
+                    }))
                         MasterIndex.Add(post.ToIndex());
-
                     Application["MasterIndex" + cfy] = MasterIndex;
                 }
                 WebSubTitle = WebTitle;
@@ -99,7 +102,7 @@ namespace WordWebCMS
                 {
                     var spl = date.Split('/');
                     if (spl.Length == 2 && int.TryParse(spl[0], out int y) && int.TryParse(spl[1], out int m))
-                    {                       
+                    {
                         if (Application[$"MasterIndexDy{y}m{m}"] == null)
                         {
                             bef = new DateTime(y, m, 1);
