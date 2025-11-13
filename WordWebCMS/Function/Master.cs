@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Web;
 
 namespace WordWebCMS
 {
@@ -32,10 +31,18 @@ namespace WordWebCMS
                 .Replace("<!--WWC:sidebar1-->", Setting.SideBar1).Replace("<!--WWC:sidebar2-->", Setting.SideBar2).Replace("<!--WWC:sidebar3-->", Setting.SideBar3)
             .Replace("<!--WWC:icon-->", Setting.Icon)
             ;
+        
+        private static string? _contentRootPath;
+        
+        public static void Initialize(string contentRootPath)
+        {
+            _contentRootPath = contentRootPath;
+        }
+        
         public static string GetHeaderHTML()
-            => ReplaceHTML(System.IO.File.ReadAllText(HttpContext.Current.Server.MapPath($"Themes/{Setting.Themes}/header.html")));
+            => ReplaceHTML(System.IO.File.ReadAllText(Path.Combine(_contentRootPath ?? "", $"Themes/{Setting.Themes}/header.html")));
         public static string GetFooterHTML()
-            => ReplaceHTML(System.IO.File.ReadAllText(HttpContext.Current.Server.MapPath($"Themes/{Setting.Themes}/footer.html")));
+            => ReplaceHTML(System.IO.File.ReadAllText(Path.Combine(_contentRootPath ?? "", $"Themes/{Setting.Themes}/footer.html")));
         public static string GetNoLoginHTML()
             => "<aside id=\"widget-user\" class=\"widget\"><h2 class=\"widget-title\">用户中心</h2><ul><li>未登录</li><li><a href=\"Login.aspx\">->点击此处前往登陆页面</a></li></ul></aside>";
     }

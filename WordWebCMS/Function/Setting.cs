@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Web;
 using LinePutScript;
 using LinePutScript.SQLHelper;
 using static WordWebCMS.Conn;
+using WordWebCMS.Services;
 
 namespace WordWebCMS
 {
@@ -48,26 +48,29 @@ namespace WordWebCMS
             {
                 if (databf == null)
                 {
-                    if (Application["dtbfSetting"] == null)
+                    if (AppCache?["dtbfSetting"] == null)
                     {
                         databf = Data;
-                        Application["dtbfSetting"] = databf;
+                        if (AppCache != null)
+                            AppCache["dtbfSetting"] = databf;
                     }
                     else
-                        databf = (LpsDocument)Application["dtbfSetting"];
+                        databf = (LpsDocument)AppCache["dtbfSetting"]!;
                 }
                 return databf;
             }
             set
             {
-                Application["dtbfSetting"] = null;
+                if (AppCache != null)
+                    AppCache["dtbfSetting"] = null;
                 databf = null;
             }
         }
-        private static LpsDocument databf;//用于读取用 如果要写啥 禁止使用这个 需手动获取最新数据
+        private static LpsDocument? databf;//用于读取用 如果要写啥 禁止使用这个 需手动获取最新数据
         #endregion
 
-        public static System.Web.HttpApplicationState Application = null;
+        public static ApplicationCache? AppCache = null;
+        public static HttpContextService? HttpContextSvc = null;
 
 
         #region 用户权限信息处理
@@ -222,7 +225,7 @@ namespace WordWebCMS
                 var line = DataBuff.FindLineInfo("websiteurl");
                 if (line != null)
                     return line.First().Info;
-                return HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Authority);//HttpContext.Current.Request.Url.Host
+                return HttpContextSvc?.GetRequestUrlAuthority()?.ToString() ?? "http://localhost";
             }
             set
             {
@@ -734,13 +737,15 @@ namespace WordWebCMS
         /// <param name="level">封禁等级</param>
         public static void BanIP(string ip, int level)
         {
-            if (Application["BAN" + ip] == null)
+            if (AppCache == null) return;
+            
+            if (AppCache["BAN" + ip] == null)
             {
-                Application["BAN" + ip] = level;
+                AppCache["BAN" + ip] = level;
             }
             else
             {
-                Application["BAN" + ip] = (int)Application["BAN" + ip] + level;
+                AppCache["BAN" + ip] = (int)AppCache["BAN" + ip]! + level;
             }
         }
         /// <summary>
@@ -751,7 +756,8 @@ namespace WordWebCMS
         /// <returns></returns>
         public static bool BanIPCheck(string ip, int maxlevel = 10)
         {
-            return Application["BAN" + ip] != null && (int)Application["BAN" + ip] > maxlevel;
+            if (AppCache == null) return false;
+            return AppCache["BAN" + ip] != null && (int)AppCache["BAN" + ip]! > maxlevel;
             //TODO:永久性的黑名单,使用数据库
             //TODO:储存错误尝试到数据库,给后台看
         }

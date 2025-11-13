@@ -1,0 +1,29 @@
+@page
+@model WordWebCMS.Pages.IndexModel
+@{
+    ViewData["Title"] = Model.PageTitle;
+}
+
+@Html.Raw(Model.HeaderHtml)
+
+<div id="page" class="site">
+    <div id="content" class="site-content">
+        <div id="primary" class="content-area">
+            <main id="main" class="site-main" role="main">
+                @Html.Raw(Model.ContentPageHtml)
+                
+                <nav class="paging-navigation" role="navigation">
+                    <h1 class="screen-reader-text">文章导航</h1>
+                    <div class="nav-links">
+                        @Html.Raw(Model.NavLinksHtml)
+                    </div>
+                </nav>
+            </main>
+        </div>
+        <div id="secondary" class="widget-area">
+            @Html.Raw(Model.SecondaryHtml)
+        </div>
+    </div>
+</div>
+
+@Html.Raw(Model.FooterHtml)
