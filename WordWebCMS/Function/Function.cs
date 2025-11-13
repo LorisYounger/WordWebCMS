@@ -4,12 +4,10 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Web;
 using System.Net.Mail;
 using System.IO;
 using System.Collections;
 using System.ComponentModel;
-using System.Web.UI.WebControls;
 using LinePutScript;
 
 namespace WordWebCMS
