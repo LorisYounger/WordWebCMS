@@ -434,7 +434,7 @@ namespace WordWebCMS
                 $"<div class=\"comment-metadata\"><a href=\"#comment-{rID}\">{Modifydate.ToShortDateString()} {Modifydate.ToShortTimeString()}</a></div></footer>" +
                 $"<div class=\"comment-content\">{ContentToHtml()}</div><div class=\"reply\"><button type=\"button\" onclick=\"Reply('{rID}')\"/>回复</button>" +
                 $"<div class=\"nav-next\" id=\"reviewlike{rID}\">{Likes}个赞<button ID=\"Like\" type=\"button\" onclick=\"LikeReview({rID})\" class=\"like-review\" style=\"" +
-                $"{(usr == null || (Setting.Application[$"Liker{rID}u{usr.uID}"] == null) ? "background:url(Picture/like.png);" : "background:url(Picture/likeup.png);")}background-size:cover;\" /></div></div></article></li>";
+                $"{(usr == null || (Setting.AppCache?[$"Liker{rID}u{usr.uID}"] == null) ? "background:url(Picture/like.png);" : "background:url(Picture/likeup.png);")}background-size:cover;\" /></div></div></article></li>";
         #endregion
     }
 }

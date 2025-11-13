@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.FileProviders;
+using WordWebCMS.Services;
 
 namespace WordWebCMS
 {
@@ -28,10 +29,21 @@ namespace WordWebCMS
             // Add HTTP context accessor
             builder.Services.AddHttpContextAccessor();
 
-            // Add singleton services for settings and connections
-            builder.Services.AddSingleton<Setting>();
+            // Add custom services
+            builder.Services.AddSingleton<ApplicationCache>();
+            builder.Services.AddScoped<HttpContextService>();
+            
+            // Initialize database connections
+            Conn.Initialize(builder.Configuration);
+            
+            // Initialize SMaster with content root path
+            SMaster.Initialize(builder.Environment.ContentRootPath);
 
             var app = builder.Build();
+            
+            // Initialize Setting services
+            var appCache = app.Services.GetRequiredService<ApplicationCache>();
+            Setting.AppCache = appCache;
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
