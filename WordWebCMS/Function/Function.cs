@@ -9,6 +9,7 @@ using System.IO;
 using System.Collections;
 using System.ComponentModel;
 using LinePutScript;
+using Markdig;
 
 namespace WordWebCMS
 {
@@ -41,7 +42,18 @@ namespace WordWebCMS
         /// <param name="html">要清除html的文本</param>
         /// <returns></returns>
         public static string SanitizeHtml(string html)
-        => Westwind.Web.Markdown.Utilities.MarkdownUtils.SanitizeHtml(html);
+        {
+            // Simple HTML sanitization - remove potentially dangerous tags
+            // For production, consider using a library like HtmlSanitizer
+            var sanitized = html;
+            var dangerousTags = new[] { "script", "iframe", "object", "embed", "form", "link" };
+            foreach (var tag in dangerousTags)
+            {
+                sanitized = Regex.Replace(sanitized, $"<{tag}[^>]*>.*?</{tag}>", "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                sanitized = Regex.Replace(sanitized, $"<{tag}[^>]*/>", "", RegexOptions.IgnoreCase);
+            }
+            return sanitized;
+        }
 
 
         private static readonly string[] HeaderStyles = new string[] { "widget-index-h1", "widget-index-h2", "widget-index-h3", "widget-index-h4", "widget-index-h5", "widget-index-h6" };
@@ -110,7 +122,22 @@ namespace WordWebCMS
         /// <param name="AnalyzeHtml">是否允许使用HTML</param>
         /// <returns>HTML文本</returns>
         public static string MarkdownParse(string markdown, bool usePragmaLines = false, bool AnalyzeHtml = false)
-            => Westwind.Web.Markdown.Markdown.Parse(markdown.Replace("\n", "  \n"), usePragmaLines, false, !AnalyzeHtml).Replace("<p>", "<p class=\"md-p\">");
+        {
+            var pipeline = new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
+                .Build();
+                
+            if (!AnalyzeHtml)
+            {
+                pipeline = new MarkdownPipelineBuilder()
+                    .UseAdvancedExtensions()
+                    .DisableHtml()
+                    .Build();
+            }
+            
+            var html = Markdown.ToHtml(markdown.Replace("\n", "  \n"), pipeline);
+            return html.Replace("<p>", "<p class=\"md-p\">");
+        }
 
 
         public static Random Rnd = new Random();
