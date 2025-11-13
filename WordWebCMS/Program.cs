@@ -77,6 +77,16 @@ namespace WordWebCMS
             app.UseAuthorization();
             app.UseSession();
 
+            // Middleware to initialize static service references
+            app.Use(async (context, next) =>
+            {
+                // Initialize HttpContextService for each request
+                var httpContextService = context.RequestServices.GetRequiredService<HttpContextService>();
+                Setting.HttpContextSvc = httpContextService;
+                
+                await next();
+            });
+
             app.MapRazorPages();
             app.MapControllers();
 
