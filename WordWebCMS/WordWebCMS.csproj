@@ -26,12 +26,20 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="LinePutScript">
-      <HintPath>../packages/LinePutScript.1.3.1/lib/net6.0/LineputScript.dll</HintPath>
+    <Reference Include="LineputScript">
+      <HintPath>lib/LineputScript.dll</HintPath>
+      <Aliases>global,LinePutScriptCore</Aliases>
+    </Reference>
+    <Reference Include="LinePutScript.Core">
+      <HintPath>lib/LineputScript.dll</HintPath>
     </Reference>
     <Reference Include="LinePutScript.SQLHelper.Core">
-      <HintPath>../packages/LinePutScript.SQLHelper.1.1.7/lib/net5.0/LinePutScript.SQLHelper.Core.dll</HintPath>
+      <HintPath>lib/LinePutScript.SQLHelper.Core.dll</HintPath>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="lib\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
