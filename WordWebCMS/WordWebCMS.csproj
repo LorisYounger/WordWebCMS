@@ -26,15 +26,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="LineputScript">
-      <HintPath>lib/LineputScript.dll</HintPath>
-      <Aliases>global,LinePutScriptCore</Aliases>
+    <Reference Include="LinePutScript">
+      <HintPath>lib/LinePutScript.dll</HintPath>
     </Reference>
-    <Reference Include="LinePutScript.Core">
-      <HintPath>lib/LineputScript.dll</HintPath>
-    </Reference>
-    <Reference Include="LinePutScript.SQLHelper.Core">
-      <HintPath>lib/LinePutScript.SQLHelper.Core.dll</HintPath>
+    <Reference Include="LinePutScript.SQLHelper">
+      <HintPath>lib/LinePutScript.SQLHelper.dll</HintPath>
     </Reference>
   </ItemGroup>
 
