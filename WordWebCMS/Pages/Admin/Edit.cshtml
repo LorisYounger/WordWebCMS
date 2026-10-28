@@ -35,10 +35,16 @@
 } else { <p class="help">@UiText.T("页面不显示评论和侧边栏。")</p> }
 <div class="stack"><button name="action" value="save" class="secondary">@UiText.T("保存草稿与修订")</button>
 @if (AccountService.CanEditAll(User)) { <button name="action" value="publish">@UiText.T("发布当前内容")</button> } else { <button name="action" value="submit">@UiText.T("提交审核")</button> }
-</div><p class="muted">@UiText.T("自动保存只保存草稿，已发布的内容和已提交审核的修订不会改变。")</p></aside></div></form>
+</div>
+@if (Model.Post.PublishedRevisionId == null || AccountService.CanEditAll(User)) {
+<div class="conversion"><h3>@UiText.T("转换内容类型")</h3>
+<p class="help">@UiText.T("保存当前编辑并转换，保留正文、译文、作者和链接。转为页面会丢弃分类、标签、置顶、评论和点赞；已发布内容立即生效。")</p>
+<button type="submit" name="action" value="@(Model.Post.Kind == PostKind.Article ? "convert-page" : "convert-article")" class="secondary" data-confirm="@UiText.T("确认保存并转换内容类型？不支持的设置和互动数据将被丢弃。")"><i class="ri-arrow-left-right-line" aria-hidden="true"></i> @(Model.Post.Kind == PostKind.Article ? UiText.T("转为页面") : UiText.T("转为文章"))</button></div>
+}
+<p class="muted">@UiText.T("自动保存只保存草稿，已发布的内容和已提交审核的修订不会改变。")</p></aside></div></form>
 <section class="card revisions"><h2>@UiText.T("修订记录")</h2><p>@UiText.T("点击保存、提交审核或发布时，会留下一条修订记录。恢复修订只会替换草稿，重新发布后才会在网站上显示。")</p>
 @foreach (var revision in Model.Revisions) {
-<div class="list-row"><a asp-route-id="@Model.Post.Id" asp-route-revision="@revision.Id" asp-route-rp="@Model.Rp">#@revision.Id · @revision.Title · @revision.CreatedUtc.ToString("yyyy-MM-dd HH:mm:ss") UTC</a><span class="badge">@(revision.State switch { RevisionState.Saved => UiText.T("已保存"), RevisionState.Pending => UiText.T("待审核"), RevisionState.Published => UiText.T("已发布"), RevisionState.Rejected => UiText.T("已驳回"), _ => revision.State.ToString() })</span></div>
+<div class="list-row"><a asp-route-id="@Model.Post.Id" asp-route-revision="@revision.Id" asp-route-rp="@Model.Rp">#@revision.Id · @revision.Title · <time data-local-time="datetime" datetime="@PublicUrls.Utc(revision.CreatedUtc)">@revision.CreatedUtc.ToString("yyyy-MM-dd HH:mm:ss") UTC</time></a><span class="badge">@(revision.State switch { RevisionState.Saved => UiText.T("已保存"), RevisionState.Pending => UiText.T("待审核"), RevisionState.Published => UiText.T("已发布"), RevisionState.Rejected => UiText.T("已驳回"), _ => revision.State.ToString() })</span></div>
 }
 <nav class="pagination">@if (Model.Rp > 1) { <a asp-route-id="@Model.Post.Id" asp-route-rp="@(Model.Rp - 1)">@UiText.T("较新修订")</a> }@if (Model.Revisions.Count == 20) { <a asp-route-id="@Model.Post.Id" asp-route-rp="@(Model.Rp + 1)">@UiText.T("较早修订")</a> }</nav>
 @if (Model.Selected != null) { var revision = Model.Selected;

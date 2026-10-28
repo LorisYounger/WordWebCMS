@@ -1,0 +1,11 @@
+@page
+@model WordWebCMS.Pages.Account.ProfileModel
+@{ ViewData["Title"] = UiText.T("编辑个人介绍"); }
+<section class="card profile-editor">
+<h1>@UiText.T("编辑个人介绍")</h1>
+<a class="author-link" href="@PublicUrls.Author(User.Identity!.Name!)"><img class="avatar" src="@ShortLinks.Avatar(User.Identity.Name!)" width="28" height="28" alt="" />@User.Identity.Name</a>
+<form method="post"><div asp-validation-summary="All" role="alert"></div>
+<label asp-for="Bio">@UiText.T("个人介绍")</label><textarea asp-for="Bio" maxlength="1000" rows="6"></textarea>
+<p class="help">@UiText.T("介绍会公开显示在你的用户主页。")</p>
+<button type="submit"><i class="ri-save-line" aria-hidden="true"></i> @UiText.T("保存")</button>
+</form></section>

@@ -11,6 +11,7 @@ public class CmsUser
     [Column(StringLength = 64)] public string UserName { get; set; } = "";
     [Column(StringLength = 254)] public string Email { get; set; } = "";
     [Column(StringLength = 512)] public string PasswordHash { get; set; } = "";
+    [Column(StringLength = 1000)] public string Bio { get; set; } = "";
     public bool EmailConfirmed { get; set; }
     public bool Disabled { get; set; }
     [Column(StringLength = 32)] public string SecurityStamp { get; set; } = Guid.NewGuid().ToString("N");

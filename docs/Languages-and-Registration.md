@@ -58,7 +58,7 @@ Razor/C# 使用 `UiText.T("首页")` 和 `UiText.Format("共 {0} 项", total)`�
 
 ## 升级与验证
 
-本次站点结构为 v3。停止站点并备份后，使用相同配置执行 `dotnet WordWebCMS.dll --initialize`，再重启。v1/v2 数据保留，补充头像、语言、启用语言列表、内容译文和注册模式字段；默认开放注册。没有运行时自动 DDL。
+当前站点结构为 v4（在 v3 基础上增加账号个人介绍）。停止站点并备份后，使用相同配置执行 `dotnet WordWebCMS.dll --initialize`，再重启。v1/v2/v3 数据保留，补充头像、语言、启用语言列表、内容译文和注册模式字段；默认开放注册。没有运行时自动 DDL。
 
 功能回归项目为 `tests/WordWebCMS.Regression`。设置 `ConnectionStrings__Site` 指向可创建临时数据库的测试 MySQL，然后运行：
 

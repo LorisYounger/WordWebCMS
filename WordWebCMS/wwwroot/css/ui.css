@@ -1,0 +1,42 @@
+/* Shared interaction and author treatments for the bundled themes and account pages. */
+a:hover, a:focus-visible, .text-button:hover { text-decoration: none; }
+a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.brand { border-radius: 8px; transition: color .15s, opacity .15s; }
+.brand:hover { opacity: .8; }
+.meta, .post-meta, .article-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; }
+.author-link { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; color: inherit; border-radius: 20px; padding: 3px 8px 3px 3px; transition: background .15s, color .15s; }
+.author-link .avatar { width: 24px; height: 24px; flex: 0 0 24px; margin: 0; border-radius: 50%; object-fit: cover; border: 1px solid var(--line, #e0e5eb); background: var(--soft, #f3f5f8); }
+.author-link:hover, .author-link:focus-visible { color: var(--link, var(--accent, #095a99)); background: var(--soft, #f3f5f8); }
+.article-header .author-link .avatar { width: 30px; height: 30px; flex-basis: 30px; }
+.comment-meta .author-link, .comment .meta .author-link { font-size: 13px; }
+.profile-card { display: flex; align-items: center; gap: 24px; padding: 28px; margin-bottom: 20px; background: var(--paper, #fff); border: 1px solid var(--line, #e0e5eb); border-radius: 8px; }
+.profile-card > .avatar { width: 80px; height: 80px; flex: 0 0 80px; object-fit: cover; border-radius: 50%; border: 3px solid var(--soft, #f3f5f8); }
+.profile-card > div { min-width: 0; }
+.profile-card h1 { font-size: 24px; margin: 0 0 8px; overflow-wrap: anywhere; }
+.profile-bio { white-space: pre-line; overflow-wrap: anywhere; color: var(--body-text, var(--ink, #404040)); margin: 0 0 12px; }
+.profile-editor { max-width: 680px; margin: 24px auto; }
+.profile-editor textarea { width: 100%; }
+.conversion { border-top: 1px solid var(--line, #e0e5eb); margin-top: 24px; padding-top: 18px; }
+.conversion h3 { font-size: 16px; }
+.post-card, .post-row { transition: box-shadow .15s, background-color .15s; }
+.post-card:hover { box-shadow: 0 3px 14px #102b4a18; }
+.post-row:hover { background: var(--soft, #f3f5f8); }
+.pagination a, .category-links a, .tag, .text-button, .icon-button, .primary-nav > a, .nav-group > a { border-radius: 5px; transition: background-color .15s, color .15s; }
+.text-button { padding: 5px 8px; }
+.text-button:hover, .icon-button:hover { background: var(--soft, #f3f5f8); }
+.primary-nav > a, .nav-group > a { padding: 5px 8px; }
+.primary-nav > a:hover, .nav-group > a:hover { background: var(--tint, #ffffff18); }
+.prose a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em; }
+.prose a:hover { color: var(--link, var(--accent, #095a99)); text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--blue, var(--accent, #095a99)); outline-offset: 3px; }
+@media (pointer: coarse) {
+    button, .button, .pagination a, .primary-nav a, .account-nav a, .dropdown summary { min-height: 44px; }
+    .author-link { min-height: 36px; }
+}
+@media (max-width: 540px) {
+    .profile-card { padding: 20px; gap: 16px; align-items: flex-start; }
+    .profile-card > .avatar { width: 56px; height: 56px; flex-basis: 56px; }
+    .profile-card h1 { font-size: 20px; }
+    .meta, .post-meta, .article-meta { gap: 6px 10px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }

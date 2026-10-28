@@ -441,5 +441,17 @@
   "请先完成数据库初始化。": "Initialize the databases first.",
   "无法检查数据库，请确认连接字符串、数据库是否已创建及账号权限。": "Cannot check the databases. Verify the connection strings, database existence, and account permissions.",
   "安装已完成，入口已锁定。": "Setup is complete and this entry point is locked.",
-  "已有站点的结构升级请在停站后通过命令行执行，完成后重新启动站点。": "For an existing site, stop the site, upgrade the schema from the command line, then restart."
+  "已有站点的结构升级请在停站后通过命令行执行，完成后重新启动站点。": "For an existing site, stop the site, upgrade the schema from the command line, then restart.",
+  "编辑个人介绍": "Edit profile",
+  "个人介绍": "About me",
+  "介绍会公开显示在你的用户主页。": "Your introduction is publicly visible on your profile.",
+  "这位作者还没有填写介绍。": "This author has not added an introduction yet.",
+  "草稿更新": "Draft updated",
+  "转换内容类型": "Convert content type",
+  "转为页面": "Convert to page",
+  "转为文章": "Convert to article",
+  "保存当前编辑并转换，保留正文、译文、作者和链接。转为页面会丢弃分类、标签、置顶、评论和点赞；已发布内容立即生效。": "Save your edits and convert, keeping the body, translations, author and URL. Converting to a page discards the category, tags, pin, comments and likes. Published content changes immediately.",
+  "确认保存并转换内容类型？不支持的设置和互动数据将被丢弃。": "Save and convert this content? Unsupported settings and interactions will be discarded.",
+  "已发布内容需由编辑或管理员转换。": "Published content can only be converted by an editor or administrator.",
+  "草稿已修改，请刷新后再转换。": "The draft has changed. Refresh before converting."
 }

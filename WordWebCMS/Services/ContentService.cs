@@ -129,16 +129,61 @@ public class ContentService(CmsDb db)
     {
         db.Site.Transaction(() =>
         {
-            RequireEditable(id, user, true);
+            var post = RequireEditable(id, user, true);
             var draft = db.Site.Select<PostDraft>().Where(d => d.PostId == id).First();
             if (draft.Version != version) throw new System.Data.DBConcurrencyException(UiText.T("草稿已修改，请刷新后再恢复。"));
             var revision = db.Site.Select<PostRevision>().Where(r => r.Id == revisionId && r.PostId == id).First();
             if (revision == null) throw new InvalidDataException(UiText.T("修订不存在。"));
             db.Site.Update<PostDraft>().SetSource(new PostDraft {
                 PostId = id, Version = draft.Version + 1, Title = revision.Title, Slug = revision.Slug, Summary = revision.Summary,
-                Markdown = revision.Markdown, CoverUrl = revision.CoverUrl, CategoryId = revision.CategoryId,
-                Tags = revision.Tags, AllowComments = revision.AllowComments, Translations = revision.Translations
+                Markdown = revision.Markdown, CoverUrl = revision.CoverUrl, CategoryId = post.Kind == PostKind.Page ? null : revision.CategoryId,
+                Tags = post.Kind == PostKind.Page ? "" : revision.Tags, AllowComments = post.Kind == PostKind.Article && revision.AllowComments, Translations = revision.Translations
             }).ExecuteAffrows();
+        });
+    }
+
+    public void Convert(long id, PostKind target, long version, ClaimsPrincipal user)
+    {
+        if (!Enum.IsDefined(target)) throw new InvalidDataException(UiText.T("内容类型无效。"));
+        db.Site.Transaction(() =>
+        {
+            var post = RequireEditable(id, user, true);
+            if (post.PublishedRevisionId != null && !AccountService.CanEditAll(user))
+                throw new UnauthorizedAccessException(UiText.T("已发布内容需由编辑或管理员转换。"));
+            var draft = db.Site.Select<PostDraft>().Where(d => d.PostId == id).First();
+            if (draft.Version != version) throw new System.Data.DBConcurrencyException(UiText.T("草稿已修改，请刷新后再转换。"));
+            if (post.Kind == target) return;
+            post.Kind = target;
+            post.PinOrder = 0;
+            draft.Version++;
+            draft.UpdatedUtc = DateTime.UtcNow;
+            draft.CategoryId = null;
+            draft.Tags = "";
+            draft.AllowComments = target == PostKind.Article;
+            // Historical revisions remain intact; new publication matches the destination type.
+            if (post.PublishedRevisionId.HasValue)
+            {
+                var published = db.Site.Select<PostRevision>().Where(r => r.Id == post.PublishedRevisionId).First();
+                published.Id = 0;
+                published.EditorId = AccountService.UserId(user);
+                published.CreatedUtc = DateTime.UtcNow;
+                published.CategoryId = null;
+                published.Tags = "";
+                published.AllowComments = target == PostKind.Article;
+                post.PublishedRevisionId = db.Site.Insert(published).ExecuteIdentity();
+            }
+            // Old pending revisions cannot republish fields from the previous type.
+            db.Site.Update<PostRevision>().Set(r => r.State, RevisionState.Rejected)
+                .Where(r => r.PostId == id && r.State == RevisionState.Pending).ExecuteAffrows();
+            if (target == PostKind.Page)
+            {
+                var comments = db.Site.Select<Comment>().Where(c => c.PostId == id).ToList(c => c.Id);
+                db.Site.Delete<CommentLike>().Where(l => comments.Contains(l.CommentId)).ExecuteAffrows();
+                db.Site.Delete<Comment>().Where(c => c.PostId == id).ExecuteAffrows();
+                db.Site.Delete<PostLike>().Where(l => l.PostId == id).ExecuteAffrows();
+            }
+            db.Site.Update<PostDraft>().SetSource(draft).ExecuteAffrows();
+            db.Site.Update<Post>().SetSource(post).ExecuteAffrows();
         });
     }
 

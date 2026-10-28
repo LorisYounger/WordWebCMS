@@ -10,7 +10,7 @@ public sealed class CmsDb(IConfiguration config) : IDisposable
     public IFreeSql Accounts { get { if (accounts == null) Configure(config); return accounts!; } }
     public IFreeSql Site { get { if (site == null) Configure(config); return site!; } }
     public bool CheckSchema() => Accounts.DbFirst.ExistsTable("schema_version") && Site.DbFirst.ExistsTable("schema_version") &&
-        Accounts.Select<SchemaVersion>().First()?.Version == 3 && Site.Select<SchemaVersion>().First()?.Version == 3;
+        Accounts.Select<SchemaVersion>().First()?.Version == 4 && Site.Select<SchemaVersion>().First()?.Version == 4;
 
     // Only called under the setup lock, before the site is installed.
     public void Configure(IConfiguration config)
@@ -40,7 +40,7 @@ public sealed class CmsDb(IConfiguration config) : IDisposable
             if (tables.Count > 0 && !tables.Any(t => t.Name == "schema_version"))
                 throw new InvalidOperationException("请使用空的新数据库；不支持覆盖旧版数据表。");
             if (db.DbFirst.ExistsTable("schema_version") &&
-                db.Select<SchemaVersion>().First()?.Version > 3)
+                db.Select<SchemaVersion>().First()?.Version > 4)
                 throw new InvalidOperationException("数据库版本比程序新，请使用对应的程序版本。");
         }
         Accounts.CodeFirst.SyncStructure(typeof(SchemaVersion), typeof(CmsUser), typeof(AccountToken));
@@ -53,7 +53,7 @@ public sealed class CmsDb(IConfiguration config) : IDisposable
         var avatarName = administrator == null ? "admin" : Accounts.Select<CmsUser>().Where(u => u.Id == administrator.UserId).First()?.UserName ?? "admin";
         Site.Update<SiteSettings>().Set(s => s.AvatarUserName, avatarName).Where(s => s.AvatarUserName == null || s.AvatarUserName == "" || upgrading).ExecuteAffrows();
         foreach (var db in new[] { Accounts, Site })
-            db.InsertOrUpdate<SchemaVersion>().SetSource(new SchemaVersion { Version = 3 }).ExecuteAffrows();
+            db.InsertOrUpdate<SchemaVersion>().SetSource(new SchemaVersion { Version = 4 }).ExecuteAffrows();
     }
 
     public void Dispose()

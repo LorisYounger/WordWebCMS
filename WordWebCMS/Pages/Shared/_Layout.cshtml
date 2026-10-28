@@ -7,12 +7,12 @@
 <!doctype html>
 <html lang="@UiText.Language">
 <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>@ViewData["Title"] · WordWebCMS</title><link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" /></head>
+<title>@ViewData["Title"] · WordWebCMS</title><link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" /><link rel="stylesheet" href="~/css/icons.css" asp-append-version="true" /><link rel="stylesheet" href="~/css/ui.css" asp-append-version="true" /></head>
 <body class="@(isAdmin ? "admin-shell" : "account-shell")">
 <a class="skip" href="#main">@UiText.T("跳到正文")</a>
-<header class="admin-bar"><a class="brand" href="/">WordWebCMS</a><a href="/">@UiText.T("查看站点")</a><nav aria-label="@UiText.T("账号导航")">
+<header class="admin-bar"><a class="brand" href="/">WordWebCMS</a><a href="/"><i class="ri-home-line" aria-hidden="true"></i> @UiText.T("查看站点")</a><nav aria-label="@UiText.T("账号导航")">
 @if (User.Identity?.IsAuthenticated == true) {
-<img class="avatar" src="@ShortLinks.Avatar(User.Identity.Name!)" alt="" /><span>@User.Identity.Name</span>
+<a class="author-link" href="@PublicUrls.Author(User.Identity.Name!)"><img class="avatar" src="@ShortLinks.Avatar(User.Identity.Name!)" alt="" /><span>@User.Identity.Name</span></a><a href="/Account/Profile">@UiText.T("编辑个人介绍")</a>
 @if (!isAdmin && (AccountService.CanEditAll(User) || User.IsInRole("Contributor"))) { <a href="/Admin">@UiText.T("内容管理")</a> }
 <form method="post" asp-page="/Account/Logout"><button class="link" type="submit">@UiText.T("退出")</button></form>
 } else { <a href="/Account/Login">@UiText.T("登录")</a><a href="/Account/Register">@UiText.T("注册")</a> }
@@ -20,24 +20,25 @@
 @if (isAdmin) {
 <nav class="admin-nav" aria-label="@UiText.T("管理导航")">
 <span class="nav-label">@UiText.T("内容管理")</span>
-<a href="/Admin?kind=Article" aria-current="@(contentKind == PostKind.Article ? "page" : null)">@UiText.T("文章")</a><a href="/Admin?kind=Page" aria-current="@(contentKind == PostKind.Page ? "page" : null)">@UiText.T("页面")</a>
-<a href="/Admin/Media" aria-current="@Current("/Admin/Media")">@UiText.T("媒体库")</a>
+<a href="/Admin?kind=Article" aria-current="@(contentKind == PostKind.Article ? "page" : null)"><i class="ri-article-line" aria-hidden="true"></i> @UiText.T("文章")</a><a href="/Admin?kind=Page" aria-current="@(contentKind == PostKind.Page ? "page" : null)"><i class="ri-file-text-line" aria-hidden="true"></i> @UiText.T("页面")</a>
+<a href="/Admin/Media" aria-current="@Current("/Admin/Media")"><i class="ri-image-line" aria-hidden="true"></i> @UiText.T("媒体库")</a>
 @if (AccountService.CanEditAll(User)) {
-<a href="/Admin/Comments" aria-current="@Current("/Admin/Comments")">@UiText.T("评论")</a>
-<a href="/Admin/Categories" aria-current="@Current("/Admin/Categories")">@UiText.T("分类")</a>
+<a href="/Admin/Comments" aria-current="@Current("/Admin/Comments")"><i class="ri-chat-3-line" aria-hidden="true"></i> @UiText.T("评论")</a>
+<a href="/Admin/Categories" aria-current="@Current("/Admin/Categories")"><i class="ri-folder-line" aria-hidden="true"></i> @UiText.T("分类")</a>
 }
 @if (User.IsInRole("Administrator")) {
 <span class="nav-label">@UiText.T("站点管理")</span>
-<a href="/Admin/Navigation" aria-current="@Current("/Admin/Navigation")">@UiText.T("导航菜单")</a>
-<a href="/Admin/Themes" aria-current="@Current("/Admin/Themes")">@UiText.T("主题")</a>
-<a href="/Admin/Users" aria-current="@Current("/Admin/Users")">@UiText.T("用户")</a>
-<a href="/Admin/Settings" aria-current="@Current("/Admin/Settings")">@UiText.T("设置")</a>
+<a href="/Admin/Navigation" aria-current="@Current("/Admin/Navigation")"><i class="ri-links-fill" aria-hidden="true"></i> @UiText.T("导航菜单")</a>
+<a href="/Admin/Themes" aria-current="@Current("/Admin/Themes")"><i class="ri-palette-line" aria-hidden="true"></i> @UiText.T("主题")</a>
+<a href="/Admin/Users" aria-current="@Current("/Admin/Users")"><i class="ri-user-line" aria-hidden="true"></i> @UiText.T("用户")</a>
+<a href="/Admin/Settings" aria-current="@Current("/Admin/Settings")"><i class="ri-settings-3-line" aria-hidden="true"></i> @UiText.T("设置")</a>
 }
 </nav>
 }
 <main id="main">@RenderBody()</main>
 <footer class="admin-footer">WordWebCMS</footer>
 <script id="ui-text" type="application/json">@Html.Raw(UiText.ClientJson)</script>
+<script src="~/js/local-time.js" asp-append-version="true" defer></script>
 <script src="~/js/admin.js" asp-append-version="true" defer></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body></html>

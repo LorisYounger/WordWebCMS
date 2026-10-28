@@ -37,6 +37,7 @@ var settings = new Dictionary<string, string?> { ["ConnectionStrings:Site"] = co
 using var db = new CmsDb(new ConfigurationBuilder().AddInMemoryCollection(settings).Build());
 using var smtp = new TestSmtp();
 Process? web = null;
+var logs = new ConcurrentQueue<string>();
 int passed = 0;
 void Check(bool result, string name) { if (!result) throw new Exception("FAIL: " + name); Console.WriteLine("PASS: " + name); passed++; }
 var parser = new HtmlParser();
@@ -63,7 +64,7 @@ try
 {
     await SetupChecks.RunAsync(root, connection.ConnectionString, Check);
     db.InitializeSchema();
-    Check(db.CheckSchema(), "Schema v3 initializes");
+    Check(db.CheckSchema(), "Schema v4 initializes");
     var accounts = new AccountService(db, new PasswordHasher<CmsUser>());
     var admin = await accounts.CreateAsync("regression-admin", "admin@example.test", password, true);
     db.Site.Insert(new SiteSettings { Title = "Regression site", BaseUrl = baseUrl, AvatarUserName = admin.UserName, EnabledLanguages = "zh-CN,en,fr-FR" }).ExecuteAffrows();
@@ -75,6 +76,15 @@ try
     Check(db.CheckSchema() && db.Site.Select<SiteSettings>().First().Title == "Regression site", "v1 migration preserves site data");
     Check(db.Site.Select<SiteSettings>().First().Language == "zh-Hans", "Migrated site has a default culture");
     Check(db.Site.Select<SiteSettings>().First().AvatarUserName == admin.UserName, "Migrated avatar uses site administrator");
+
+    db.Accounts.Ado.ExecuteNonQuery("ALTER TABLE cms_user DROP COLUMN Bio");
+    db.Site.Update<SchemaVersion>().Set(v => v.Version, 3).Where(v => v.Id == 1).ExecuteAffrows();
+    using (var migration = new CmsDb(new ConfigurationBuilder().AddInMemoryCollection(settings).Build()))
+    {
+        migration.InitializeSchema();
+        migration.InitializeSchema();
+        Check(migration.CheckSchema() && migration.Accounts.Select<CmsUser>().Where(u => u.Id == admin.Id).First().PasswordHash == admin.PasswordHash, "v3 to v4 migration preserves shared accounts and is repeatable");
+    }
 
     UiText.Load(Path.Combine(root, "WordWebCMS/Languages"), Path.Combine(storage, "languages"));
     var mailConfig = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
@@ -181,7 +191,6 @@ try
     start.Environment["Mail__Host"] = ""; start.Environment["Mail__From"] = "";
     start.Environment["Mail__User"] = ""; start.Environment["Mail__Password"] = "";
     web = Process.Start(start)!;
-    var logs = new ConcurrentQueue<string>();
     web.OutputDataReceived += (_, e) => { if (e.Data != null) logs.Enqueue(e.Data); };
     web.ErrorDataReceived += (_, e) => { if (e.Data != null) logs.Enqueue(e.Data); };
     web.BeginOutputReadLine(); web.BeginErrorReadLine();
@@ -201,7 +210,7 @@ try
     Check(about.Contains("Introduction") && !about.Contains("class=\"sidebar\"") && !about.Contains("id=\"comments\""), "Page has body without sidebar or comments");
     var welcome = await Get(visitor, "/welcome");
     Check(welcome.Contains("id=\"comments\"") && welcome.Contains("class=\"sidebar\""), "Article retains comments and sidebar");
-    Check((await visitor.GetAsync("/p/welcome?cp=2")).Headers.Location?.ToString() == "/welcome?cp=2", "Legacy article URL redirects preserving query");
+    Check((await visitor.GetAsync("/p/welcome?cp=2")).Headers.Location?.ToString() == "/welcome/comments/2", "Legacy article URL redirects to comment path");
     Check((await visitor.GetAsync("/p/about")).Headers.Location?.ToString() == "/about", "Legacy page URL redirects");
     Check((await visitor.GetAsync("/missing-short-link")).StatusCode == HttpStatusCode.NotFound, "Unknown short link returns 404");
     Check((await Get(visitor, "/feed.xml")).Contains(baseUrl + "/welcome") && !(await Get(visitor, "/feed.xml")).Contains(baseUrl + "/about"), "RSS includes root article URLs and excludes pages");
@@ -238,6 +247,7 @@ try
     login["Login"] = admin.UserName; login["Password"] = password;
     var loginResult = await Send(signedIn, "/Account/Login?culture=en", login);
     Check(loginResult.StatusCode == HttpStatusCode.Redirect, "Login accepts correct arithmetic and credentials");
+    await FeatureChecks.RunAsync(db, signedIn, visitor, admin, Check);
     Check((await Get(signedIn, "/Admin/Settings?culture=en")).Contains("Registration mode"), "English admin settings render");
     var mailForm = await Form(signedIn, "/Admin/Settings?culture=en");
     mailForm["Mail.Host"] = "127.0.0.1"; mailForm["Mail.Port"] = smtp.Port.ToString();
@@ -297,6 +307,8 @@ try
         form.Add(new StringContent((await Form(signedIn, "/Admin/Themes"))["__RequestVerificationToken"]), "__RequestVerificationToken");
         form.Add(new ByteArrayContent(archive.ToArray()), "upload", id + ".zip");
         using var response = await signedIn.PostAsync("/Admin/Themes?handler=Upload", form);
+        if (id == "custom-page" && response.StatusCode != HttpStatusCode.Redirect)
+            Console.WriteLine("Theme upload failed: " + response.StatusCode + " " + await response.Content.ReadAsStringAsync());
         return response.StatusCode;
     }
     Check(await UploadTheme("invalid-page", "{% if %}") == HttpStatusCode.Conflict && !Directory.Exists(Path.Combine(storage, "theme/invalid-page")), "Malformed optional page template is rejected before installation");
@@ -332,7 +344,7 @@ try
     var stats = milky.QuerySelectorAll(".site-stats dd");
     Check(stats.Length == 4 && stats[0].TextContent == db.Site.Select<Post>().Where(p => p.IsPublic && p.Kind == PostKind.Article && p.PublishedRevisionId != null).Count().ToString()
         && stats[1].TextContent == "0" && stats[2].TextContent == "0", "Milky statistics exclude pages, private tags, withdrawn and pending comments");
-    Check(parser.ParseDocument(await Get(visitor, "/?q=Welcome")).QuerySelector(".featured-note") == null, "Search does not show the home pinned banner");
+    Check(parser.ParseDocument(await Get(visitor, "/search/Welcome")).QuerySelector(".featured-note") == null, "Search does not show the home pinned banner");
     var milkyPost = parser.ParseDocument(await Get(signedIn, "/welcome"));
     Check(milkyPost.QuerySelector(".article-neighbors a") != null && milkyPost.QuerySelector(".related-grid a") != null, "Milky article provides adjacent and related public articles");
     Check(!milkyPost.QuerySelectorAll(".article-neighbors a, .related-grid a").Any(a => a.GetAttribute("href") is "/milky-private" or "/about" or "/welcome"), "Milky article links exclude private content, pages and itself");
@@ -487,6 +499,7 @@ try
 }
 finally
 {
+    await File.WriteAllLinesAsync(Path.Combine(storage, "web.log"), logs);
     if (web != null && !web.HasExited) { web.Kill(entireProcessTree: true); await web.WaitForExitAsync(); }
     db.Dispose();
     // Only the freshly generated, isolated database is removed.

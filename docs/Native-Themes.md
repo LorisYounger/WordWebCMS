@@ -81,7 +81,7 @@ milky 参考 DUX 页面和所提供截图的布局风格，独立编写 Liquid�
 - `is_home`：未筛选的第一页首页，用于显示首页置顶提示。
 - 首页只显示已公开文章；独立页面不出现在文章列表中，可通过导航访问。
 
-搜索向 `/` 提交 GET 参数 `q`。归档参数为 `category`（分类 ID）、`tag`（标签 ID）、`year`、`month`；分页为 `p`。日期基于首次实际发布时间（UTC）。
+公开列表使用 `/category/公告`、`/tag/标签名`、`/archive/2026/10`、`/search/关键词`、`/author/用户名`，分页在后面追加 `/page/2`，也可组合筛选路径。名称必须进行 URL 编码。旧的 `category`、`tag`、`year`、`month`、`q`、`p` 查询参数会永久跳转到对应的新路径。搜索表单仍可向 `/` 提交 GET 参数 `q`，服务器会跳转；内置脚本直接前往新路径。评论分页使用 `/文章链接/comments/2`。日期和归档基于首次实际发布时间（UTC）。
 
 ## post.liquid
 
@@ -126,3 +126,19 @@ milky 参考 DUX 页面和所提供截图的布局风格，独立编写 Liquid�
 文章允许 `p br hr h1–h6 blockquote pre code strong em del s ul ol li a img table thead tbody tr th td`，属性仅 `href src alt title colspan rowspan`，URL 协议为 HTTP、HTTPS、mailto 及相对地址。没有脚本、iframe、内联 style、事件属性或 data URI。管理员文章也遵守此规则。
 
 评论 Markdown 在解析阶段禁用原始 HTML，再执行同一允许列表。预览与公开文章使用同一 `MarkdownService`。图片地址和导航地址在保存时另做 Web URL 检查。媒体库支持 PNG/JPEG/GIF/WebP 和下载型 PDF，不允许 HTML/SVG 上传。
+
+## 作者主页与浏览器时间（结构版本 4）
+
+作者主页复用 `list.liquid`，`profile` 包含 `name`、`avatar`、`bio`、`own`；`posts` 是该作者的公开文章并按 10 篇分页。请对个人介绍正常转义，不使用 `raw`。`own` 为真时可以链接到 `/Account/Profile` 编辑个人介绍。
+
+文章、列表条目和评论增加 `author_url`；登录用户的主页地址为 `user_url`。将头像与名字一起放在链接中。
+
+文章、评论、近期/推荐文章增加 `date_utc`，网站统计增加 `latest_post_utc`，值为带 `Z` 的 UTC ISO 时间。引入 `/js/local-time.js`，使用：
+
+```liquid
+<time data-local-time="date" datetime="{{ post.date_utc }}">{{ post.date }} UTC</time>
+```
+
+评论和后台完整时间使用 `data-local-time="datetime"`。浏览器使用自己的时区，显示格式跟随页面语言。
+
+`/css/icons.css` 和 `/fonts/remixicon.ttf` 提供本地 Remix Icon 子集类名；可使用 `<i class="ri-home-line" aria-hidden="true"></i>`。图标旁保留文字，纯图标按钮需有可读标签。字体来源为 [Remix Icon](https://remixicon.com/)，授权链接随字体分发。

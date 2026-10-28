@@ -53,6 +53,9 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AddPageRoute("/Post", "/{slug:regex(^[a-zA-Z0-9-]+$)}");
+    foreach (var prefix in new[] { "category", "tag", "archive", "search", "author", "page" })
+        options.Conventions.AddPageRoute("/Index", "/" + prefix + "/{**filters}");
+    options.Conventions.AddPageRoute("/Post", "/{slug}/comments/{cp:int}");
     options.Conventions.AuthorizeFolder("/Admin", "Write");
     foreach (var page in new[] { "Comments", "Categories" })
         options.Conventions.AuthorizePage("/Admin/" + page, "Edit");
@@ -67,12 +70,16 @@ builder.Services.AddRazorPages(options =>
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = 429;
-    options.AddPolicy("forms", context => HttpMethods.IsPost(context.Request.Method)
+    options.AddPolicy("forms", context =>
+    {
+        var accountForm = context.Request.Path.StartsWithSegments("/Account") && !context.Request.Path.StartsWithSegments("/Account/Profile");
+        return HttpMethods.IsPost(context.Request.Method)
         ? RateLimitPartition.GetFixedWindowLimiter((context.Connection.RemoteIpAddress?.ToString() ?? "unknown") +
-            (context.Request.Path.StartsWithSegments("/Account") ? ":account" : ":content"),
-            _ => new FixedWindowRateLimiterOptions { PermitLimit = context.Request.Path.StartsWithSegments("/Account") ? 10 : 120,
+            (accountForm ? ":account" : ":content"),
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = accountForm ? 10 : 120,
                 Window = TimeSpan.FromMinutes(1), QueueLimit = 0 })
-        : RateLimitPartition.GetNoLimiter("read"));
+        : RateLimitPartition.GetNoLimiter("read");
+    });
 });
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -84,7 +91,7 @@ var app = builder.Build();
 if (args.Contains("--initialize"))
 {
     app.Services.GetRequiredService<CmsDb>().InitializeSchema();
-    app.Logger.LogInformation("数据库结构已初始化为版本 3；已有共享账号保持不变。请启动站点并访问 /Setup。");
+    app.Logger.LogInformation("数据库结构已初始化为版本 4；已有共享账号保持不变。请启动站点并访问 /Setup。");
     return;
 }
 var setup = app.Services.GetRequiredService<SetupService>();
