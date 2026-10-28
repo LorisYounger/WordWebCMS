@@ -21,3 +21,34 @@ button:disabled { opacity:.6; cursor:not-allowed; }
 .account-nav { flex-wrap:wrap; }
 @media(max-width:600px) { .language-nav { max-width:100%; } .site-header .brand { font-size:24px; } }
 @media(forced-colors:active) { select { appearance:auto; background-image:none; } }
+
+/* Shared content edges and restrained article metadata. */
+.site-header { margin-block: 24px 20px; }
+.site-header .brand { font-size: 32px; line-height: 1.25; }
+.site-header p { margin-top: 10px; color: #657080; font-size: 14px; }
+.site-nav { padding-inline: 20px; align-items: center; }
+.site-nav > a, .site-nav .nav-group > a { padding: 14px 12px; line-height: 24px; }
+.site-nav > a:first-child, .site-nav > .nav-group:first-child > a { padding-left: 0; }
+.site-grid { margin-top: 24px; grid-template-columns: minmax(0, 1fr) 300px; gap: 28px; align-items: start; }
+.page-grid { grid-template-columns: minmax(0, 1fr); }
+.section-heading { min-height: 32px; margin-bottom: 16px; }
+.section-heading h1 { font-size: 18px; }
+.sidebar h2 { font-size: 18px; font-weight: 600; line-height: 26px; padding: 0 0 6px; margin-bottom: 16px; border-bottom: 1px solid #d7dde4; }
+.sidebar li { padding: 10px 0; }
+.search { margin-top: 0; }
+.post-card, .article, .comments { padding: 24px; border: 1px solid #d7dde4; border-radius: 8px; box-shadow: 0 2px 6px #102b4a08; margin-bottom: 20px; }
+.post-card h2 { font-size: 26px; line-height: 1.4; margin-bottom: 12px; }
+.post-card .meta { margin-bottom: 20px; }
+.post-excerpt p { margin-bottom: 4px; line-height: 1.8; }
+.post-footer { margin-top: 22px; }
+.footer-inner { align-items: flex-start; }
+.footer-inner > :last-child { flex-shrink: 0; }
+@media(max-width:800px) {
+    .site-header { margin: 0 auto; padding: 24px 16px 20px; }
+    .site-nav { padding-inline: 16px; }
+    .site-nav > a, .site-nav .nav-group > a { padding: 10px 10px; }
+    .site-grid { grid-template-columns: minmax(0,1fr); gap: 24px; margin-top: 20px; }
+    .post-card, .article, .comments { padding: 20px; }
+    .post-card h2 { font-size: 23px; }
+    .footer-inner { flex-direction: column; }
+}

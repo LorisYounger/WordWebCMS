@@ -1,13 +1,13 @@
 /* Shared interaction and author treatments for the bundled themes and account pages. */
 a:hover, a:focus-visible, .text-button:hover { text-decoration: none; }
 a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-.brand { border-radius: 8px; transition: color .15s, opacity .15s; }
+.brand { font-family: "Segoe UI Variable Display", "Segoe UI", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif; font-weight: 650; letter-spacing: .015em; border-radius: 8px; transition: color .15s, opacity .15s; }
 .brand:hover { opacity: .8; }
 .meta, .post-meta, .article-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; }
-.author-link { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; color: inherit; border-radius: 20px; padding: 3px 8px 3px 3px; transition: background .15s, color .15s; }
-.author-link .avatar { width: 24px; height: 24px; flex: 0 0 24px; margin: 0; border-radius: 50%; object-fit: cover; border: 1px solid var(--line, #e0e5eb); background: var(--soft, #f3f5f8); }
+.author-link { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; color: inherit; border-radius: 4px; padding: 0; transition: background .15s, color .15s; }
+.author-link .avatar { width: 24px; height: 24px; flex: 0 0 24px; margin: 0; border-radius: 6px; object-fit: cover; border: 1px solid var(--line, #e0e5eb); background: var(--soft, #f3f5f8); }
 .author-link:hover, .author-link:focus-visible { color: var(--link, var(--accent, #095a99)); background: var(--soft, #f3f5f8); }
-.article-header .author-link .avatar { width: 30px; height: 30px; flex-basis: 30px; }
+.article-header .author-link .avatar { width: 24px; height: 24px; flex-basis: 24px; }
 .comment-meta .author-link, .comment .meta .author-link { font-size: 13px; }
 .profile-card { display: flex; align-items: center; gap: 24px; padding: 28px; margin-bottom: 20px; background: var(--paper, #fff); border: 1px solid var(--line, #e0e5eb); border-radius: 8px; }
 .profile-card > .avatar { width: 80px; height: 80px; flex: 0 0 80px; object-fit: cover; border-radius: 50%; border: 3px solid var(--soft, #f3f5f8); }
@@ -24,7 +24,7 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
 .pagination a, .category-links a, .tag, .text-button, .icon-button, .primary-nav > a, .nav-group > a { border-radius: 5px; transition: background-color .15s, color .15s; }
 .text-button { padding: 5px 8px; }
 .text-button:hover, .icon-button:hover { background: var(--soft, #f3f5f8); }
-.primary-nav > a, .nav-group > a { padding: 5px 8px; }
+.primary-nav > a, .primary-nav .nav-group > a { padding: 5px 8px; }
 .primary-nav > a:hover, .nav-group > a:hover { background: var(--tint, #ffffff18); }
 .prose a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em; }
 .prose a:hover { color: var(--link, var(--accent, #095a99)); text-decoration-thickness: 2px; }
@@ -40,3 +40,10 @@ a, button, summary { -webkit-tap-highlight-color: transparent; touch-action: man
     .meta, .post-meta, .article-meta { gap: 6px 10px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+
+.footer-content { min-width: 0; max-width: 100%; overflow-wrap: anywhere; line-height: 1.8; }
+.footer-content > :last-child { margin-bottom: 0; }
+.footer-content p { margin: 0 0 8px; }
+.footer-content img { max-width: 100%; height: auto; }
+.footer-content pre, .footer-content table { max-width: 100%; overflow: auto; display: block; }
+.footer-content pre { white-space: pre-wrap; }

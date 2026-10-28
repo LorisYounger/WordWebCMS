@@ -63,24 +63,32 @@ async Task<Dictionary<string, string>> Form(HttpClient client, string path, bool
     }
     return data;
 }
-async Task<HttpResponseMessage> Send(HttpClient client, string path, Dictionary<string, string> data) => await client.PostAsync(path, new FormUrlEncodedContent(data));
+async Task<HttpResponseMessage> Send(HttpClient client, string path, Dictionary<string, string> data)
+{
+    var response = await client.PostAsync(path, new FormUrlEncodedContent(data));
+    if (response.StatusCode != HttpStatusCode.TooManyRequests) return response;
+    response.Dispose();
+    Console.WriteLine("Waiting for the production form rate-limit window before continuing HTTP regression checks.");
+    await Task.Delay(TimeSpan.FromSeconds(60));
+    return await client.PostAsync(path, new FormUrlEncodedContent(data));
+}
 ClaimsPrincipal Principal(long id) => new(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, id.ToString()), new Claim(ClaimTypes.Role, "Administrator")], "test"));
 try
 {
-    await SetupChecks.RunAsync(root, connection.ConnectionString, Check);
+    if (!args.Contains("--skip-setup")) await SetupChecks.RunAsync(root, connection.ConnectionString, Check);
     db.InitializeSchema();
-    Check(db.CheckSchema(), "Schema v4 initializes");
+    Check(db.CheckSchema(), "Schema v6 initializes");
     var accounts = new AccountService(db, new PasswordHasher<CmsUser>());
     var admin = await accounts.CreateAsync("regression-admin", "admin@example.test", password, true);
-    db.Site.Insert(new SiteSettings { Title = "Regression site", BaseUrl = baseUrl, AvatarUserName = admin.UserName, EnabledLanguages = "zh-CN,en,fr-FR" }).ExecuteAffrows();
+    db.Site.Insert(new SiteSettings { Title = "Regression site", BaseUrl = baseUrl, EnabledLanguages = "zh-CN,en,fr-FR" }).ExecuteAffrows();
     db.Site.Insert(new SiteUserRole { UserId = admin.Id, Role = SiteRole.Administrator }).ExecuteAffrows();
     // Simulate the owning v1 settings schema, then perform the actual migration.
-    db.Site.Ado.ExecuteNonQuery("ALTER TABLE site_settings DROP COLUMN AvatarUrl, DROP COLUMN AvatarUserName, DROP COLUMN Language, DROP COLUMN Registration");
+    db.Site.Ado.ExecuteNonQuery("ALTER TABLE site_settings DROP COLUMN AvatarUrl, DROP COLUMN Language, DROP COLUMN Registration");
     db.Site.Update<SchemaVersion>().Set(v => v.Version, 1).Where(v => v.Id == 1).ExecuteAffrows();
     using (var migration = new CmsDb(new ConfigurationBuilder().AddInMemoryCollection(settings).Build())) migration.InitializeSchema();
     Check(db.CheckSchema() && db.Site.Select<SiteSettings>().First().Title == "Regression site", "v1 migration preserves site data");
     Check(db.Site.Select<SiteSettings>().First().Language == "zh-Hans", "Migrated site has a default culture");
-    Check(db.Site.Select<SiteSettings>().First().AvatarUserName == admin.UserName, "Migrated avatar uses site administrator");
+    Check(string.IsNullOrEmpty(db.Site.Select<SiteSettings>().First().AvatarUrl), "Migrated site uses the bundled default avatar");
 
     db.Accounts.Ado.ExecuteNonQuery("ALTER TABLE cms_user DROP COLUMN Bio");
     db.Site.Update<SchemaVersion>().Set(v => v.Version, 3).Where(v => v.Id == 1).ExecuteAffrows();
@@ -88,7 +96,31 @@ try
     {
         migration.InitializeSchema();
         migration.InitializeSchema();
-        Check(migration.CheckSchema() && migration.Accounts.Select<CmsUser>().Where(u => u.Id == admin.Id).First().PasswordHash == admin.PasswordHash, "v3 to v4 migration preserves shared accounts and is repeatable");
+        Check(migration.CheckSchema() && migration.Accounts.Select<CmsUser>().Where(u => u.Id == admin.Id).First().PasswordHash == admin.PasswordHash, "v3 to v6 migration preserves shared accounts and is repeatable");
+    }
+
+    db.Accounts.Ado.ExecuteNonQuery("ALTER TABLE cms_user DROP COLUMN AvatarUrl");
+    db.Site.Update<SchemaVersion>().Set(v => v.Version, 4).Where(v => v.Id == 1).ExecuteAffrows();
+    using (var migration = new CmsDb(new ConfigurationBuilder().AddInMemoryCollection(settings).Build()))
+    {
+        Check(!migration.CheckSchema(), "v4 requires the avatar migration");
+        migration.InitializeSchema();
+        migration.InitializeSchema();
+        var migrated = migration.Accounts.Select<CmsUser>().Where(u => u.Id == admin.Id).First();
+        Check(migration.CheckSchema() && string.IsNullOrEmpty(migrated.AvatarUrl) && migrated.PasswordHash == admin.PasswordHash,
+            "v4 to v6 adds user avatars without changing accounts and is repeatable");
+    }
+
+    db.Site.Ado.ExecuteNonQuery("ALTER TABLE site_settings DROP COLUMN HideUserAvatars, DROP COLUMN FooterMarkdown");
+    db.Site.Update<SchemaVersion>().Set(v => v.Version, 5).Where(v => v.Id == 1).ExecuteAffrows();
+    using (var migration = new CmsDb(new ConfigurationBuilder().AddInMemoryCollection(settings).Build()))
+    {
+        Check(!migration.CheckSchema(), "v5 requires the footer and avatar visibility migration");
+        migration.InitializeSchema();
+        migration.InitializeSchema();
+        var migrated = migration.Site.Select<SiteSettings>().First();
+        Check(migration.CheckSchema() && !migrated.HideUserAvatars && string.IsNullOrEmpty(migrated.FooterMarkdown) && migrated.Title == "Regression site",
+            "v5 to v6 preserves site data and defaults and is repeatable");
     }
 
     UiText.Load(Path.Combine(root, "WordWebCMS/Languages"), Path.Combine(storage, "languages"));
@@ -207,7 +239,8 @@ try
     }
     var home = await Get(visitor, "/");
     Check(home.Contains("/welcome") && !home.Contains("href=\"/about\""), "Home lists articles only with root short links");
-    Check(home.Contains("https://avatar.exlb.net/" + admin.UserName), "Default site avatar appears");
+    Check(home.Contains("/WWC.png"), "Bundled default site avatar appears");
+    Check((await visitor.GetByteArrayAsync("/WWC.png")).SequenceEqual(File.ReadAllBytes(Path.Combine(root, "WWC.png"))), "Default site avatar serves the provided PNG");
     var html = parser.ParseDocument(home);
     Check(html.QuerySelector("a[href^='/feed.xml']")?.GetAttribute("target") == "_blank", "RSS opens a new tab");
     Check(html.QuerySelector("a[href='/sitemap.xml']")?.GetAttribute("rel")?.Contains("noopener") == true, "Sitemap opens safely in a new tab");
@@ -253,7 +286,7 @@ try
     var loginResult = await Send(signedIn, "/Account/Login?culture=en", login);
     Check(loginResult.StatusCode == HttpStatusCode.Redirect, "Login accepts correct arithmetic and credentials");
     await CacheChecks.RunAsync(db, signedIn, new Uri(baseUrl), storage, Check);
-    await FeatureChecks.RunAsync(db, signedIn, visitor, admin, Check);
+    await FeatureChecks.RunAsync(db, signedIn, visitor, admin, password, Check);
     Check((await Get(signedIn, "/Admin/Settings?culture=en")).Contains("Registration mode"), "English admin settings render");
     var mailForm = await Form(signedIn, "/Admin/Settings?culture=en");
     mailForm["Mail.Host"] = "127.0.0.1"; mailForm["Mail.Port"] = smtp.Port.ToString();
@@ -408,7 +441,22 @@ try
         Check(message.From.Mailboxes.Single().Address == "admin-configured@example.test", "Verification uses admin SMTP settings immediately");
         var token = Regex.Match(message.TextBody!, @"token=([A-F0-9]{64})").Groups[1].Value;
         Check(token.Length == 64, "Verification email has a usable token");
-        accounts.ConsumeToken(token, "verify", null);
+        if (mode == RegistrationMode.Approval)
+        {
+            var review = parser.ParseDocument(await Get(signedIn, "/Admin/Users"));
+            Check(!review.QuerySelector("#pending-users")!.TextContent.Contains(name), "Unverified registration is excluded from review");
+            var premature = await Form(signedIn, "/Admin/Users"); premature["login"] = name; premature["role"] = "Reader";
+            Check((await Send(signedIn, "/Admin/Users", premature)).StatusCode == HttpStatusCode.Conflict &&
+                db.Site.Select<SiteUserRole>().Where(r => r.UserId == account!.Id).First().Role == SiteRole.Pending, "Server rejects approval before email verification");
+        }
+        var verification = await Form(visitor, "/Account/Verify?token=" + token);
+        var verified = await Send(visitor, "/Account/Verify?culture=en", verification);
+        Check(verified.IsSuccessStatusCode && db.Accounts.Select<CmsUser>().Where(u => u.Id == account!.Id).First().EmailConfirmed,
+            "Email verification form confirms the account");
+        if (mode == RegistrationMode.Approval)
+            Check((await verified.Content.ReadAsStringAsync()).Contains("wait for administrator approval"), "Verification page explains the remaining administrator review");
+        if (mode == RegistrationMode.Approval)
+            Check(parser.ParseDocument(await Get(signedIn, "/Admin/Users")).QuerySelector("#pending-users")!.TextContent.Contains(name), "Email verification makes registration available for review");
         return account!;
     }
     var open = await Register("open-user", RegistrationMode.Open);
@@ -449,7 +497,7 @@ try
 
     var siteForm = await Form(signedIn, "/Admin/Settings");
     siteForm["Settings.Title"] = "Updated regression"; siteForm["Settings.BaseUrl"] = baseUrl;
-    siteForm["Settings.AvatarUserName"] = "avatar-user"; siteForm["Settings.AvatarUrl"] = "/media/site.png";
+    siteForm["Settings.AvatarUrl"] = "/media/site.png";
     siteForm["SelectedLanguages[0]"] = "zh-CN"; siteForm["SelectedLanguages[1]"] = "en"; siteForm["SelectedLanguages[2]"] = "fr-FR";
     siteForm["Translations[en].Title"] = "Translated site"; siteForm["Translations[en].Description"] = "Translated description";
     siteForm["Settings.Language"] = "fr-FR"; siteForm["Settings.Registration"] = "Closed";

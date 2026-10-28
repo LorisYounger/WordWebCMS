@@ -12,6 +12,7 @@ public class CmsUser
     [Column(StringLength = 254)] public string Email { get; set; } = "";
     [Column(StringLength = 512)] public string PasswordHash { get; set; } = "";
     [Column(StringLength = 1000)] public string Bio { get; set; } = "";
+    [Column(StringLength = 1000)] public string AvatarUrl { get; set; } = "";
     public bool EmailConfirmed { get; set; }
     public bool Disabled { get; set; }
     [Column(StringLength = 32)] public string SecurityStamp { get; set; } = Guid.NewGuid().ToString("N");
@@ -28,7 +29,7 @@ public class AccountToken
     public DateTime ExpiresUtc { get; set; }
 }
 
-public enum SiteRole { Pending = -2, Banned = -1, Reader, Contributor, Editor, Administrator }
+public enum SiteRole { Removed = -3, Pending = -2, Banned = -1, Reader, Contributor, Editor, Administrator }
 
 [Table(Name = "site_user_role")]
 public class SiteUserRole

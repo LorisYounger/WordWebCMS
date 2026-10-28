@@ -12,7 +12,7 @@
 <a class="skip" href="#main">@UiText.T("跳到正文")</a>
 <header class="admin-bar"><a class="brand" href="/">WordWebCMS</a><a href="/"><i class="ri-home-line" aria-hidden="true"></i> @UiText.T("查看站点")</a><nav aria-label="@UiText.T("账号导航")">
 @if (User.Identity?.IsAuthenticated == true) {
-<a class="author-link" href="@PublicUrls.Author(User.Identity.Name!)"><img class="avatar" src="@ShortLinks.Avatar(User.Identity.Name!)" alt="" /><span>@User.Identity.Name</span></a><a href="/Account/Profile">@UiText.T("编辑个人介绍")</a>
+<a class="author-link" href="@PublicUrls.Author(User.Identity.Name!)"><img class="avatar" src="@(Context.Items["UserAvatar"] ?? ShortLinks.Avatar(User.Identity.Name!))" alt="" /><span>@User.Identity.Name</span></a><a href="/Account/Profile">@UiText.T("编辑个人资料")</a>
 @if (!isAdmin && (AccountService.CanEditAll(User) || User.IsInRole("Contributor"))) { <a href="/Admin">@UiText.T("内容管理")</a> }
 <form method="post" asp-page="/Account/Logout"><button class="link" type="submit">@UiText.T("退出")</button></form>
 } else { <a href="/Account/Login">@UiText.T("登录")</a><a href="/Account/Register">@UiText.T("注册")</a> }

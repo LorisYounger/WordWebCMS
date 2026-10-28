@@ -25,6 +25,8 @@ internal static class CacheChecks
                 {
                     using var response = await visitor.GetAsync(path);
                     var html = await response.Content.ReadAsStringAsync();
+                    if (!response.IsSuccessStatusCode || response.Headers.CacheControl?.NoStore == true || response.Headers.Contains("Set-Cookie") || html.Contains("__RequestVerificationToken"))
+                        Console.WriteLine($"Cache diagnostic {theme}{path}: status={response.StatusCode}, cache={response.Headers.CacheControl}, ETag={response.Headers.ETag != null}, cookie={response.Headers.Contains("Set-Cookie")}, token={html.Contains("__RequestVerificationToken")}");
                     check(response.IsSuccessStatusCode && response.Headers.CacheControl is { Public: true, NoCache: true, NoStore: false } &&
                         response.Headers.ETag != null && !response.Headers.Contains("Set-Cookie") && !html.Contains("__RequestVerificationToken"), theme + path + " visitor HTML is cacheable without CSRF cookies");
                     check(response.Headers.Vary.Contains("Cookie") && response.Headers.Vary.Contains("Accept-Language"), "HTML cache distinguishes cookies and language");

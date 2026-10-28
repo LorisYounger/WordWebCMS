@@ -165,20 +165,20 @@ internal static class SetupChecks
 
             using (var versionDb = Database(databases[0]))
             {
-                versionDb.Site.Update<SchemaVersion>().Set(v => v.Version, 5).Where(v => v.Id == 1).ExecuteAffrows();
+                versionDb.Site.Update<SchemaVersion>().Set(v => v.Version, 7).Where(v => v.Id == 1).ExecuteAffrows();
                 await StopAsync();
                 await StartAsync();
                 var newerVersion = WebUtility.HtmlDecode(await client.GetStringAsync("/Setup?culture=zh-Hans"));
-                check(newerVersion.Contains("版本为 5") && newerVersion.Contains("检查账号数据库版本"),
+                check(newerVersion.Contains("版本为 7") && newerVersion.Contains("检查账号数据库版本"),
                     "Startup version failures retain their exact cause and step after refreshing setup");
                 data = await FormAsync();
                 var failedUpgrade = WebUtility.HtmlDecode(await (await SendAsync("?handler=Initialize", data)).Content.ReadAsStringAsync());
-                check(failedUpgrade.Contains("InvalidOperationException") && failedUpgrade.Contains("5") &&
-                    versionDb.Site.Select<SchemaVersion>().First().Version == 5,
+                check(failedUpgrade.Contains("InvalidOperationException") && failedUpgrade.Contains("7") &&
+                    versionDb.Site.Select<SchemaVersion>().First().Version == 7,
                     "Browser upgrade exposes the application refusal without downgrading a newer database");
-                check(logs.Any(line => line.Contains("Setup failed at") && line.Contains("5")),
+                check(logs.Any(line => line.Contains("Setup failed at") && line.Contains("7")),
                     "Container logs retain a readable migration failure reason");
-                versionDb.Site.Update<SchemaVersion>().Set(v => v.Version, 4).Where(v => v.Id == 1).ExecuteAffrows();
+                versionDb.Site.Update<SchemaVersion>().Set(v => v.Version, 6).Where(v => v.Id == 1).ExecuteAffrows();
             }
 
             var diagnosticsConfig = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {

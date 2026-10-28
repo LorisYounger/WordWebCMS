@@ -16,6 +16,7 @@ public class SiteTranslation
 {
     public string Title { get; set; } = "";
     public string Description { get; set; } = "";
+    public string FooterMarkdown { get; set; } = "";
 }
 
 public static class ContentLanguages
@@ -54,6 +55,7 @@ public static class ContentLanguages
     public static SiteTranslation Display(SiteSettings settings)
     {
         var translations = Read<SiteTranslation>(settings.Translations);
-        return new SiteTranslation { Title = Pick(translations, settings.Language, settings.Title, t => t.Title), Description = Pick(translations, settings.Language, settings.Description, t => t.Description) };
+        return new SiteTranslation { Title = Pick(translations, settings.Language, settings.Title, t => t.Title), Description = Pick(translations, settings.Language, settings.Description, t => t.Description),
+            FooterMarkdown = Pick(translations, settings.Language, settings.FooterMarkdown, t => t.FooterMarkdown) };
     }
 }

@@ -14,8 +14,9 @@ public class SiteSettings
     [Column(StringLength = 64)] public string Theme { get; set; } = "default";
     public bool CommentsEnabled { get; set; } = true;
     public bool ModerateComments { get; set; } = true;
+    public bool HideUserAvatars { get; set; }
+    [Column(StringLength = -1)] public string FooterMarkdown { get; set; } = "";
     [Column(StringLength = 1000)] public string AvatarUrl { get; set; } = "";
-    [Column(StringLength = 64)] public string AvatarUserName { get; set; } = "admin";
     [Column(StringLength = 64)] public string Language { get; set; } = "zh-Hans";
     [Column(StringLength = 2000)] public string EnabledLanguages { get; set; } = "zh-Hans,en";
     [Column(StringLength = -1)] public string Translations { get; set; } = "{}";

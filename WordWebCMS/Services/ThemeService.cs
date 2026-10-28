@@ -12,7 +12,7 @@ using WordWebCMS.Models;
 
 namespace WordWebCMS.Services;
 
-public class ThemeService(StoragePaths paths, IWebHostEnvironment env, IAntiforgery antiforgery)
+public class ThemeService(StoragePaths paths, IWebHostEnvironment env, IAntiforgery antiforgery, MarkdownService markdown)
 {
     public static readonly string[] Templates = ["layout.liquid", "list.liquid", "post.liquid", "error.liquid"];
     private readonly FluidParser parser = new();
@@ -23,7 +23,8 @@ public class ThemeService(StoragePaths paths, IWebHostEnvironment env, IAntiforg
         var navigation = await db.Site.Select<NavigationItem>().OrderBy(n => n.SortOrder).OrderBy(n => n.Id).ToListAsync();
         var siteText = ContentLanguages.Display(settings);
         data["site"] = new Dictionary<string, object?> { ["title"] = siteText.Title, ["description"] = siteText.Description, ["url"] = settings.BaseUrl,
-            ["avatar"] = string.IsNullOrEmpty(settings.AvatarUrl) ? ShortLinks.Avatar(settings.AvatarUserName) : settings.AvatarUrl };
+            ["hide_user_avatars"] = settings.HideUserAvatars, ["footer_html"] = markdown.Render(siteText.FooterMarkdown ?? ""),
+            ["avatar"] = string.IsNullOrEmpty(settings.AvatarUrl) ? "/WWC.png" : settings.AvatarUrl };
         data["language"] = UiText.Language;
         data["client_messages"] = UiText.ClientJson;
         data["languages"] = UiText.Enabled(settings).Select(c => new Dictionary<string, object?> { ["name"] = c.NativeName, ["code"] = c.Name, ["selected"] = c.Name == UiText.Language,
@@ -32,7 +33,7 @@ public class ThemeService(StoragePaths paths, IWebHostEnvironment env, IAntiforg
         data["feed_url"] = "/feed.xml?culture=" + UiText.Language;
         data["registration_open"] = settings.Registration != RegistrationMode.Closed;
         data["user_url"] = PublicUrls.Author(http.User.Identity?.Name ?? "guest");
-        data["user_avatar"] = ShortLinks.Avatar(http.User.Identity?.Name ?? "guest");
+        data["user_avatar"] = http.Items["UserAvatar"] ?? ShortLinks.Avatar(http.User.Identity?.Name ?? "guest");
         data["navigation"] = navigation.Where(n => n.ParentId == null).Select(n => new Dictionary<string, object?> {
             ["text"] = n.Text, ["url"] = n.Url, ["new_window"] = OpensNewWindow(n.Url), ["children"] = navigation.Where(child => child.ParentId == n.Id)
                 .Select(child => new Dictionary<string, object?> { ["text"] = child.Text, ["url"] = child.Url, ["new_window"] = OpensNewWindow(child.Url) }).ToArray()

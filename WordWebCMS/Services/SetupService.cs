@@ -111,7 +111,7 @@ public sealed class SetupService(IConfiguration config, CmsDb db, StoragePaths s
         if (!SchemaReady)
         {
             Step = "检查数据库更新结果";
-            throw new InvalidOperationException(string.IsNullOrEmpty(Error) ? "数据库更新后版本检查未通过。请确认账号库和站点库的 schema_version 记录均为版本 4。" : Error);
+            throw new InvalidOperationException(string.IsNullOrEmpty(Error) ? "数据库更新后版本检查未通过。请确认账号库和站点库的 schema_version 记录均为版本 6。" : Error);
         }
     }
 

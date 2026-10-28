@@ -25,6 +25,7 @@ internal static class CacheLocalChecks
         builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
         builder.Services.AddSingleton(new StoragePaths(storage));
         builder.Services.AddSingleton<ThemeService>();
+        builder.Services.AddSingleton<MarkdownService>();
         await using var app = builder.Build();
         var themeService = app.Services.GetRequiredService<ThemeService>();
         themeService.InitializeDefault();
