@@ -1,0 +1,28 @@
+/* Remix Icon: https://remixicon.com — glyph map verified against the bundled v4.9 font. */
+@font-face { font-family: remixicon; src: url('/fonts/remixicon.ttf') format('truetype'); font-display: block; }
+[class^="ri-"], [class*=" ri-"] { display:inline-block; font-family:remixicon!important; font-style:normal; font-weight:normal; line-height:1; vertical-align:-.12em; text-decoration:none; -webkit-font-smoothing:antialiased; }
+.ri-home-line::before { content: "\ee2b"; }
+.ri-calendar-line::before { content: "\eb27"; }
+.ri-eye-line::before { content: "\ecb5"; }
+.ri-heart-line::before { content: "\ee0f"; }
+.ri-chat-3-line::before { content: "\eb51"; }
+.ri-price-tag-3-line::before { content: "\f023"; }
+.ri-folder-line::before { content: "\ed6a"; }
+.ri-search-line::before { content: "\f0d1"; }
+.ri-user-line::before { content: "\f264"; }
+.ri-settings-3-line::before { content: "\f0e6"; }
+.ri-article-line::before { content: "\ea7e"; }
+.ri-file-text-line::before { content: "\ed0f"; }
+.ri-image-line::before { content: "\ee4b"; }
+.ri-palette-line::before { content: "\efc5"; }
+.ri-menu-fill::before { content: "\ef3e"; }
+.ri-logout-box-r-line::before { content: "\eeda"; }
+.ri-rss-line::before { content: "\f09f"; }
+.ri-arrow-left-line::before { content: "\ea60"; }
+.ri-arrow-right-line::before { content: "\ea6c"; }
+.ri-arrow-up-line::before { content: "\ea76"; }
+.ri-arrow-left-right-line::before { content: "\ea62"; }
+.ri-share-line::before { content: "\f0fe"; }
+.ri-save-line::before { content: "\f0b3"; }
+.ri-edit-line::before { content: "\ec86"; }
+.ri-links-fill::before { content: "\eeb8"; }

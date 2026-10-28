@@ -30,6 +30,7 @@ public class ThemeService(StoragePaths paths, IWebHostEnvironment env, IAntiforg
         data["language_return"] = http.Request.Path + http.Request.QueryString;
         data["feed_url"] = "/feed.xml?culture=" + UiText.Language;
         data["registration_open"] = settings.Registration != RegistrationMode.Closed;
+        data["user_url"] = PublicUrls.Author(http.User.Identity?.Name ?? "guest");
         data["user_avatar"] = ShortLinks.Avatar(http.User.Identity?.Name ?? "guest");
         data["navigation"] = navigation.Where(n => n.ParentId == null).Select(n => new Dictionary<string, object?> {
             ["text"] = n.Text, ["url"] = n.Url, ["new_window"] = OpensNewWindow(n.Url), ["children"] = navigation.Where(child => child.ParentId == n.Id)
@@ -38,7 +39,7 @@ public class ThemeService(StoragePaths paths, IWebHostEnvironment env, IAntiforg
         if (!data.ContainsKey("categories"))
         {
             var categories = await db.Site.Select<Category>().OrderBy(c => c.Name).ToListAsync();
-            data["categories"] = categories.Select(c => new Dictionary<string, object?> { ["name"] = c.Name, ["url"] = "/?category=" + c.Id }).ToArray();
+            data["categories"] = categories.Select(c => new Dictionary<string, object?> { ["name"] = c.Name, ["url"] = PublicUrls.Category(c.Name) }).ToArray();
         }
         var recent = await db.Site.Select<Post, PostRevision>().InnerJoin((p, r) => p.PublishedRevisionId == r.Id)
             .Where((p, r) => p.IsPublic && p.Kind == PostKind.Article)
@@ -57,7 +58,8 @@ public class ThemeService(StoragePaths paths, IWebHostEnvironment env, IAntiforg
                 .Where((c, p, r) => c.Approved && p.IsPublic && p.Kind == PostKind.Article).CountAsync(),
             ["tags"] = await db.Site.Select<Tag>().Where(t => db.Site.Select<RevisionTag, Post>().InnerJoin((rt, p) => rt.RevisionId == p.PublishedRevisionId)
                 .Where((rt, p) => rt.TagId == t.Id && p.IsPublic && p.Kind == PostKind.Article).Any()).CountAsync(),
-            ["latest_post"] = recent.FirstOrDefault()?.Post.PublishedUtc?.ToString("yyyy-MM-dd") ?? ""
+            ["latest_post"] = recent.FirstOrDefault()?.Post.PublishedUtc?.ToString("yyyy-MM-dd") ?? "",
+            ["latest_post_utc"] = PublicUrls.Utc(recent.FirstOrDefault()?.Post.PublishedUtc)
         };
         data["signed_in"] = http.User.Identity?.IsAuthenticated == true;
         data["can_manage"] = AccountService.CanEditAll(http.User) || http.User.IsInRole("Contributor");
@@ -77,7 +79,7 @@ public class ThemeService(StoragePaths paths, IWebHostEnvironment env, IAntiforg
     {
         var text = ContentLanguages.Display(revision, settings);
         return new() { ["title"] = text.Title, ["summary"] = text.Summary, ["url"] = "/" + post.Slug,
-            ["cover"] = text.CoverUrl, ["date"] = post.PublishedUtc?.ToString("yyyy-MM-dd") };
+            ["cover"] = text.CoverUrl, ["date"] = post.PublishedUtc?.ToString("yyyy-MM-dd"), ["date_utc"] = PublicUrls.Utc(post.PublishedUtc) };
     }
 
     public void InitializeDefault()

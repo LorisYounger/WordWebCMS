@@ -5,7 +5,7 @@ namespace WordWebCMS.Services;
 public static class ShortLinks
 {
     private static readonly HashSet<string> Reserved = new(StringComparer.OrdinalIgnoreCase)
-        { "admin", "account", "setup", "error", "p", "media", "theme-assets", "css", "js", "language", "index", "post", "feed", "sitemap", "themeasset", "mediafile" };
+        { "category", "tag", "archive", "search", "author", "page", "fonts", "admin", "account", "setup", "error", "p", "media", "theme-assets", "css", "js", "language", "index", "post", "feed", "sitemap", "themeasset", "mediafile" };
 
     public static bool IsValid(string slug) => Regex.IsMatch(slug, "^[a-z0-9][a-z0-9-]{0,159}$") && !Reserved.Contains(slug);
 

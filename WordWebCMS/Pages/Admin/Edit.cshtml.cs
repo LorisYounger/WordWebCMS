@@ -10,7 +10,7 @@ namespace WordWebCMS.Pages.Admin;
 public class EditModel(CmsDb db, ContentService content, MarkdownService markdown) : PageModel
 {
     [BindProperty] public PostDraft Draft { get; set; } = new();
-    [BindProperty] public Dictionary<string, ContentTranslation> Translations { get; set; } = [];
+    [BindProperty(Name = "Translations")] public Dictionary<string, ContentTranslation> Translations { get; set; } = [];
     public IReadOnlyList<System.Globalization.CultureInfo> ContentCultures { get; set; } = [];
     public System.Globalization.CultureInfo DefaultCulture { get; set; } = System.Globalization.CultureInfo.GetCultureInfo("zh-Hans");
     public Post Post { get; set; } = new();
@@ -40,7 +40,13 @@ public class EditModel(CmsDb db, ContentService content, MarkdownService markdow
     {
         if (!ModelState.IsValid) return BadRequest(UiText.T("表单字段无效。"));
         MergeTranslations(id);
-        content.Save(id, Draft, User, action);
+        if (action is "convert-page" or "convert-article")
+            db.Site.Transaction(() =>
+            {
+                var version = content.Save(id, Draft, User, "save");
+                content.Convert(id, action == "convert-page" ? PostKind.Page : PostKind.Article, version, User);
+            });
+        else content.Save(id, Draft, User, action);
         return RedirectToPage(new { id });
     }
     public IActionResult OnPostAutosave(long id)

@@ -1,0 +1,7 @@
+Remix Icon v4.9
+Copyright RemixIcon.com
+https://remixicon.com
+https://github.com/Remix-Design/RemixIcon
+License: Remix Icon License v1.0
+https://github.com/Remix-Design/RemixIcon/blob/master/License
+Font copied unchanged from the user-provided VPet resource.
