@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using AngleSharp.Html.Parser;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using MySqlConnector;
@@ -75,6 +76,31 @@ try
     Check(db.Site.Select<SiteSettings>().First().AvatarUserName == admin.UserName, "Migrated avatar uses site administrator");
 
     UiText.Load(Path.Combine(root, "WordWebCMS/Languages"), Path.Combine(storage, "languages"));
+    var mailConfig = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
+        ["Mail:Host"] = "127.0.0.1", ["Mail:Port"] = smtp.Port.ToString(), ["Mail:Security"] = "None",
+        ["Mail:From"] = "fallback@example.test", ["Mail:Password"] = "deployment-password"
+    }).Build();
+    var mailStorage = Path.Combine(storage, "mail-service-tests");
+    Directory.CreateDirectory(mailStorage);
+    var mailKeys = new DirectoryInfo(Path.Combine(mailStorage, "keys"));
+    var mailService = new MailService(mailConfig, new StoragePaths(mailStorage), DataProtectionProvider.Create(mailKeys));
+    Check(mailService.Configured && mailService.ReadSettings().From == "fallback@example.test", "Mail uses deployment settings before the first admin save");
+    var mailSettings = mailService.ReadSettings();
+    mailSettings.Password = "";
+    mailService.SaveSettings(mailSettings, false);
+    Check(mailService.ReadSettings().Password == "deployment-password", "First admin save with blank password preserves deployment password");
+    mailSettings.Password = "new-private-password";
+    mailService.SaveSettings(mailSettings, false);
+    Check(!File.ReadAllText(Path.Combine(mailStorage, "mail.json")).Contains("new-private-password"), "SMTP password is encrypted at rest");
+    var reloadedMail = new MailService(mailConfig, new StoragePaths(mailStorage), DataProtectionProvider.Create(mailKeys));
+    Check(reloadedMail.ReadSettings().Password == "new-private-password", "Persisted SMTP credentials survive service recreation with the same keys");
+    mailService.SaveSettings(mailSettings, false);
+    Check(reloadedMail.ReadSettings().Password == "new-private-password", "Blank SMTP password preserves the current password");
+    mailService.SaveSettings(mailSettings, true);
+    Check(reloadedMail.ReadSettings().Password == "", "Explicit password clearing does not fall back to deployment credentials");
+    mailSettings.Host = ""; mailSettings.From = "";
+    mailService.SaveSettings(mailSettings, false);
+    Check(!reloadedMail.Configured, "An explicitly disabled mail configuration overrides deployment settings");
     CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
     Check(UiText.T("登录") == "Sign in", "CultureInfo parent language fallback");
     CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("fr-FR");
@@ -151,8 +177,8 @@ try
     start.Environment["Storage__Path"] = storage;
     start.Environment["Site__CookieName"] = database;
     start.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
-    start.Environment["Mail__Host"] = "127.0.0.1"; start.Environment["Mail__Port"] = smtp.Port.ToString();
-    start.Environment["Mail__Security"] = "None"; start.Environment["Mail__From"] = "cms@example.test";
+    start.Environment["Mail__Host"] = ""; start.Environment["Mail__From"] = "";
+    start.Environment["Mail__User"] = ""; start.Environment["Mail__Password"] = "";
     web = Process.Start(start)!;
     var logs = new ConcurrentQueue<string>();
     web.OutputDataReceived += (_, e) => { if (e.Data != null) logs.Enqueue(e.Data); };
@@ -212,6 +238,35 @@ try
     var loginResult = await Send(signedIn, "/Account/Login?culture=en", login);
     Check(loginResult.StatusCode == HttpStatusCode.Redirect, "Login accepts correct arithmetic and credentials");
     Check((await Get(signedIn, "/Admin/Settings?culture=en")).Contains("Registration mode"), "English admin settings render");
+    var mailForm = await Form(signedIn, "/Admin/Settings?culture=en");
+    mailForm["Mail.Host"] = "127.0.0.1"; mailForm["Mail.Port"] = smtp.Port.ToString();
+    mailForm["Mail.Security"] = "None"; mailForm["Mail.From"] = "admin-configured@example.test";
+    mailForm["Mail.Password"] = "http-private-password";
+    Check(!parser.ParseDocument(await Get(visitor, "/Account/Register")).QuerySelectorAll("input").Any(e => e.GetAttribute("name") == "Email"), "Registration is unavailable before SMTP configuration");
+    Check((await Send(signedIn, "/Admin/Settings?handler=Mail", mailForm)).StatusCode == HttpStatusCode.Redirect, "Administrator saves SMTP settings without editing general settings");
+    var mailPage = await Get(signedIn, "/Admin/Settings?culture=en");
+    Check(mailPage.Contains("Email settings saved and applied") && mailPage.Contains("A password is saved") && !mailPage.Contains("http-private-password"), "SMTP page confirms save without exposing the password");
+    Check(!File.ReadAllText(Path.Combine(storage, "mail.json")).Contains("http-private-password"), "HTTP SMTP settings store an encrypted password");
+    Check(parser.ParseDocument(mailPage).QuerySelector("input[name='Mail.Password']")?.GetAttribute("value") is null or "", "SMTP password input is empty on GET");
+    var savedMail = File.ReadAllText(Path.Combine(storage, "mail.json"));
+    mailForm["Mail.Password"] = "";
+    foreach (var (field, value) in new[] { ("Mail.Port", "0"), ("Mail.Port", "not-a-number"), ("Mail.Security", "Auto"), ("Mail.Host", "smtp://host:587"), ("Mail.From", "invalid-address") })
+    {
+        var invalidMail = new Dictionary<string, string>(mailForm) { [field] = value };
+        var response = await Send(signedIn, "/Admin/Settings?handler=Mail", invalidMail);
+        Check(response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Conflict && File.ReadAllText(Path.Combine(storage, "mail.json")) == savedMail, "Invalid SMTP field leaves saved settings intact: " + field + "=" + value);
+    }
+    using (var anonymous = Client())
+    {
+        var anonymousForm = await Form(anonymous, "/Account/Login");
+        foreach (var field in mailForm.Where(p => p.Key != "__RequestVerificationToken")) anonymousForm[field.Key] = field.Value;
+        Check((await Send(anonymous, "/Admin/Settings?handler=Mail", anonymousForm)).StatusCode == HttpStatusCode.Redirect && File.ReadAllText(Path.Combine(storage, "mail.json")) == savedMail, "Anonymous callers cannot change SMTP settings");
+    }
+    var noCsrf = new Dictionary<string, string>(mailForm); noCsrf.Remove("__RequestVerificationToken");
+    Check((await Send(signedIn, "/Admin/Settings?handler=Mail", noCsrf)).StatusCode == HttpStatusCode.BadRequest, "SMTP settings require an antiforgery token");
+    mailForm["ClearMailPassword"] = "true";
+    Check((await Send(signedIn, "/Admin/Settings?handler=Mail", mailForm)).StatusCode == HttpStatusCode.Redirect &&
+        JsonDocument.Parse(File.ReadAllText(Path.Combine(storage, "mail.json"))).RootElement.GetProperty("Password").GetString() == "", "Administrator can clear SMTP password");
     var editorDocument = parser.ParseDocument(await Get(signedIn, "/Admin/Edit/" + pageId + "?culture=en"));
     var editorLanguages = editorDocument.QuerySelectorAll("#content-language option");
     Check(editorLanguages.Length == 3 && editorLanguages[0].TextContent.Contains("Site default language") && !editorLanguages.Any(o => o.GetAttribute("value") == "zh-Hans"), "Editor has one named default-language option and no duplicate");
@@ -288,6 +343,7 @@ try
         Check(account != null && !account.EmailConfirmed, "Registration requires email confirmation: " + mode);
         using var messageStream = new MemoryStream(Encoding.UTF8.GetBytes(smtp.Messages.Last()));
         var message = MimeKit.MimeMessage.Load(messageStream);
+        Check(message.From.Mailboxes.Single().Address == "admin-configured@example.test", "Verification uses admin SMTP settings immediately");
         var token = Regex.Match(message.TextBody!, @"token=([A-F0-9]{64})").Groups[1].Value;
         Check(token.Length == 64, "Verification email has a usable token");
         accounts.ConsumeToken(token, "verify", null);
@@ -311,6 +367,12 @@ try
     pendingLogin = await Form(visitor, "/Account/Login?culture=en", true);
     pendingLogin["Login"] = pending.UserName; pendingLogin["Password"] = password;
     Check((await Send(visitor, "/Account/Login?culture=en", pendingLogin)).StatusCode == HttpStatusCode.Redirect, "Approved and verified member can log in");
+    var readerMail = await Form(visitor, "/Account/Login");
+    foreach (var field in mailForm.Where(p => p.Key != "__RequestVerificationToken")) readerMail[field.Key] = field.Value;
+    var beforeReaderMail = File.ReadAllText(Path.Combine(storage, "mail.json"));
+    var readerMailResponse = await Send(visitor, "/Admin/Settings?handler=Mail", readerMail);
+    Check(readerMailResponse.StatusCode == HttpStatusCode.Redirect && readerMailResponse.Headers.Location?.ToString().Contains("/Error/403") == true &&
+        File.ReadAllText(Path.Combine(storage, "mail.json")) == beforeReaderMail, "Readers cannot change administrator SMTP settings");
     db.Site.Update<SiteUserRole>().Set(r => r.Role, SiteRole.Banned).Where(r => r.UserId == pending.Id).ExecuteAffrows();
     var bannedPage = await Get(visitor, "/welcome?culture=en");
     Check(!bannedPage.Contains("action=\"/Account/Logout\""), "Banning invalidates existing member cookie");

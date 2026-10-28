@@ -38,6 +38,7 @@ button:disabled:hover { filter:none; }
 .setting-row { align-items:start; }
 .setting-row > select { align-self:start; }
 .settings-form .site-avatar { margin-top:12px; }
+.settings-form + .settings-form { margin-top:24px; }
 /* The language form must stay on one line inside the fixed-height toolbar. */
 .language-nav { display:flex; flex-wrap:nowrap; gap:8px; align-items:center; padding:0; margin:0; }
 .language-nav select { width:auto; flex:0 1 160px; min-width:100px; max-width:160px; font-size:13px; padding:5px 30px 5px 9px; min-height:32px; }
