@@ -1,17 +1,64 @@
 @page
 @model SetupModel
 @{ ViewData["Title"] = UiText.T("安装"); }
-<div class="page-heading"><h1>@UiText.T("安装 WordWebCMS")</h1><p>@UiText.T("设置站点信息和管理员账号。")</p></div>
-@if (!Model.Configured || !Model.Ready) {
-<section class="card"><h2>@UiText.T("部署准备")</h2><p>@UiText.T("配置 ConnectionStrings:Accounts、ConnectionStrings:Site 和 Setup:Token，然后执行：")</p>
-<pre>dotnet WordWebCMS.dll --initialize</pre><p>@UiText.T("请先创建两个 MySQL 数据库。首次安装请使用空库；如果要共享账号，可以使用已初始化的新版账号库。")</p><p>@UiText.T("重启站点后刷新此页继续。配置说明见 docs/Deployment.md。")</p></section>
+<div class="page-heading"><h1>@UiText.T("安装 WordWebCMS")</h1><p>@UiText.T("配置数据库、初始化结构，然后创建站点和管理员账号。")</p></div>
+@if (!string.IsNullOrEmpty(Model.Message)) {
+<p class="notice" role="status">@UiText.T(Model.Message)</p>
+}
+@if (Model.Installed) {
+    <section class="card form-panel"><h2>@UiText.T("安装已完成，入口已锁定。")</h2>
+        <p>@UiText.T("已有站点的结构升级请在停站后通过命令行执行，完成后重新启动站点。")</p>
+        <pre><code>dotnet WordWebCMS.dll --initialize</code></pre>
+    </section>
 } else {
-<form method="post" class="card narrow"><div asp-validation-summary="All" role="alert"></div>
-<label asp-for="Token">@UiText.T("部署安装令牌")</label><input asp-for="Token" type="password" autocomplete="off" />
-<label asp-for="Title">@UiText.T("站点名称")</label><input asp-for="Title" />
-<label asp-for="BaseUrl">@UiText.T("公开根地址")</label><input asp-for="BaseUrl" placeholder="https://blog.example.com" />
-<label asp-for="UserName">@UiText.T("管理员用户名")</label><input asp-for="UserName" autocomplete="username" />
-<label asp-for="Email">@UiText.T("管理员邮箱")</label><input asp-for="Email" type="email" autocomplete="email" />
-<label asp-for="Password">@UiText.T("密码（已有共享账号请填写原密码）")</label><input asp-for="Password" type="password" autocomplete="new-password" />
-<button type="submit">@UiText.T("完成安装")</button></form>
+<form method="post" class="setup-form">
+    <div asp-validation-summary="All" role="alert"></div>
+    <section class="card form-panel">
+        <h2>@UiText.T("安装授权")</h2>
+        <p>@UiText.T("每次操作均需填写部署安装令牌。使用部署配置中的 Setup:Token；未配置时，程序会在 Storage:Path/setup.json 中自动生成，请在服务器上读取。")</p>
+        <label asp-for="Token">@UiText.T("部署安装令牌")</label><input asp-for="Token" type="password" autocomplete="off" required maxlength="256" />
+    </section>
+    <section class="card form-panel">
+        <h2>@UiText.T("1. 数据库连接") <span class="badge">@UiText.T(Model.Configured ? "已配置" : "未配置")</span></h2>
+        <p>@UiText.T("请先创建 MySQL 数据库。单站可将两条连接填写为同一个空库；共享账号时，账号库可以使用已初始化的新版数据库。")</p>
+        <label asp-for="AccountsConnection">ConnectionStrings:Accounts · @UiText.T("账号数据库")</label>
+        <input asp-for="AccountsConnection" type="password" autocomplete="off" maxlength="4096" spellcheck="false" placeholder="Server=localhost;Port=3306;Database=cms_accounts;User ID=cms;Password=...;SslMode=Required" />
+        <label asp-for="SiteConnection">ConnectionStrings:Site · @UiText.T("站点数据库")</label>
+        <input asp-for="SiteConnection" type="password" autocomplete="off" maxlength="4096" spellcheck="false" placeholder="Server=localhost;Port=3306;Database=cms_site;User ID=cms;Password=...;SslMode=Required" />
+        <p class="help">@UiText.T("已保存的连接不会回显；留空保留当前值。验证通过后保存到 Storage:Path/setup.json，立即生效，重启后仍保留。该文件中的连接优先于部署配置。")</p>
+        <div class="form-actions"><button type="submit" asp-page-handler="Configure" formnovalidate>@UiText.T("验证并保存连接")</button></div>
+    </section>
+    <section class="card form-panel">
+        <h2>@UiText.T("2. 初始化数据库") <span class="badge">@UiText.T(Model.Ready ? "结构已就绪" : "等待初始化")</span></h2>
+        @if (!string.IsNullOrEmpty(Model.DatabaseError)) { <p role="alert">@UiText.T(Model.DatabaseError)</p> }
+        <p>@UiText.T("初始化会创建或升级新版数据表，保留已有共享账号；不会创建数据库，也不支持覆盖旧版数据表。")</p>
+        <div class="form-actions">
+            <button type="submit" asp-page-handler="Initialize" formnovalidate disabled="@(!Model.Configured || Model.Ready)">@UiText.T("执行 initialize")</button>
+            <button type="submit" asp-page-handler="Check" formnovalidate class="secondary">@UiText.T("重新检查数据库")</button>
+        </div>
+        <details>
+            <summary>@UiText.T("手动初始化（命令行）")</summary>
+            <div class="setup-instructions">
+                <p>@UiText.T("也可以在服务器发布目录执行以下命令，然后点击“重新检查数据库”，无需重启当前站点。命令使用相同的 Storage:Path 和已保存配置。")</p>
+                <pre><code>dotnet WordWebCMS.dll --initialize</code></pre>
+                <p class="help">@UiText.T("若数据库连接由环境变量或 appsettings.json 提供，可直接使用当前配置，无需在上一步重复保存。")</p>
+            </div>
+        </details>
+    </section>
+    <section class="card form-panel">
+        <h2>@UiText.T("3. 站点和管理员")</h2>
+        @if (!Model.Ready) { <p class="muted">@UiText.T("数据库结构就绪后即可完成安装。")</p> }
+        <fieldset class="setup-account" disabled="@(!Model.Ready)">
+            <div class="form-grid">
+                <div><label asp-for="Title">@UiText.T("站点名称")</label><input asp-for="Title" required /></div>
+                <div><label asp-for="BaseUrl">@UiText.T("公开根地址")</label><input asp-for="BaseUrl" type="url" required placeholder="https://blog.example.com" /></div>
+                <div><label asp-for="UserName">@UiText.T("管理员用户名")</label><input asp-for="UserName" autocomplete="username" required /></div>
+                <div><label asp-for="Email">@UiText.T("管理员邮箱")</label><input asp-for="Email" type="email" autocomplete="email" required /></div>
+                <div class="wide"><label asp-for="Password">@UiText.T("密码（已有共享账号请填写原密码）")</label><input asp-for="Password" type="password" autocomplete="new-password" required minlength="12" maxlength="128" /></div>
+            </div>
+            <p class="help">@UiText.T("新密码至少 12 位。已有共享账号必须已验证邮箱，并使用其原密码。")</p>
+            <div class="form-actions"><button type="submit">@UiText.T("完成安装")</button></div>
+        </fieldset>
+    </section>
+</form>
 }

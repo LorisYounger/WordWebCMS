@@ -21,7 +21,7 @@ WordWebCMS是一个简单的内容管理网站 (博客,文章等)
 
 ## 部署WordWebCMS
 
-需要 .NET 10 ASP.NET Core 运行时和MySQL数据库. 自己编译则需要 .NET 10 SDK.
+服务器需要 .NET 10 ASP.NET Core 运行时和 MySQL，自己编译还需要 .NET 10 SDK。
 
 1. 编译并发布网站
 
@@ -29,26 +29,39 @@ WordWebCMS是一个简单的内容管理网站 (博客,文章等)
    dotnet publish WordWebCMS/WordWebCMS.csproj -c Release -o artifacts/publish
    ```
 
-2. 将 `artifacts/publish` 里的内容上传到服务器, 准备空数据库, 设置以下环境变量:
+2. 把 `artifacts/publish` 上传到服务器，创建空的 MySQL 数据库。数据库连接稍后在 `/Setup` 填写。
 
-   - `ConnectionStrings__Accounts`: 用户数据库连接
-   - `ConnectionStrings__Site`: 本站数据库连接, 不需要共享用户的话和上面填一样的即可
-   - `Setup__Token`: 自己生成的随机安装令牌, 安装时会用到
-   - `Storage__Path`: 媒体、主题和登录密钥的保存目录, 建议放在发布目录外, 更新程序时保留
-
-3. 在发布目录初始化数据库, 然后启动网站
+3. 在发布目录启动网站
 
    ```powershell
-   dotnet WordWebCMS.dll --initialize
    dotnet WordWebCMS.dll --urls http://127.0.0.1:8080
    ```
 
-4. 打开 `/Setup`, 填写安装令牌和管理员信息. 安装完成后就可以去后台写文章了.
+4. 打开 `/Setup`，填写安装令牌。填好 `ConnectionStrings:Accounts` 和 `ConnectionStrings:Site`，点击「验证并保存连接」。再点击「执行 initialize」，填写站点和管理员信息，完成安装后就能去后台写文章。
 
-新站会有一篇「你好,世界 又一个WWCMS站点」, 可以编辑或者删除它, 然后开始你的博客.
-注册和找回密码需要配置 SMTP，可在「后台 → 设置 → 邮件服务（SMTP）」中填写并保存，立即生效。反向代理、HTTPS、邮件和备份的具体配置见 [部署说明](docs/Deployment.md).
+安装令牌可以自己设置；没有设置时，程序会自动生成，请在服务器的 `Storage:Path/setup.json` 中读取。
 
-新版重新做了表结构, 旧版数据库不能直接使用. 主题现在使用Liquid模板, 不兼容WordPress模板.
+页面保存的连接也放在这个文件里，保存后立即生效，重启后仍保留，并优先于同名部署配置。请保护并备份这个文件。页面不会显示已保存的连接密码和令牌，安装完成后会锁定安装入口。
+
+<details>
+<summary>使用环境变量或命令行安装</summary>
+
+也可以提前设置环境变量，省去在页面填写连接的步骤：
+
+- `ConnectionStrings__Accounts`：用户数据库连接。
+- `ConnectionStrings__Site`：本站数据库连接，不共享用户时可以和上面填一样的。
+- `Setup__Token`：自己生成的随机安装令牌。不设置也可以，程序会自动生成。
+- `Storage__Path`：媒体、主题和登录密钥的保存目录，建议放在发布目录外，更新程序时保留。
+
+如需手动初始化，在发布目录运行 `dotnet WordWebCMS.dll --initialize`，再回到安装页面点击「重新检查数据库」。
+
+</details>
+
+新站会有一篇「你好,世界 又一个WWCMS站点」，可以编辑或删除它，开始写自己的博客。
+
+需要开放注册和找回密码时，在「后台 → 设置 → 邮件服务（SMTP）」中填写邮件配置，保存后立即生效。反向代理、HTTPS、邮件和备份见 [部署说明](docs/Deployment.md)。
+
+新版重新设计了表结构，旧版数据库不能直接使用。主题使用 Liquid 模板，不兼容 WordPress 模板。
 
 ## 本地开发
 
@@ -56,13 +69,13 @@ WordWebCMS是一个简单的内容管理网站 (博客,文章等)
 dotnet build WordWebCMS.sln -c Release
 ```
 
-本机数据库等配置可以放在仓库根目录的 `Local/appsettings.local.json`, 然后运行:
+本机数据库等配置可以放在仓库根目录的 `Local/appsettings.local.json`，然后运行：
 
 ```powershell
 dotnet run --project WordWebCMS/WordWebCMS.csproj --no-launch-profile -- --local
 ```
 
-`Local/` 不会提交到Git, 也不会随网站发布. 配置格式见 [部署说明](docs/Deployment.md).
+`Local/` 不会提交到 Git，也不会随网站发布。配置格式见 [部署说明](docs/Deployment.md)。
 
 ## 相关文档
 
