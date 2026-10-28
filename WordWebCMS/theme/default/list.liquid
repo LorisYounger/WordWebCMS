@@ -1,0 +1,7 @@
+<div class="section-heading"><h1>{{ heading }}</h1><span>{{ total }} {{ '篇' | t }}</span></div>
+{% for post in posts %}<article class="post-card">
+<h2><a href="{{ post.url }}">{{ post.title }}</a></h2><div class="meta"><time>{{ post.date }}</time> · <img class="avatar" src="{{ post.avatar }}" alt="" loading="lazy"> {{ post.author }} · {{ post.views }} {{ '次阅读' | t }}</div>
+<div class="post-excerpt">{% if post.cover != blank %}<a href="{{ post.url }}" tabindex="-1" aria-hidden="true"><img class="cover" src="{{ post.cover }}" alt="" loading="lazy"></a>{% endif %}{% if post.summary != blank %}<p>{{ post.summary }}</p>{% endif %}</div>
+<div class="post-footer"><span>{{ post.likes }} {{ '赞' | t }}</span><a href="{{ post.url }}">{{ '查看文章 →' | t }}</a></div>
+</article>{% else %}<div class="empty"><h2>{{ '暂无文章' | t }}</h2><p>{{ '没有符合条件的公开文章。' | t }}</p><a href="/">{{ '查看全部文章' | t }}</a></div>{% endfor %}
+<nav class="pagination" aria-label="{{ '文章分页' | t }}">{% if previous != blank %}<a href="{{ previous }}">{{ '上一页' | t }}</a>{% endif %}<span>{{ '第' | t }} {{ page }} {{ '页' | t }}</span>{% if next != blank %}<a href="{{ next }}">{{ '下一页' | t }}</a>{% endif %}</nav>

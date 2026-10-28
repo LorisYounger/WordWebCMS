@@ -1,0 +1,8 @@
+@page
+@model WordWebCMS.Pages.Admin.CategoriesModel
+@{ ViewData["Title"] = UiText.T("分类"); }
+<div class="page-heading"><h1>@UiText.T("分类管理")</h1><p>@UiText.T("每篇内容一个分类；标签在编辑器中直接填写。")</p></div>
+<section class="card"><form method="post" class="inline"><input name="name" maxlength="80" required placeholder="@UiText.T("新分类名称")" aria-label="@UiText.T("新分类名称")" /><button>@UiText.T("新增分类")</button></form>
+@foreach (var category in Model.Categories) {
+<div class="list-row"><form method="post" class="inline"><input type="hidden" name="id" value="@category.Id" /><input name="name" value="@category.Name" maxlength="80" required aria-label="@UiText.T("分类名称")" /><button class="secondary">@UiText.T("改名")</button></form><form method="post" asp-page-handler="Delete"><input type="hidden" name="id" value="@category.Id" /><button class="danger">@UiText.T("删除未使用分类")</button></form></div>
+}</section>

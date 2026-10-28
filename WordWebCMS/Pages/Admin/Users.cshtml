@@ -1,0 +1,13 @@
+@page
+@model WordWebCMS.Pages.Admin.UsersModel
+@{ ViewData["Title"] = UiText.T("站点权限"); }
+<div class="page-heading"><h1>@UiText.T("用户管理")</h1><p>@UiText.T("角色和封禁仅对本站生效。")</p></div>
+<section class="card"><h2>@UiText.T("待审核注册")</h2><p>@UiText.T("每次显示最早的 100 条申请。批准后仍需完成邮箱验证。")</p>
+@foreach (var account in Model.Pending) {
+<div class="list-row"><span>@account.UserName · @account.Email · @(account.EmailConfirmed ? UiText.T("邮箱已验证") : UiText.T("邮箱未验证"))</span><form method="post" class="inline"><input type="hidden" name="login" value="@account.UserName" /><button name="role" value="Reader">@UiText.T("批准注册")</button><button name="role" value="Banned" class="secondary">@UiText.T("拒绝注册")</button></form></div>
+}
+@if (Model.Pending.Count == 0) { <p>@UiText.T("没有待审核注册。")</p> }
+</section>
+<form method="post" class="card form-panel"><label for="login">@UiText.T("已注册的用户名或邮箱")</label><input id="login" name="login" required maxlength="254" /><label for="role">@UiText.T("本站角色")</label><select id="role" name="role"><option value="Reader">@UiText.T("注册用户 · 评论")</option><option value="Contributor">@UiText.T("投稿者 · 编辑自己的内容并提交审核")</option><option value="Editor">@UiText.T("编辑 · 全站内容与评论审核")</option><option value="Administrator">@UiText.T("管理员 · 包含用户、设置与主题管理")</option><option value="Banned">@UiText.T("在本站封禁")</option></select><div class="form-actions"><button>@UiText.T("更新本站角色")</button></div></form>
+<section class="card"><h2>@UiText.T("已设定角色")</h2>@foreach (var role in Model.Roles) { <div class="list-row"><span>@Model.Names.GetValueOrDefault(role.UserId, UiText.T("用户")) (#@role.UserId)</span><span>@(role.Role switch { SiteRole.Pending => UiText.T("待审核"), SiteRole.Reader => UiText.T("注册用户"), SiteRole.Contributor => UiText.T("投稿者"), SiteRole.Editor => UiText.T("编辑"), SiteRole.Administrator => UiText.T("管理员"), SiteRole.Banned => UiText.T("已封禁"), _ => role.Role.ToString() })</span></div> }
+<nav class="pagination">@if (Model.P > 1) { <a asp-route-p="@(Model.P - 1)">@UiText.T("上一页")</a> }@if (Model.Roles.Count == 30) { <a asp-route-p="@(Model.P + 1)">@UiText.T("下一页")</a> }</nav></section>

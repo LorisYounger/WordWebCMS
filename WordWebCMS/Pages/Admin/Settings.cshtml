@@ -1,0 +1,24 @@
+@page
+@model WordWebCMS.Pages.Admin.SettingsModel
+@{ ViewData["Title"] = UiText.T("站点设置"); }
+<div class="page-heading"><h1>@UiText.T("站点设置")</h1></div>
+@if (TempData["Saved"] != null) { <p class="notice" role="status">@UiText.T("设置已保存。")</p> }
+<form method="post" class="settings-form">
+<section class="card"><h2 class="panel-heading">@UiText.T("常规")</h2>
+<div class="setting-row"><label asp-for="Settings.Title">@UiText.T("站点名称")</label><div><input asp-for="Settings.Title" maxlength="120" required /></div></div>
+<div class="setting-row"><label asp-for="Settings.AvatarUserName">@UiText.T("默认头像用户名")</label><div><input asp-for="Settings.AvatarUserName" maxlength="64" required /><p class="help">@UiText.T("默认使用 https://avatar.exlb.net/{username}")</p></div></div>
+<div class="setting-row"><label asp-for="Settings.AvatarUrl">@UiText.T("站点头像地址")</label><div><input asp-for="Settings.AvatarUrl" maxlength="1000" /><p class="help">@UiText.T("留空使用默认头像，也可填写媒体库或 HTTP(S) 图片地址。")</p><img class="avatar site-avatar" src="@(string.IsNullOrEmpty(Model.Settings.AvatarUrl) ? ShortLinks.Avatar(Model.Settings.AvatarUserName) : Model.Settings.AvatarUrl)" alt="" /></div></div>
+<div class="setting-row"><span>@UiText.T("启用语言")</span><div>@foreach (var culture in UiText.Cultures) { <label class="check"><input type="checkbox" name="SelectedLanguages" value="@culture.Name" checked="@Model.SelectedLanguages.Contains(culture.Name)" />@culture.NativeName (@culture.Name)</label> }<p class="help">@UiText.T("其他语言请先将语言包放入持久目录 languages 并重启，再在此启用。")</p></div></div>
+<div class="setting-row"><label asp-for="Settings.Language">@UiText.T("默认语言")</label><select asp-for="Settings.Language">@foreach (var culture in UiText.Cultures) { <option value="@culture.Name">@culture.NativeName</option> }</select></div>
+<div class="setting-row"><label asp-for="Settings.Description">@UiText.T("站点描述")</label><div><textarea asp-for="Settings.Description" maxlength="500" rows="3" aria-describedby="description-help"></textarea><p id="description-help" class="help">@UiText.T("显示在站点标题下方。")</p></div></div>
+<div class="setting-row"><label asp-for="Settings.BaseUrl">@UiText.T("站点地址（URL）")</label><div><input asp-for="Settings.BaseUrl" type="url" maxlength="500" required aria-describedby="url-help" /><p id="url-help" class="help">@UiText.T("用于邮件、RSS、站点地图和分享链接。")</p></div></div>
+</section>
+<section class="card"><h2 class="panel-heading">@UiText.T("站点名称与描述译文")</h2><p class="help">@UiText.T("缺少译文时，中文系使用简体中文，其他语言使用英文，仍为空则使用站点默认内容。语言停用后保留已有译文。")</p>
+@foreach (var culture in UiText.Cultures.Where(c => c.Name != Model.Settings.Language)) { var translation = Model.Translations.GetValueOrDefault(culture.Name) ?? new SiteTranslation();
+<details><summary>@culture.NativeName (@culture.Name)</summary><label for="site-title-@culture.Name">@UiText.T("站点名称")</label><input id="site-title-@culture.Name" name="Translations[@culture.Name].Title" value="@translation.Title" maxlength="120" /><label for="site-description-@culture.Name">@UiText.T("站点描述")</label><textarea id="site-description-@culture.Name" name="Translations[@culture.Name].Description" maxlength="500" rows="3">@translation.Description</textarea></details>
+}</section>
+<section class="card"><h2 class="panel-heading">@UiText.T("注册管理")</h2><div class="setting-row"><label asp-for="Settings.Registration">@UiText.T("注册模式")</label><select asp-for="Settings.Registration"><option value="Open">@UiText.T("开放注册")</option><option value="Closed">@UiText.T("关闭注册")</option><option value="Approval">@UiText.T("管理员审核")</option></select></div><p class="help">@UiText.T("邮箱验证始终必需。审核模式下，共享账号首次加入本站也需要审核。")</p><a href="/Admin/Users">@UiText.T("管理注册申请")</a></section>
+<section class="card"><h2 class="panel-heading">@UiText.T("评论")</h2>
+<div class="setting-row"><span>@UiText.T("评论权限")</span><div><label class="check"><input asp-for="Settings.CommentsEnabled" />@UiText.T("允许发表新评论")</label><p class="help">@UiText.T("关闭后保留已有评论。")</p></div></div>
+<div class="setting-row"><span>@UiText.T("评论审核")</span><div><label class="check"><input asp-for="Settings.ModerateComments" />@UiText.T("新评论需审核后显示")</label></div></div>
+</section><button>@UiText.T("保存设置")</button></form>

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="{{ language }}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ title }} · {{ site.title }}</title><meta name="description" content="{{ description }}">
+<link rel="icon" href="{{ site.avatar }}"><link rel="canonical" href="{{ canonical }}"><meta property="og:title" content="{{ title }}"><meta property="og:description" content="{{ description }}"><meta property="og:url" content="{{ canonical }}"><meta property="og:type" content="article">
+{% if cover != blank %}<meta property="og:image" content="{{ cover }}">{% endif %}
+<link rel="alternate" type="application/rss+xml" href="{{ feed_url }}" title="{{ site.title }}">
+<link rel="stylesheet" href="{{ theme_url }}/assets/site.css"></head><body>
+<a class="skip" href="#content">{{ '跳到正文' | t }}</a>
+<header class="site-header"><a class="brand" href="/"><img class="avatar site-avatar" src="{{ site.avatar }}" alt="">{{ site.title }}</a>{% if site.description != blank %}<p>{{ site.description }}</p>{% endif %}</header>
+<div class="navigation-bar"><nav class="site-nav" aria-label="{{ '主导航' | t }}"><a href="/">{{ '首页' | t }}</a>
+{% for item in navigation %}<div class="nav-group"><a href="{{ item.url }}"{% if item.new_window %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ item.text }}</a>{% if item.children.size > 0 %}<div class="subnav">{% for child in item.children %}<a href="{{ child.url }}"{% if child.new_window %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ child.text }}</a>{% endfor %}</div>{% endif %}</div>{% endfor %}
+<div class="account-nav">{% if signed_in %}<img class="avatar" src="{{ user_avatar }}" alt="">{% if can_manage %}<a href="/Admin">{{ '管理后台' | t }}</a>{% else %}<span>{{ user_name }}</span>{% endif %}<form method="post" action="/Account/Logout"><input type="hidden" name="__RequestVerificationToken" value="{{ csrf }}"><button class="text-button">{{ '退出' | t }}</button></form>{% else %}<a href="/Account/Login">{{ '登录' | t }}</a>{% if registration_open %}<a href="/Account/Register">{{ '注册' | t }}</a>{% endif %}{% endif %}</div>
+<form action="/language" method="get" class="language-nav"><input type="hidden" name="returnUrl" value="{{ language_return }}"><label for="site-language" class="sr-only">{{ '语言' | t }}</label><select id="site-language" name="culture">{% for item in languages %}<option value="{{ item.code }}"{% if item.selected %} selected{% endif %}>{{ item.name }}</option>{% endfor %}</select><noscript><button class="text-button">{{ '切换语言' | t }}</button></noscript></form></nav></div>
+<div class="site-grid{% if is_page %} page-grid{% endif %}"><main id="content">{{ body | raw }}</main>
+{% unless is_page %}<aside class="sidebar" aria-label="{{ '站点侧栏' | t }}">
+<section><h2>{{ '搜索' | t }}</h2><form method="get" action="/" class="search"><label class="sr-only" for="q">{{ '搜索文章' | t }}</label><input id="q" name="q" value="{{ query }}" placeholder="{{ '搜索文章' | t }}" maxlength="200"><button>{{ '搜索' | t }}</button></form></section>
+<section><h2>{{ '近期文章' | t }}</h2><ul>{% for item in recent_posts %}<li><a href="{{ item.url }}">{{ item.title }}</a></li>{% else %}<li class="muted">{{ '暂无文章。' | t }}</li>{% endfor %}</ul></section>
+<section><h2>{{ '分类' | t }}</h2><ul><li><a href="/">{{ '全部文章' | t }}</a></li>{% for category in categories %}<li><a href="{{ category.url }}">{{ category.name }}</a></li>{% endfor %}</ul></section>
+<section><h2>{{ '订阅' | t }}</h2><a href="{{ feed_url }}" target="_blank" rel="noopener noreferrer">{{ 'RSS 订阅' | t }}</a></section>
+</aside>{% endunless %}</div>
+<footer class="site-footer"><div class="footer-inner"><span>{{ site.title }}</span><span><a href="/sitemap.xml" target="_blank" rel="noopener noreferrer">{{ '站点地图' | t }}</a> · WordWebCMS</span></div></footer>
+<script id="ui-text" type="application/json">{{ client_messages | raw }}</script>
+<script src="{{ theme_url }}/assets/site.js" defer></script></body></html>

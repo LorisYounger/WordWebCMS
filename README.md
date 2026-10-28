@@ -5,49 +5,69 @@
 WordWebCMS是一个简单的内容管理网站 (博客,文章等)
 可以理解为一个简单版本的WordPress 虽然说功能更少 但是使用了C#!
 
-详细文档参见 [WordWebCMS 帮助与支持文档](wwcms.exlb.org)
-
-## 部署WordWebCMS
-
-WordWebCMS暂时未开发完毕 不推荐进行部署 (虽然说你也可以自己改了直接发)见 [Project](https://github.com/LorisYounger/WordWebCMS/projects/1)
-
-### 方法一 自动部署
-
-1. 将 app.publish\* 内容上传至网站服务器
-   <br/>*自己生成或见[releases](https://github.com/LorisYounger/WordWebCMS/releases)
-2. 前往 setup.aspx 按步骤进行部署
-
-### 方法二 手动部署
-
-1. 运行 [setup.sql](WordWebCMS/setup.sql) (注:如果是共用用户数据库 不需要运行创建用户表 见[setup.sql](WordWebCMS/setup.sql#L7)里的详细注释
-2. 修改 [Web.config](WordWebCMS/Web.config#L13) 中 connStr 和 connUsrStr 为自己的数据库连接方式 用户数据若使用相同数据库 则写一样的即可
-3. 将 app.publish\* 内容上传至网站服务器根目录(不是根目录可能需要在设置内修改目录位置)
-    <br/>*自己生成或见[releases](https://github.com/LorisYounger/WordWebCMS/releases)
+新版使用 .NET 10 + ASP.NET Core Razor Pages, 数据库使用 MySQL + FreeSql.
+自己写博客可以用, 也可以叫上其他人一起投稿.
 
 ## 项目优势
 
-- Power By **C#**!  **C# No.1**
-- 项目不是非常复杂 可以自己魔改后用在自己的网站 还可以手动增加功能或和自己的别的软件进行联动 All in One
-- 支持MarkDown编写文章
-- 支持多个网站共享用户,一次注册全WWCMS和兼容网站可用(需要使用相同的用户数据库,见[Web.config](WordWebCMS/Web.config#L15))
-- 支持主题功能,并且主题兼容WordPress主题(css,但是还是需要自己改改适应WWCMS) 
+- Power By **C#**! **C# No.1**
+- 项目不是非常复杂 可以自己魔改后用在自己的网站, 也可以加功能或和自己的其他软件联动 All in One
+- 支持Markdown编写文章和页面, 可以预览、自动保存草稿、查看和恢复历史修订
+- 支持多人投稿和审核, 改草稿不会直接把已经发布的文章改掉
+- 支持多个网站共享用户 (需要使用相同的用户数据库), 各个网站的管理员和编辑权限单独设置
+- 支持主题功能, 可以修改自带主题, 也可以在后台上传自己的Liquid主题
+- 支持多语言界面和文章译文, 可以自己加JSON语言包
+- 评论、回复、点赞, 分类、标签、搜索、媒体库、RSS这些也都有
 
-## 例子 Example
+## 部署WordWebCMS
 
-* [WordWebCMS 帮助与支持文档](http://wwcms.exlb.org/)
+需要 .NET 10 ASP.NET Core 运行时和MySQL数据库. 自己编译则需要 .NET 10 SDK.
 
-  查看WWCMS相关文档,包括部署,写作说明,参数设置等
+1. 编译并发布网站
 
+   ```powershell
+   dotnet publish WordWebCMS/WordWebCMS.csproj -c Release -o artifacts/publish
+   ```
 
-* [WWCMS测试网站](https://wwcms.exlb.org/test/)
+2. 将 `artifacts/publish` 里的内容上传到服务器, 准备空数据库, 设置以下环境变量:
 
-  亲自尝试wwcms后台等功能 管理员账号 admin 管理员密码 WWCMSpassword
+   - `ConnectionStrings__Accounts`: 用户数据库连接
+   - `ConnectionStrings__Site`: 本站数据库连接, 不需要共享用户的话和上面填一样的即可
+   - `Setup__Token`: 自己生成的随机安装令牌, 安装时会用到
+   - `Storage__Path`: 媒体、主题和登录密钥的保存目录, 建议放在发布目录外, 更新程序时保留
 
-## 与WWCMS兼容的项目
+3. 在发布目录初始化数据库, 然后启动网站
 
-* [Software Version Manager](https://github.com/LorisYounger/SoftwareVersionManager)
+   ```powershell
+   dotnet WordWebCMS.dll --initialize
+   dotnet WordWebCMS.dll --urls http://127.0.0.1:8080
+   ```
 
-  软件版本管理器是一个让软件支持更新和激活检查的网站和类库  
-  通过使用SVM,您可以很方便的通知用户升级他们的软件并告知升级项目  
-  以及为您的软件设置激活码,并且可以随时撤销或修改激活信息  
-  该项目兼容 [WordWebCMS](https://github.com/LorisYounger/WordWebCMS) 您可以共享用户信息从您的博客/论坛至软件版本管理器
+4. 打开 `/Setup`, 填写安装令牌和管理员信息. 安装完成后就可以去后台写文章了.
+
+新站会有一篇「你好,世界 又一个WWCMS站点」, 可以编辑或者删除它, 然后开始你的博客.
+注册和找回密码需要配置SMTP. 反向代理、HTTPS、邮件和备份的具体配置见 [部署说明](docs/Deployment.md).
+
+新版重新做了表结构, 旧版数据库不能直接使用. 主题现在使用Liquid模板, 不兼容WordPress模板.
+
+## 本地开发
+
+```powershell
+dotnet build WordWebCMS.sln -c Release
+```
+
+本机数据库等配置可以放在仓库根目录的 `Local/appsettings.local.json`, 然后运行:
+
+```powershell
+dotnet run --project WordWebCMS/WordWebCMS.csproj --no-launch-profile -- --local
+```
+
+`Local/` 不会提交到Git, 也不会随网站发布. 配置格式见 [部署说明](docs/Deployment.md).
+
+## 相关文档
+
+- [部署、配置与备份](docs/Deployment.md)
+- [语言包、注册管理与短链接](docs/Languages-and-Registration.md)
+- [自己制作主题](docs/Native-Themes.md)
+- [新版功能与测试记录](docs/Modernization-Implementation.md)
+- [改造前的评估和设计](docs/Modernization-Assessment.md)
