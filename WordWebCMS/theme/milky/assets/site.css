@@ -98,8 +98,6 @@ button, a, h1, h2, h3, p, dd { overflow-wrap: anywhere; }
 .post-row { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 20px; padding: 20px; border-bottom: 1px solid var(--line); }
 .post-thumbnail { display: block; align-self: start; }
 .post-thumbnail img { width: 180px; height: 124px; object-fit: cover; border-radius: 4px; }
-.cover-placeholder { height: 124px; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--tint); color: var(--blue); border-radius: 4px; font-size: 40px; font-weight: 300; font-family: Georgia, serif; line-height: 1.1; }
-.cover-placeholder > span { margin-top: 5px; font: 10px/1.5 "Segoe UI", sans-serif; letter-spacing: .24em; }
 .post-details { display: flex; flex-direction: column; }
 .post-details h2 { font-size: 19px; line-height: 1.5; margin: 0 0 10px; font-weight: 650; }
 .pin-badge { display: inline-block; background: var(--coral); color: #fff; padding: 1px 7px; border-radius: 3px; font-size: 12px; vertical-align: 2px; margin-right: 9px; font-weight: 400; }
@@ -119,8 +117,6 @@ button, a, h1, h2, h3, p, dd { overflow-wrap: anywhere; }
 .recommend-item img { width: 108px; height: 76px; border-radius: 3px; object-fit: cover; }
 .recommend-item strong { display: block; font-size: 13px; font-weight: 400; line-height: 1.65; }
 .recommend-item time { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }
-.mini-placeholder { height: 76px; font-size: 28px; }
-.mini-placeholder > span { font-size: 8px; }
 .site-stats { display: grid; grid-template-columns: 1fr 1.35fr; gap: 10px 16px; margin: 0; padding: 16px 20px; font-size: 12px; }
 .site-stats > div { display: flex; flex-wrap: wrap; gap: 6px; }
 .site-stats dt { font-weight: 600; }
@@ -178,7 +174,6 @@ button, a, h1, h2, h3, p, dd { overflow-wrap: anywhere; }
 .related { padding-top: 4px; margin-bottom: 16px; }
 .related-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 18px; margin-top: 20px; }
 .related-grid img { width: 100%; height: auto; aspect-ratio: 175 / 120; object-fit: cover; border-radius: 4px; }
-.related-grid .cover-placeholder { height: auto; aspect-ratio: 175 / 120; }
 .related-title { display: block; font-size: 13px; line-height: 1.6; margin-top: 8px; }
 .comments { margin-top: 20px; padding: 24px 30px; }
 .comments > .section-title { margin-bottom: 18px; }
@@ -219,10 +214,10 @@ button, a, h1, h2, h3, p, dd { overflow-wrap: anywhere; }
     .tagline { display: none; }
     .site-grid { grid-template-columns: minmax(0, 1fr) 290px; }
     .post-row { grid-template-columns: 148px minmax(0, 1fr); gap: 16px; }
-    .post-thumbnail img, .post-thumbnail .cover-placeholder { width: 148px; height: 108px; }
+    .post-thumbnail img { width: 148px; height: 108px; }
     .post-details h2 { font-size: 17px; }
     .recommend-item { grid-template-columns: 84px minmax(0, 1fr); gap: 12px; }
-    .recommend-item img, .mini-placeholder { width: 84px; height: 64px; }
+    .recommend-item img { width: 84px; height: 64px; }
     .site-stats { grid-template-columns: 1fr; }
     .related-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -242,7 +237,7 @@ button, a, h1, h2, h3, p, dd { overflow-wrap: anywhere; }
     .sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
     .site-stats { grid-template-columns: 1fr 1.35fr; }
     .post-row { grid-template-columns: 160px minmax(0, 1fr); }
-    .post-thumbnail img, .post-thumbnail .cover-placeholder { width: 160px; height: 110px; }
+    .post-thumbnail img { width: 160px; height: 110px; }
     .related-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 540px) {
@@ -256,8 +251,7 @@ button, a, h1, h2, h3, p, dd { overflow-wrap: anywhere; }
     .list-heading { padding: 15px 15px 2px; }
     .section-title { font-size: 15px; gap: 9px; }
     .post-row { padding: 16px 15px; grid-template-columns: 100px minmax(0, 1fr); gap: 13px; }
-    .post-thumbnail img, .post-thumbnail .cover-placeholder { width: 100px; height: 76px; }
-    .post-thumbnail .cover-placeholder { font-size: 28px; }
+    .post-thumbnail img { width: 100px; height: 76px; }
     .post-details h2 { font-size: 15px; margin-bottom: 7px; line-height: 1.55; }
     .pin-badge { font-size: 10px; padding: 0 4px; margin-right: 5px; vertical-align: 1px; }
     .excerpt { font-size: 12px; margin-bottom: 9px; }
@@ -266,7 +260,7 @@ button, a, h1, h2, h3, p, dd { overflow-wrap: anywhere; }
     .like-count { margin-left: 0; }
     .sidebar { grid-template-columns: minmax(0, 1fr); gap: 12px; }
     .recommend-item { grid-template-columns: 92px minmax(0, 1fr); }
-    .recommend-item img, .mini-placeholder { width: 92px; height: 65px; }
+    .recommend-item img { width: 92px; height: 65px; }
     .article, .standalone-page { padding: 24px 18px; }
     .article-header { margin-bottom: 26px; }
     .article-header h1 { font-size: 22px; line-height: 1.5; }
@@ -295,3 +289,7 @@ button, a, h1, h2, h3, p, dd { overflow-wrap: anywhere; }
     .site-grid { display: block; }
     .article { padding: 0; }
 }
+
+/* Text-only entries use the full available width at every breakpoint. */
+.post-row.no-cover, .recommend-item.no-cover { grid-template-columns: minmax(0, 1fr); }
+.related-grid .no-cover .related-title { margin-top: 0; }
