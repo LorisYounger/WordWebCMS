@@ -4,7 +4,7 @@
 <link rel="icon" href="{{ site.avatar }}"><link rel="canonical" href="{{ canonical }}"><meta property="og:title" content="{{ title }}"><meta property="og:description" content="{{ description }}"><meta property="og:url" content="{{ canonical }}"><meta property="og:type" content="article">
 {% if cover != blank %}<meta property="og:image" content="{{ cover }}">{% endif %}
 <link rel="alternate" type="application/rss+xml" href="{{ feed_url }}" title="{{ site.title }}">
-<link rel="stylesheet" href="{{ theme_url }}/assets/site.css"><link rel="stylesheet" href="/css/icons.css?v=4"><link rel="stylesheet" href="/css/ui.css?v=4">
+<link rel="stylesheet" href="{{ theme_url | append: '/assets/site.css' | asset_url }}"><link rel="stylesheet" href="{{ '/css/icons.css' | asset_url }}"><link rel="stylesheet" href="{{ '/css/ui.css' | asset_url }}">
 </head><body>
 <a class="skip" href="#content">{{ '跳到正文' | t }}</a>
 <header class="site-header"><a class="brand" href="/"><img class="avatar site-avatar" src="{{ site.avatar }}" alt="">{{ site.title }}</a>{% if site.description != blank %}<p>{{ site.description }}</p>{% endif %}</header>
@@ -21,5 +21,5 @@
 </aside>{% endunless %}</div>
 <footer class="site-footer"><div class="footer-inner"><span>{{ site.title }}</span><span><a href="/sitemap.xml" target="_blank" rel="noopener noreferrer">{{ '站点地图' | t }}</a> · WordWebCMS</span></div></footer>
 <script id="ui-text" type="application/json">{{ client_messages | raw }}</script>
-<script src="{{ theme_url }}/assets/site.js" defer></script><script src="/js/local-time.js?v=4" defer></script>
+<script src="{{ theme_url | append: '/assets/site.js' | asset_url }}" defer></script><script src="{{ '/js/local-time.js' | asset_url }}" defer></script>
 </body></html>

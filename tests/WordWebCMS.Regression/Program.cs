@@ -19,6 +19,11 @@ using WordWebCMS.Models;
 using WordWebCMS.Services;
 
 var root = Path.GetFullPath(args.FirstOrDefault() ?? ".");
+if (args.Contains("--cache-only"))
+{
+    await CacheLocalChecks.RunAsync(root);
+    return;
+}
 var config = new ConfigurationBuilder().AddJsonFile(Path.Combine(root, "Local/appsettings.local.json"), optional: true).AddEnvironmentVariables().Build();
 var database = "wwcms_test_" + Guid.NewGuid().ToString("N");
 var connection = new MySqlConnectionStringBuilder(config.GetConnectionString("Site") ?? throw new InvalidOperationException("Configure a test MySQL connection.")) { Database = "" };
@@ -247,6 +252,7 @@ try
     login["Login"] = admin.UserName; login["Password"] = password;
     var loginResult = await Send(signedIn, "/Account/Login?culture=en", login);
     Check(loginResult.StatusCode == HttpStatusCode.Redirect, "Login accepts correct arithmetic and credentials");
+    await CacheChecks.RunAsync(db, signedIn, new Uri(baseUrl), storage, Check);
     await FeatureChecks.RunAsync(db, signedIn, visitor, admin, Check);
     Check((await Get(signedIn, "/Admin/Settings?culture=en")).Contains("Registration mode"), "English admin settings render");
     var mailForm = await Form(signedIn, "/Admin/Settings?culture=en");

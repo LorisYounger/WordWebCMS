@@ -19,7 +19,12 @@ public class PostModel(CmsDb db, ThemeService themes, MarkdownService markdown) 
             return LocalRedirectPermanent(Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(path,
                 Request.Query.Where(item => !item.Key.Equals("cp", StringComparison.OrdinalIgnoreCase)).ToDictionary(item => item.Key, item => (string?)item.Value.ToString())));
         var revision = await db.Site.Select<PostRevision>().Where(r => r.Id == post.PublishedRevisionId).FirstAsync();
-        await db.Site.Update<Post>().Set(p => p.Views + 1).Where(p => p.Id == post.Id).ExecuteAffrowsAsync();
+        // Revalidation and HEAD only check the cached representation; do not change its view counter.
+        if (HttpMethods.IsGet(Request.Method) && !Request.Headers.ContainsKey("If-None-Match"))
+        {
+            await db.Site.Update<Post>().Set(p => p.Views + 1).Where(p => p.Id == post.Id).ExecuteAffrowsAsync();
+            post.Views++;
+        }
         var settings = (SiteSettings)HttpContext.Items["SiteSettings"]!;
         var rendered = ContentLanguages.Display(revision, settings);
         if (post.Kind == PostKind.Page)
@@ -66,7 +71,7 @@ public class PostModel(CmsDb db, ThemeService themes, MarkdownService markdown) 
                 ["url"] = "/" + post.Slug, ["cover"] = rendered.CoverUrl, ["avatar"] = ShortLinks.Avatar(names.GetValueOrDefault(post.AuthorId, "user")), ["author"] = names.GetValueOrDefault(post.AuthorId, UiText.T("用户")),
                 ["date"] = post.PublishedUtc?.ToString("yyyy-MM-dd"), ["date_utc"] = PublicUrls.Utc(post.PublishedUtc), ["archive_url"] = PublicUrls.Archive(post.PublishedUtc),
                 ["author_url"] = PublicUrls.Author(names.GetValueOrDefault(post.AuthorId, "user")),
-                ["views"] = post.Views + 1, ["comment_count"] = count, ["likes"] = await db.Site.Select<PostLike>().Where(l => l.PostId == post.Id).CountAsync(),
+                ["views"] = post.Views, ["comment_count"] = count, ["likes"] = await db.Site.Select<PostLike>().Where(l => l.PostId == post.Id).CountAsync(),
                 ["liked"] = userId != 0 && await db.Site.Select<PostLike>().Where(l => l.PostId == post.Id && l.UserId == userId).AnyAsync(),
                 ["category"] = category?.Name ?? "", ["category_url"] = PublicUrls.Category(category?.Name) },
             ["tags"] = tags.Select(t => new Dictionary<string, object?> { ["name"] = t.Name, ["url"] = PublicUrls.Tag(t.Name) }).ToArray(),

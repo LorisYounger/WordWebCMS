@@ -136,18 +136,39 @@ app.UseExceptionHandler("/Error/500");
 app.UseStatusCodePagesWithReExecute("/Error/{0}");
 app.Use(async (context, next) =>
 {
+    context.Response.OnStarting(() =>
+    {
+        // Runs after MVC's TempData/authentication callbacks have finished writing cookies.
+        if (context.Response.Headers.ContainsKey("Set-Cookie") && context.Response.GetTypedHeaders().CacheControl?.Public == true)
+        {
+            context.Response.Headers.CacheControl = "no-cache, no-store";
+            context.Response.Headers.Pragma = "no-cache";
+            context.Response.Headers.Remove("ETag");
+        }
+        return Task.CompletedTask;
+    });
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
     context.Response.Headers["X-Frame-Options"] = "DENY";
     var path = context.Request.Path;
     if (path.StartsWithSegments("/Admin") || path.StartsWithSegments("/Account") || path.StartsWithSegments("/Setup"))
     {
-        context.Response.Headers.CacheControl = "no-store";
+        context.Response.Headers.CacheControl = "no-cache, no-store";
+        context.Response.Headers.Pragma = "no-cache";
         context.Response.Headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' https: http:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+    }
+    if (path.StartsWithSegments("/Error") || path.StartsWithSegments("/language"))
+    {
+        context.Response.Headers.CacheControl = "no-cache, no-store";
+        context.Response.Headers.Pragma = "no-cache";
     }
     await next();
 });
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context => context.Context.Response.Headers.CacheControl =
+        context.Context.Request.Query.ContainsKey("v") ? "public, max-age=31536000, immutable" : "public, no-cache"
+});
 app.UseRequestLocalization(localization);
 app.UseRouting();
 app.UseRateLimiter();

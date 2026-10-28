@@ -15,6 +15,12 @@ public class ThemeAssetModel(StoragePaths paths) : PageModel
         var path = Path.Combine(paths.Themes, theme, file);
         if (!System.IO.File.Exists(path)) return NotFound();
         new FileExtensionContentTypeProvider().TryGetContentType(path, out var type);
-        return PhysicalFile(path, type ?? "application/octet-stream");
+        var info = new FileInfo(path);
+        Response.Headers.CacheControl = Request.Query.ContainsKey("v") ? "public, max-age=31536000, immutable" : "public, no-cache";
+        return new PhysicalFileResult(path, type ?? "application/octet-stream")
+        {
+            LastModified = info.LastWriteTimeUtc,
+            EntityTag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{info.LastWriteTimeUtc.Ticks:x}-{info.Length:x}\"", isWeak: true)
+        };
     }
 }

@@ -13,7 +13,14 @@ public class MediaFileModel(CmsDb db, StoragePaths paths) : PageModel
         if (media == null || Path.GetFileName(file) != file) return NotFound();
         var path = Path.Combine(paths.Media, media.FileName);
         if (!System.IO.File.Exists(path)) return NotFound();
-        if (media.ContentType == "application/pdf") return PhysicalFile(path, media.ContentType, media.OriginalName);
-        return PhysicalFile(path, media.ContentType);
+        var info = new FileInfo(path);
+        // Uploads get unique filenames and are never overwritten.
+        Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        return new PhysicalFileResult(path, media.ContentType)
+        {
+            FileDownloadName = media.ContentType == "application/pdf" ? media.OriginalName : null,
+            LastModified = info.LastWriteTimeUtc,
+            EntityTag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{info.LastWriteTimeUtc.Ticks:x}-{info.Length:x}\"", isWeak: true)
+        };
     }
 }
