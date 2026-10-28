@@ -61,6 +61,7 @@ async Task<HttpResponseMessage> Send(HttpClient client, string path, Dictionary<
 ClaimsPrincipal Principal(long id) => new(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, id.ToString()), new Claim(ClaimTypes.Role, "Administrator")], "test"));
 try
 {
+    await SetupChecks.RunAsync(root, connection.ConnectionString, Check);
     db.InitializeSchema();
     Check(db.CheckSchema(), "Schema v3 initializes");
     var accounts = new AccountService(db, new PasswordHasher<CmsUser>());

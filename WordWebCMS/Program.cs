@@ -18,10 +18,13 @@ var storage = Path.GetFullPath(builder.Configuration["Storage:Path"] ?? "App_Dat
 Directory.CreateDirectory(storage);
 Directory.CreateDirectory(Path.Combine(storage, "media"));
 Directory.CreateDirectory(Path.Combine(storage, "keys"));
+// Operator-saved setup values survive restarts and override deployment connection strings.
+builder.Configuration.AddJsonFile(Path.Combine(storage, "setup.json"), optional: true, reloadOnChange: false);
 builder.Services.AddSingleton(new StoragePaths(storage));
 builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(storage, "keys")))
     .SetApplicationName(builder.Configuration["Site:CookieName"] ?? "WordWebCMS");
 builder.Services.AddSingleton<CmsDb>();
+builder.Services.AddSingleton<SetupService>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<ContentService>();
 builder.Services.AddSingleton<MarkdownService>();
@@ -84,15 +87,16 @@ if (args.Contains("--initialize"))
     app.Logger.LogInformation("数据库结构已初始化为版本 3；已有共享账号保持不变。请启动站点并访问 /Setup。");
     return;
 }
-var configured = !string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("Site")) &&
-    !string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("Accounts"));
-var schemaReady = configured && app.Services.GetRequiredService<CmsDb>().CheckSchema();
+var setup = app.Services.GetRequiredService<SetupService>();
+setup.Refresh();
+if (!setup.Installed) setup.EnsureToken();
 app.Services.GetRequiredService<ThemeService>().InitializeDefault();
 UiText.Load(Path.Combine(app.Environment.ContentRootPath, "Languages"), Path.Combine(storage, "languages"));
 var localization = new RequestLocalizationOptions {
     DefaultRequestCulture = new RequestCulture("zh-Hans"), SupportedCultures = UiText.Cultures.ToList(), SupportedUICultures = UiText.Cultures.ToList(),
     RequestCultureProviders = [new CustomRequestCultureProvider(async context => {
-        var settings = schemaReady && !context.Request.Path.StartsWithSegments("/Error") ? await context.RequestServices.GetRequiredService<CmsDb>().Site.Select<SiteSettings>().FirstAsync() : null;
+        var settings = setup.SchemaReady && !context.Request.Path.StartsWithSegments("/Error") && !context.Request.Path.StartsWithSegments("/Setup")
+            ? await context.RequestServices.GetRequiredService<CmsDb>().Site.Select<SiteSettings>().FirstAsync() : null;
         context.Items["SiteSettings"] = settings;
         var enabled = UiText.Enabled(settings);
         var requested = context.Request.Query["culture"].ToString();
@@ -136,7 +140,7 @@ app.Use(async (context, next) =>
 {
     if (context.Request.Path.StartsWithSegments("/Setup") || context.Request.Path.StartsWithSegments("/Error"))
     { await next(); return; }
-    if (!schemaReady)
+    if (!setup.SchemaReady)
     { context.Response.Redirect("/Setup"); return; }
     if (context.Items["SiteSettings"] == null)
     { context.Response.Redirect("/Setup"); return; }

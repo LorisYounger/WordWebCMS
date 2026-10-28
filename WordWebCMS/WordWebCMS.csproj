@@ -17,6 +17,8 @@
     <Content Include="theme/**/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Remove="App_Data/**/*" />
     <None Remove="App_Data/**/*" />
+    <Content Remove="**/setup.json;**/setup.json.tmp" />
+    <None Remove="**/setup.json;**/setup.json.tmp" />
   </ItemGroup>
 
 </Project>

@@ -3,23 +3,34 @@ using WordWebCMS.Models;
 
 namespace WordWebCMS.Data;
 
-public sealed class CmsDb : IDisposable
+public sealed class CmsDb(IConfiguration config) : IDisposable
 {
-    public IFreeSql Accounts { get; }
-    public IFreeSql Site { get; }
+    private IFreeSql? accounts;
+    private IFreeSql? site;
+    public IFreeSql Accounts { get { if (accounts == null) Configure(config); return accounts!; } }
+    public IFreeSql Site { get { if (site == null) Configure(config); return site!; } }
     public bool CheckSchema() => Accounts.DbFirst.ExistsTable("schema_version") && Site.DbFirst.ExistsTable("schema_version") &&
         Accounts.Select<SchemaVersion>().First()?.Version == 3 && Site.Select<SchemaVersion>().First()?.Version == 3;
 
-    public CmsDb(IConfiguration config)
+    // Only called under the setup lock, before the site is installed.
+    public void Configure(IConfiguration config)
     {
-        Accounts = new FreeSqlBuilder().UseConnectionString(DataType.MySql,
+        var accounts = new FreeSqlBuilder().UseConnectionString(DataType.MySql,
             config.GetConnectionString("Accounts")).UseAutoSyncStructure(false).Build();
-        Site = config.GetConnectionString("Accounts") == config.GetConnectionString("Site") ? Accounts :
-            new FreeSqlBuilder().UseConnectionString(DataType.MySql,
+        IFreeSql site;
+        try
+        {
+            site = config.GetConnectionString("Accounts") == config.GetConnectionString("Site") ? accounts :
+                new FreeSqlBuilder().UseConnectionString(DataType.MySql,
                 config.GetConnectionString("Site")).UseAutoSyncStructure(false).Build();
+        }
+        catch { accounts.Dispose(); throw; }
+        Dispose();
+        this.accounts = accounts;
+        this.site = site;
     }
 
-    // Explicit operator command; never run DDL from an ordinary HTTP request.
+    // Only the explicit CLI command or token-protected setup action runs DDL.
     public void InitializeSchema()
     {
         var upgrading = Site.DbFirst.ExistsTable("schema_version") && Site.Select<SchemaVersion>().First()?.Version == 1;
@@ -47,7 +58,8 @@ public sealed class CmsDb : IDisposable
 
     public void Dispose()
     {
-        Accounts.Dispose();
-        if (!ReferenceEquals(Accounts, Site)) Site.Dispose();
+        accounts?.Dispose();
+        if (!ReferenceEquals(accounts, site)) site?.Dispose();
     }
+
 }
