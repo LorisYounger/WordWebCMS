@@ -2,7 +2,7 @@
 @model WordWebCMS.Pages.Account.RegisterModel
 @{ ViewData["Title"] = UiText.T("注册"); }
 <section class="card narrow"><h1>@UiText.T("注册账号")</h1>
-@if (Model.Sent) { <p role="status">@UiText.T("验证邮件已发送，请验证邮箱。启用注册审核时，还需等待管理员批准后才能登录本站。")</p> }
+@if (Model.Sent) { <p role="status">@UiText.T("验证邮件已发送，请到邮箱中确认。如果本站开启了注册审核，还需等待管理员批准才能登录。")</p> }
 else if (Model.Registration == RegistrationMode.Closed) { <p>@UiText.T("本站已关闭注册。")</p> }
 else if (!Model.MailConfigured) { <p>@UiText.T("站点尚未配置邮件服务，请稍后再来。")</p> }
 else { <form method="post"><div asp-validation-summary="All" role="alert"></div>

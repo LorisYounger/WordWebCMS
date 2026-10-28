@@ -1,7 +1,7 @@
 @page
 @model WordWebCMS.Pages.Admin.NavigationModel
 @{ ViewData["Title"] = UiText.T("导航"); }
-<div class="page-heading"><h1>@UiText.T("导航菜单")</h1><p>@UiText.T("按顺序从小到大排列，支持顶层及一层子菜单。独立页面发布后可在这里添加链接。")</p></div>
+<div class="page-heading"><h1>@UiText.T("导航菜单")</h1><p>@UiText.T("菜单支持两层，排序数字越小越靠前。独立页面发布后，也可以把链接加到这里。")</p></div>
 <form method="post" class="card form-panel"><h2 class="panel-heading">@UiText.T("添加导航")</h2>
 <div class="form-grid">
 <div><label for="text">@UiText.T("文字")</label><input id="text" name="text" required maxlength="80" /></div>

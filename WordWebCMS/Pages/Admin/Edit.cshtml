@@ -22,10 +22,10 @@
 <button type="button" class="secondary translation-preview">@UiText.T("更新预览")</button>
 </fieldset>
 }
-<p class="help">@UiText.T("各语言内容一起保存、审核和发布；缺少译文时，中文系回退到简体中文，其他语言回退到英文，仍为空则使用站点默认内容。")</p>
+<p class="help">@UiText.T("各语言的内容会一起保存、审核和发布。没有译文时，中文会显示简体中文内容，其他语言会显示英文内容；如果仍为空，就显示站点默认内容。")</p>
 <details><summary>@UiText.T("正文预览")</summary><div id="preview" class="prose"></div></details>
 </section><aside class="card">
-<h2>@UiText.T("发布设置")</h2><label asp-for="Draft.Slug">@UiText.T("短链接")</label><input asp-for="Draft.Slug" maxlength="160" pattern="[a-z0-9][a-z0-9-]*" /><small>@UiText.T("直接访问 /短链接。留空按英文标题生成；中文标题默认使用 new-article-编号 或 new-page-编号。发布时生效，改名不建立跳转。")</small>
+<h2>@UiText.T("发布设置")</h2><label asp-for="Draft.Slug">@UiText.T("短链接")</label><input asp-for="Draft.Slug" maxlength="160" pattern="[a-z0-9][a-z0-9-]*" /><small>@UiText.T("发布后可通过 /短链接 访问。留空时，按英文标题生成短链接，中文标题则使用 new-article-编号 或 new-page-编号。修改后需重新发布，旧地址不会自动跳转到新地址。")</small>
 
 
 @if (Model.Post.Kind == PostKind.Article) {
@@ -35,8 +35,8 @@
 } else { <p class="help">@UiText.T("页面不显示评论和侧边栏。")</p> }
 <div class="stack"><button name="action" value="save" class="secondary">@UiText.T("保存草稿与修订")</button>
 @if (AccountService.CanEditAll(User)) { <button name="action" value="publish">@UiText.T("发布当前内容")</button> } else { <button name="action" value="submit">@UiText.T("提交审核")</button> }
-</div><p class="muted">@UiText.T("自动保存仅更新草稿，不影响线上版本或已提交审核的修订。")</p></aside></div></form>
-<section class="card revisions"><h2>@UiText.T("修订记录")</h2><p>@UiText.T("明确保存、提交或发布时生成修订。恢复只改草稿，需重新发布。")</p>
+</div><p class="muted">@UiText.T("自动保存只保存草稿，已发布的内容和已提交审核的修订不会改变。")</p></aside></div></form>
+<section class="card revisions"><h2>@UiText.T("修订记录")</h2><p>@UiText.T("点击保存、提交审核或发布时，会留下一条修订记录。恢复修订只会替换草稿，重新发布后才会在网站上显示。")</p>
 @foreach (var revision in Model.Revisions) {
 <div class="list-row"><a asp-route-id="@Model.Post.Id" asp-route-revision="@revision.Id" asp-route-rp="@Model.Rp">#@revision.Id · @revision.Title · @revision.CreatedUtc.ToString("yyyy-MM-dd HH:mm:ss") UTC</a><span class="badge">@(revision.State switch { RevisionState.Saved => UiText.T("已保存"), RevisionState.Pending => UiText.T("待审核"), RevisionState.Published => UiText.T("已发布"), RevisionState.Rejected => UiText.T("已驳回"), _ => revision.State.ToString() })</span></div>
 }

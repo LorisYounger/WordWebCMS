@@ -2,7 +2,7 @@
 @model WordWebCMS.Pages.Admin.UsersModel
 @{ ViewData["Title"] = UiText.T("站点权限"); }
 <div class="page-heading"><h1>@UiText.T("用户管理")</h1><p>@UiText.T("角色和封禁仅对本站生效。")</p></div>
-<section class="card"><h2>@UiText.T("待审核注册")</h2><p>@UiText.T("每次显示最早的 100 条申请。批准后仍需完成邮箱验证。")</p>
+<section class="card"><h2>@UiText.T("待审核注册")</h2><p>@UiText.T("这里每次显示最早的 100 条申请。审核通过后，用户还需要验证邮箱才能登录。")</p>
 @foreach (var account in Model.Pending) {
 <div class="list-row"><span>@account.UserName · @account.Email · @(account.EmailConfirmed ? UiText.T("邮箱已验证") : UiText.T("邮箱未验证"))</span><form method="post" class="inline"><input type="hidden" name="login" value="@account.UserName" /><button name="role" value="Reader">@UiText.T("批准注册")</button><button name="role" value="Banned" class="secondary">@UiText.T("拒绝注册")</button></form></div>
 }
