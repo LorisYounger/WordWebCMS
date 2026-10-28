@@ -39,11 +39,13 @@ public class IndexModel(CmsDb db, ThemeService themes) : PageModel
         var data = new Dictionary<string, object?> {
             ["heading"] = q != null ? UiText.T("搜索：") + q : category.HasValue ? categories.FirstOrDefault(c => c.Id == category)?.Name ?? UiText.T("分类") : tag.HasValue ? UiText.T("标签归档") : year.HasValue ? UiText.Format("{0} 年 {1} 归档", year, month?.ToString()) : UiText.T("最新文章"),
             ["query"] = q ?? "", ["total"] = total, ["page"] = p,
+            ["is_home"] = string.IsNullOrWhiteSpace(q) && !category.HasValue && !tag.HasValue && !year.HasValue && p == 1,
             ["previous"] = p > 1 ? QueryHelpers.AddQueryString("/", new Dictionary<string, string?>(filters) { ["p"] = (p - 1).ToString() }) : "",
             ["next"] = p * 10 < total ? QueryHelpers.AddQueryString("/", new Dictionary<string, string?>(filters) { ["p"] = (p + 1).ToString() }) : "",
             ["categories"] = categories.Select(c => new Dictionary<string, object?> { ["name"] = c.Name, ["url"] = "/?category=" + c.Id }).ToArray(),
             ["posts"] = localizedRows.Select(r => new Dictionary<string, object?> {
-                ["id"] = r.Post.Id, ["title"] = r.Text.Title, ["summary"] = r.Text.Summary,
+                ["id"] = r.Post.Id, ["title"] = r.Text.Title, ["summary"] = r.Text.Summary, ["pinned"] = r.Post.PinOrder > 0,
+                ["category"] = categories.FirstOrDefault(c => c.Id == r.Revision.CategoryId)?.Name ?? "", ["category_url"] = "/?category=" + r.Revision.CategoryId,
                 ["url"] = "/" + r.Post.Slug, ["cover"] = r.Text.CoverUrl, ["date"] = r.Post.PublishedUtc?.ToString("yyyy-MM-dd"),
                 ["avatar"] = ShortLinks.Avatar(authors.GetValueOrDefault(r.Post.AuthorId, "user")), ["author"] = authors.GetValueOrDefault(r.Post.AuthorId, UiText.T("用户")), ["likes"] = likes.GetValueOrDefault(r.Post.Id), ["views"] = r.Post.Views
             }).ToArray()

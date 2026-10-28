@@ -299,6 +299,7 @@ try
         return response.StatusCode;
     }
     Check(await UploadTheme("invalid-page", "{% if %}") == HttpStatusCode.Conflict && !Directory.Exists(Path.Combine(storage, "theme/invalid-page")), "Malformed optional page template is rejected before installation");
+    Check(await UploadTheme("milky", null) == HttpStatusCode.Conflict, "Upload cannot replace the bundled milky theme");
     Check(await UploadTheme("large-page", new string('x', 256 * 1024 + 1)) == HttpStatusCode.Conflict, "Optional page template obeys the template size limit");
     Check(await UploadTheme("custom-page", "<h1>Custom page</h1>{{ post.html | raw }}") == HttpStatusCode.Redirect, "Valid optional page template installs");
     var themeForm = await Form(signedIn, "/Admin/Themes"); themeForm["theme"] = "custom-page";
@@ -311,6 +312,48 @@ try
     Check(await UploadTheme("fallback-page", null) == HttpStatusCode.Redirect, "Theme may omit the optional page template");
     themeForm["theme"] = "fallback-page";
     Check((await Send(signedIn, "/Admin/Themes?handler=Activate", themeForm)).StatusCode == HttpStatusCode.Redirect && (await Get(visitor, "/about")).Contains("Introduction"), "Missing page template uses the built-in page body");
+    themeForm["theme"] = "default";
+    await Send(signedIn, "/Admin/Themes?handler=Activate", themeForm);
+    Check(Directory.Exists(Path.Combine(storage, "theme/milky")), "Milky is installed as an optional bundled theme");
+    themeForm["theme"] = "milky";
+    Check((await Send(signedIn, "/Admin/Themes?handler=Activate", themeForm)).StatusCode == HttpStatusCode.Redirect, "Milky templates accept activation with empty data");
+    db.Site.Update<Post>().Set(p => p.PinOrder, 1).Where(p => p.Id == articleId).ExecuteAffrows();
+    var hiddenId = Publish(PostKind.Article, "Milky private publication", "milky-private");
+    db.Site.Update<Post>().Set(p => p.IsPublic, false).Set(p => p.PinOrder, 100).Where(p => p.Id == hiddenId).ExecuteAffrows();
+    var hiddenTagId = db.Site.Insert(new Tag { Name = "Milky private tag" }).ExecuteIdentity();
+    var hiddenRevisionId = db.Site.Select<Post>().Where(p => p.Id == hiddenId).First().PublishedRevisionId!.Value;
+    db.Site.Insert(new RevisionTag { RevisionId = hiddenRevisionId, TagId = hiddenTagId }).ExecuteAffrows();
+    db.Site.Insert(new Comment { PostId = hiddenId, UserId = admin.Id, Approved = true, Markdown = "Private comment" }).ExecuteAffrows();
+    db.Site.Insert(new Comment { PostId = articleId, UserId = admin.Id, Approved = false, Markdown = "Pending comment" }).ExecuteAffrows();
+    var milky = parser.ParseDocument(await Get(visitor, "/"));
+    Check(milky.QuerySelector(".featured-note a")?.GetAttribute("href") == "/welcome" && milky.QuerySelector(".pin-badge") != null, "Milky features the real public pinned article");
+    Check(!milky.QuerySelectorAll("a").Any(a => a.GetAttribute("href") == "/milky-private"), "Milky recent and featured widgets exclude withdrawn articles");
+    var stats = milky.QuerySelectorAll(".site-stats dd");
+    Check(stats.Length == 4 && stats[0].TextContent == db.Site.Select<Post>().Where(p => p.IsPublic && p.Kind == PostKind.Article && p.PublishedRevisionId != null).Count().ToString()
+        && stats[1].TextContent == "0" && stats[2].TextContent == "0", "Milky statistics exclude pages, private tags, withdrawn and pending comments");
+    Check(parser.ParseDocument(await Get(visitor, "/?q=Welcome")).QuerySelector(".featured-note") == null, "Search does not show the home pinned banner");
+    var milkyPost = parser.ParseDocument(await Get(signedIn, "/welcome"));
+    Check(milkyPost.QuerySelector(".article-neighbors a") != null && milkyPost.QuerySelector(".related-grid a") != null, "Milky article provides adjacent and related public articles");
+    Check(!milkyPost.QuerySelectorAll(".article-neighbors a, .related-grid a").Any(a => a.GetAttribute("href") is "/milky-private" or "/about" or "/welcome"), "Milky article links exclude private content, pages and itself");
+    Check(milkyPost.QuerySelectorAll("form[method=post]").All(f => f.QuerySelector("input[name=__RequestVerificationToken]") != null), "Milky write actions carry CSRF tokens");
+    var milkyPage = parser.ParseDocument(await Get(visitor, "/about"));
+    Check(milkyPage.QuerySelector(".single-column .standalone-page") != null && milkyPage.QuerySelector(".sidebar, #comments, .article-actions") == null, "Milky standalone page has no article widgets");
+    Check((await visitor.GetAsync("/theme-assets/milky/assets/site.css")).StatusCode == HttpStatusCode.OK &&
+        (await visitor.GetAsync("/theme-assets/milky/assets/appearance.js")).StatusCode == HttpStatusCode.OK, "Milky bundled assets are served");
+    var milkyError = await visitor.GetAsync("/missing-milky-route");
+    Check(milkyError.StatusCode == HttpStatusCode.NotFound && parser.ParseDocument(await milkyError.Content.ReadAsStringAsync()).QuerySelector(".error-code")?.TextContent == "404", "Milky renders themed 404 without changing HTTP status");
+    Check(WebUtility.HtmlDecode(await Get(visitor, "/?culture=en")).Contains("Site statistics"), "Milky new UI labels are translated");
+    var oldRegistration = db.Site.Select<SiteSettings>().First().Registration;
+    db.Site.Update<SiteSettings>().Set(s => s.Registration, RegistrationMode.Closed).Where(s => s.Id == 1).ExecuteAffrows();
+    Check(!parser.ParseDocument(await Get(visitor, "/welcome")).QuerySelectorAll("a").Any(a => a.GetAttribute("href") == "/Account/Register"), "Milky respects closed registration in article and footer");
+    db.Site.Update<SiteSettings>().Set(s => s.Registration, oldRegistration).Where(s => s.Id == 1).ExecuteAffrows();
+    db.Site.Delete<Comment>().Where(c => c.PostId == hiddenId || c.PostId == articleId && !c.Approved).ExecuteAffrows();
+    db.Site.Delete<RevisionTag>().Where(t => t.RevisionId == hiddenRevisionId).ExecuteAffrows();
+    db.Site.Delete<Tag>().Where(t => t.Id == hiddenTagId).ExecuteAffrows();
+    db.Site.Delete<PostDraft>().Where(p => p.PostId == hiddenId).ExecuteAffrows();
+    db.Site.Delete<PostRevision>().Where(p => p.PostId == hiddenId).ExecuteAffrows();
+    db.Site.Delete<Post>().Where(p => p.Id == hiddenId).ExecuteAffrows();
+    db.Site.Update<Post>().Set(p => p.PinOrder, 0).Where(p => p.Id == articleId).ExecuteAffrows();
     themeForm["theme"] = "default";
     await Send(signedIn, "/Admin/Themes?handler=Activate", themeForm);
     login["__RequestVerificationToken"] = (await Form(signedIn, "/Account/Login"))["__RequestVerificationToken"];

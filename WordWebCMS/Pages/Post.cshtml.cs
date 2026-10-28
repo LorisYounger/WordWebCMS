@@ -39,12 +39,29 @@ public class PostModel(CmsDb db, ThemeService themes, MarkdownService markdown) 
         var tags = await db.Site.Select<Tag, RevisionTag>().InnerJoin((t, rt) => t.Id == rt.TagId)
             .Where((t, rt) => rt.RevisionId == revision.Id).ToListAsync((t, rt) => new { t.Id, t.Name });
         var category = revision.CategoryId.HasValue ? await db.Site.Select<Category>().Where(c => c.Id == revision.CategoryId).FirstAsync() : null;
+        var older = await db.Site.Select<Post, PostRevision>().InnerJoin((p, r) => p.PublishedRevisionId == r.Id)
+            .Where((p, r) => p.IsPublic && p.Kind == PostKind.Article &&
+                (p.PublishedUtc < post.PublishedUtc || p.PublishedUtc == post.PublishedUtc && p.Id < post.Id))
+            .OrderByDescending((p, r) => p.PublishedUtc).OrderByDescending((p, r) => p.Id)
+            .FirstAsync((p, r) => new { Post = p, Revision = r });
+        var newer = await db.Site.Select<Post, PostRevision>().InnerJoin((p, r) => p.PublishedRevisionId == r.Id)
+            .Where((p, r) => p.IsPublic && p.Kind == PostKind.Article &&
+                (p.PublishedUtc > post.PublishedUtc || p.PublishedUtc == post.PublishedUtc && p.Id > post.Id))
+            .OrderBy((p, r) => p.PublishedUtc).OrderBy((p, r) => p.Id)
+            .FirstAsync((p, r) => new { Post = p, Revision = r });
+        var related = await db.Site.Select<Post, PostRevision>().InnerJoin((p, r) => p.PublishedRevisionId == r.Id)
+            .Where((p, r) => p.IsPublic && p.Kind == PostKind.Article && p.Id != post.Id && r.CategoryId == revision.CategoryId)
+            .OrderByDescending((p, r) => p.PublishedUtc).OrderByDescending((p, r) => p.Id)
+            .Limit(8).ToListAsync((p, r) => new { Post = p, Revision = r });
         return await themes.PageAsync(db, HttpContext, "post.liquid", new Dictionary<string, object?> {
             ["title"] = rendered.Title, ["description"] = rendered.Summary, ["cover"] = rendered.CoverUrl,
+            ["previous_post"] = older == null ? null : ThemeService.ArticleLink(older.Post, older.Revision, settings),
+            ["next_post"] = newer == null ? null : ThemeService.ArticleLink(newer.Post, newer.Revision, settings),
+            ["related_posts"] = related.Select(p => ThemeService.ArticleLink(p.Post, p.Revision, settings)).ToArray(),
             ["post"] = new Dictionary<string, object?> { ["title"] = rendered.Title, ["summary"] = rendered.Summary, ["html"] = markdown.Render(rendered.Markdown),
                 ["url"] = "/" + post.Slug, ["cover"] = rendered.CoverUrl, ["avatar"] = ShortLinks.Avatar(names.GetValueOrDefault(post.AuthorId, "user")), ["author"] = names.GetValueOrDefault(post.AuthorId, UiText.T("用户")),
                 ["date"] = post.PublishedUtc?.ToString("yyyy-MM-dd"), ["archive_url"] = $"/?year={post.PublishedUtc?.Year}&month={post.PublishedUtc?.Month}",
-                ["views"] = post.Views + 1, ["likes"] = await db.Site.Select<PostLike>().Where(l => l.PostId == post.Id).CountAsync(),
+                ["views"] = post.Views + 1, ["comment_count"] = count, ["likes"] = await db.Site.Select<PostLike>().Where(l => l.PostId == post.Id).CountAsync(),
                 ["liked"] = userId != 0 && await db.Site.Select<PostLike>().Where(l => l.PostId == post.Id && l.UserId == userId).AnyAsync(),
                 ["category"] = category?.Name ?? "", ["category_url"] = "/?category=" + category?.Id },
             ["tags"] = tags.Select(t => new Dictionary<string, object?> { ["name"] = t.Name, ["url"] = "/?tag=" + t.Id }).ToArray(),
