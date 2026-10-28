@@ -8,12 +8,13 @@ using MySqlConnector;
 
 namespace WordWebCMS.Pages;
 
-public class SetupModel(IConfiguration config, SetupService setup, CmsDb db, ILogger<SetupModel> logger) : PageModel
+public class SetupModel(IConfiguration config, SetupService setup, CmsDb db) : PageModel
 {
     [BindProperty] public string Token { get; set; } = "";
     [BindProperty] public DatabaseInput SiteDatabase { get; set; } = new();
     [BindProperty] public DatabaseInput AccountsDatabase { get; set; } = new() { Name = "wordwebcms_accounts" };
     [BindProperty] public bool UseSeparateAccounts { get; set; }
+    [BindProperty] public bool ConfirmExistingDatabase { get; set; }
     [BindProperty, Required, StringLength(64)] public string UserName { get; set; } = "";
     [BindProperty, Required, EmailAddress] public string Email { get; set; } = "";
     [BindProperty, Required, StringLength(128, MinimumLength = 12)] public string Password { get; set; } = "";
@@ -24,7 +25,8 @@ public class SetupModel(IConfiguration config, SetupService setup, CmsDb db, ILo
     public bool Configured => setup.Configured;
     public bool Ready => setup.SchemaReady;
     public bool Installed => setup.Installed;
-    public string DatabaseError => setup.Error;
+    public bool RequiresConfirmation => setup.RequiresConfirmation;
+    public string DatabaseError => ModelState.ErrorCount == 0 ? setup.Error : "";
     public string Message { get; set; } = "";
 
     public async Task<IActionResult> OnGetAsync()
@@ -58,34 +60,29 @@ public class SetupModel(IConfiguration config, SetupService setup, CmsDb db, ILo
         foreach (var key in ModelState.Keys.Where(key => !key.StartsWith(nameof(SiteDatabase) + ".") &&
             !(UseSeparateAccounts && key.StartsWith(nameof(AccountsDatabase) + "."))).ToList()) ModelState.Remove(key);
         if (!ModelState.IsValid) return Task.FromResult<IActionResult>(Page());
+        setup.Step = "读取数据库设置";
         var site = SiteDatabase.ToConnectionString(config.GetConnectionString("Site"));
         var accounts = UseSeparateAccounts ? AccountsDatabase.ToConnectionString(config.GetConnectionString("Accounts")) : site;
         setup.SaveConnections(accounts, site);
         // Connecting an existing site must never create another administrator or welcome post.
-        if (!Ready) setup.Initialize();
+        if (!Ready) setup.Initialize(ConfirmExistingDatabase);
         LoadConnections();
-        Message = Installed ? "数据库已准备好，可以进入站点。" : "数据库已准备好，请填写站点和管理员信息。";
+        if (RequiresConfirmation) return Task.FromResult<IActionResult>(Page());
+        Message = Installed ? "数据库已就绪，可以进入站点。" : "数据库已就绪，请继续填写站点和管理员信息。";
         return Task.FromResult<IActionResult>(Installed && Ready ? RedirectToPage("/Index") : Page());
     }, loadConnections: false);
 
     public Task<IActionResult> OnPostInitializeAsync() => ExecuteAsync(() =>
     {
         ModelState.Clear();
-        if (!Configured) ModelState.AddModelError("", UiText.T("请先填写数据库信息。"));
+        if (!Configured) ModelState.AddModelError("", UiText.T("请先填写数据库连接信息。"));
         else
         {
-            if (!Ready) setup.Initialize();
-            Message = "数据库已准备好，请填写站点和管理员信息。";
+            if (!Ready) setup.Initialize(ConfirmExistingDatabase);
+            if (RequiresConfirmation) return Task.FromResult<IActionResult>(Page());
+            Message = "数据库已就绪，请继续填写站点和管理员信息。";
             if (Installed && Ready) return Task.FromResult<IActionResult>(RedirectToPage("/Index"));
         }
-        return Task.FromResult<IActionResult>(Page());
-    }, installationOnly: false);
-
-    public Task<IActionResult> OnPostCheckAsync() => ExecuteAsync(() =>
-    {
-        ModelState.Clear();
-        if (Installed && Ready) return Task.FromResult<IActionResult>(RedirectToPage("/Index"));
-        Message = Ready ? "数据库已准备好，请填写站点和管理员信息。" : "数据库尚未就绪，请检查设置后点击重试。";
         return Task.FromResult<IActionResult>(Page());
     }, installationOnly: false);
 
@@ -104,7 +101,7 @@ public class SetupModel(IConfiguration config, SetupService setup, CmsDb db, ILo
         if (!setup.Authorize(HttpContext, Token))
         {
             ModelState.Clear();
-            ModelState.AddModelError(nameof(Token), UiText.T("Token 不正确，请从启动日志中复制 Setup Token。"));
+            ModelState.AddModelError(nameof(Token), UiText.T("Token 不正确，请重新复制启动日志中的 Setup Token。"));
             Response.StatusCode = 403;
             return Page();
         }
@@ -113,7 +110,7 @@ public class SetupModel(IConfiguration config, SetupService setup, CmsDb db, ILo
         try
         {
             setup.Refresh();
-            if (installationOnly && Installed) return StatusCode(409, UiText.T("站点已安装，不能重复创建管理员或修改安装连接。"));
+            if (installationOnly && Installed) return StatusCode(409, UiText.T("站点已安装，无法再次创建管理员或更改数据库连接。"));
             if (loadConnections) LoadConnections();
             return await action();
         }
@@ -125,10 +122,8 @@ public class SetupModel(IConfiguration config, SetupService setup, CmsDb db, ILo
         }
         catch (Exception ex) when (ex is MySqlException or ArgumentException or InvalidOperationException or IOException or UnauthorizedAccessException)
         {
-            // Database exceptions may contain passwords, so return and log only a safe explanation.
-            logger.LogWarning("Setup operation failed ({ErrorType}).", ex.GetType().Name);
             ModelState.Clear();
-            ModelState.AddModelError("", UiText.T("操作未完成，请检查数据库地址、账号密码、权限和版本，以及配置目录的写入权限，然后重试。"));
+            ModelState.AddModelError("", setup.ReportFailure(ex, SiteDatabase.Password, AccountsDatabase.Password, Password, Token));
             return Page();
         }
         finally { setup.Gate.Release(); }
@@ -136,12 +131,13 @@ public class SetupModel(IConfiguration config, SetupService setup, CmsDb db, ILo
 
     private async Task<IActionResult> CompleteAsync()
     {
+        setup.Step = "创建站点与管理员";
         foreach (var key in ModelState.Keys.Where(key => key.StartsWith(nameof(SiteDatabase) + ".") ||
             key.StartsWith(nameof(AccountsDatabase) + ".")).ToList()) ModelState.Remove(key);
         if (!Ready)
         {
             ModelState.Clear();
-            ModelState.AddModelError("", UiText.T("请先填写数据库信息并保存。"));
+            ModelState.AddModelError("", UiText.T("请先保存数据库连接信息。"));
             return Page();
         }
         if (!ModelState.IsValid) return Page();
@@ -154,7 +150,7 @@ public class SetupModel(IConfiguration config, SetupService setup, CmsDb db, ILo
         {
             var verified = await accounts.CheckPasswordAsync(email, Password);
             if (verified == null || !verified.EmailConfirmed)
-            { ModelState.AddModelError("", "共享账号已存在，请使用该已验证账号的正确密码。"); return Page(); }
+            { ModelState.AddModelError("", "这个邮箱已有共享账号。请填写该账号的原密码，并确认邮箱已验证。"); return Page(); }
             account = verified;
         }
         else account = await accounts.CreateAsync(UserName, email, Password, true);

@@ -1,5 +1,6 @@
 using FreeSql;
 using WordWebCMS.Models;
+using WordWebCMS.Services;
 
 namespace WordWebCMS.Data;
 
@@ -31,27 +32,30 @@ public sealed class CmsDb(IConfiguration config) : IDisposable
     }
 
     // Startup migration and the token-protected setup action share this migration path.
-    public void InitializeSchema()
+    public void InitializeSchema(Action<string>? reportStep = null)
     {
+        reportStep?.Invoke("检查站点数据库版本");
         var upgrading = Site.DbFirst.ExistsTable("schema_version") && Site.Select<SchemaVersion>().First()?.Version == 1;
-        foreach (var db in new[] { Accounts, Site })
+        foreach (var (db, name) in new[] { (Accounts, "账号库"), (Site, "站点库") })
         {
-            var tables = db.DbFirst.GetTablesByDatabase();
-            if (tables.Count > 0 && !tables.Any(t => t.Name == "schema_version"))
-                throw new InvalidOperationException("请使用空的新数据库；不支持覆盖旧版数据表。");
-            if (db.DbFirst.ExistsTable("schema_version") &&
-                db.Select<SchemaVersion>().First()?.Version > 4)
-                throw new InvalidOperationException("数据库版本比程序新，请使用对应的程序版本。");
+            reportStep?.Invoke(name == "账号库" ? "检查账号数据库版本" : "检查站点数据库版本");
+            var version = db.DbFirst.ExistsTable("schema_version") ? db.Select<SchemaVersion>().First()?.Version : null;
+            if (version > 4)
+                throw new InvalidOperationException(UiText.Format("{0}的版本为 {1}，当前程序只支持到版本 4。请部署更新的 WordWebCMS 程序。", UiText.T(name), version));
         }
+        reportStep?.Invoke("更新账号数据表");
         Accounts.CodeFirst.SyncStructure(typeof(SchemaVersion), typeof(CmsUser), typeof(AccountToken));
+        reportStep?.Invoke("更新站点数据表");
         Site.CodeFirst.SyncStructure(typeof(SchemaVersion), typeof(SiteUserRole), typeof(SiteSettings),
             typeof(Post), typeof(PostDraft), typeof(PostRevision), typeof(Category), typeof(Tag),
             typeof(RevisionTag), typeof(Comment), typeof(PostLike), typeof(CommentLike), typeof(Media), typeof(NavigationItem));
+        reportStep?.Invoke("更新站点默认设置");
         Site.Update<SiteSettings>().Set(s => s.Language, "zh-Hans").Where(s => s.Language == null || s.Language == "" || upgrading).ExecuteAffrows();
         Site.Update<SiteSettings>().Set(s => s.EnabledLanguages, "zh-Hans,en").Where(s => s.EnabledLanguages == null || s.EnabledLanguages == "").ExecuteAffrows();
         var administrator = Site.Select<SiteUserRole>().Where(r => r.Role == SiteRole.Administrator).OrderBy(r => r.UserId).First();
         var avatarName = administrator == null ? "admin" : Accounts.Select<CmsUser>().Where(u => u.Id == administrator.UserId).First()?.UserName ?? "admin";
         Site.Update<SiteSettings>().Set(s => s.AvatarUserName, avatarName).Where(s => s.AvatarUserName == null || s.AvatarUserName == "" || upgrading).ExecuteAffrows();
+        reportStep?.Invoke("保存数据库版本");
         foreach (var db in new[] { Accounts, Site })
             db.InsertOrUpdate<SchemaVersion>().SetSource(new SchemaVersion { Version = 4 }).ExecuteAffrows();
     }

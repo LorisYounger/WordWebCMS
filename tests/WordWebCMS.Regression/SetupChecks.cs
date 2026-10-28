@@ -4,7 +4,9 @@ using System.Net;
 using System.Text.Json;
 using AngleSharp.Html.Parser;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using MySqlConnector;
 using WordWebCMS.Data;
 using WordWebCMS.Models;
@@ -142,6 +144,55 @@ internal static class SetupChecks
             check(document.QuerySelector("input[name=Token]") == null && document.QuerySelector("input[name='SiteDatabase.Name']")?.GetAttribute("value") == databases[0], "Authorization and database fields survive application restart");
             check(logs.Any(line => line.Contains("WordWebCMS Setup Token: " + token)), "Existing token is printed again after restart");
 
+            var savedConfiguration = File.ReadAllText(Path.Combine(storage, "setup.json"));
+            data = await FormAsync(); FillDatabase(data, databases[0]); data["SiteDatabase.Password"] = "wrong-password-diagnostic-marker";
+            var rejectedPassword = WebUtility.HtmlDecode(await (await SendAsync("?handler=Configure", data)).Content.ReadAsStringAsync());
+            check(rejectedPassword.Contains("1045") && !rejectedPassword.Contains("wrong-password-diagnostic-marker") &&
+                File.ReadAllText(Path.Combine(storage, "setup.json")) == savedConfiguration,
+                "Connection failures show the MySQL error code without echoing passwords or changing saved configuration");
+
+            var blockedWrite = Path.Combine(storage, "setup.json.tmp");
+            Directory.CreateDirectory(blockedWrite);
+            try
+            {
+                data = await FormAsync(); FillDatabase(data, databases[0]);
+                var deniedWrite = WebUtility.HtmlDecode(await (await SendAsync("?handler=Configure", data)).Content.ReadAsStringAsync());
+                check(deniedWrite.Contains("Docker") && deniedWrite.Contains("UnauthorizedAccessException") &&
+                    File.ReadAllText(Path.Combine(storage, "setup.json")) == savedConfiguration,
+                    "Configuration write failures identify the container mount permissions and preserve the saved file");
+            }
+            finally { Directory.Delete(blockedWrite); }
+
+            using (var versionDb = Database(databases[0]))
+            {
+                versionDb.Site.Update<SchemaVersion>().Set(v => v.Version, 5).Where(v => v.Id == 1).ExecuteAffrows();
+                await StopAsync();
+                await StartAsync();
+                var newerVersion = WebUtility.HtmlDecode(await client.GetStringAsync("/Setup?culture=zh-Hans"));
+                check(newerVersion.Contains("版本为 5") && newerVersion.Contains("检查账号数据库版本"),
+                    "Startup version failures retain their exact cause and step after refreshing setup");
+                data = await FormAsync();
+                var failedUpgrade = WebUtility.HtmlDecode(await (await SendAsync("?handler=Initialize", data)).Content.ReadAsStringAsync());
+                check(failedUpgrade.Contains("InvalidOperationException") && failedUpgrade.Contains("5") &&
+                    versionDb.Site.Select<SchemaVersion>().First().Version == 5,
+                    "Browser upgrade exposes the application refusal without downgrading a newer database");
+                check(logs.Any(line => line.Contains("Setup failed at") && line.Contains("5")),
+                    "Container logs retain a readable migration failure reason");
+                versionDb.Site.Update<SchemaVersion>().Set(v => v.Version, 4).Where(v => v.Id == 1).ExecuteAffrows();
+            }
+
+            var diagnosticsConfig = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
+                ["Setup:Token"] = token, ["ConnectionStrings:Site"] = connection.ConnectionString }).Build();
+            using (var diagnosticsDb = new CmsDb(diagnosticsConfig))
+            {
+                var diagnostics = new SetupService(diagnosticsConfig, diagnosticsDb, new StoragePaths(storage),
+                    DataProtectionProvider.Create(new DirectoryInfo(Path.Combine(storage, "keys"))), NullLogger<SetupService>.Instance);
+                var explanation = diagnostics.ReportFailure(new InvalidOperationException($"failure {connection.Password} {token} submitted-secret password=other-secret"), "submitted-secret");
+                check(!explanation.Contains(connection.Password) && !explanation.Contains(token) &&
+                    !explanation.Contains("submitted-secret") && !explanation.Contains("other-secret"),
+                    "Detailed errors redact configured passwords, setup tokens and submitted secrets");
+            }
+
             data = await FormAsync(); FillDatabase(data, databases[1]);
             FillDatabase(data, databases[2], "AccountsDatabase"); data["UseSeparateAccounts"] = "true";
             await SendAsync("?handler=Configure", data);
@@ -189,7 +240,26 @@ internal static class SetupChecks
                 (await client.GetAsync("/")).StatusCode == HttpStatusCode.OK, "Container-style restart automatically upgrades the existing schema before serving traffic");
             check((await client.GetAsync("/Setup")).StatusCode == HttpStatusCode.Redirect && finalDb.Site.Select<Post>().Count() == 1, "Successful automatic upgrade closes setup without reinstalling the site");
 
-            // A legacy database must remain untouched, while recovery stays available in the browser.
+            // The remote failure: an installed site with an account database missing only the version table.
+            var originalPasswordHash = finalDb.Accounts.Select<CmsUser>().Where(u => u.Id == shared.Id).First().PasswordHash;
+            await StopAsync();
+            finalDb.Accounts.Ado.ExecuteNonQuery("DROP TABLE schema_version");
+            await StartAsync();
+            var confirmationPage = parser.ParseDocument(await client.GetStringAsync("/Setup"));
+            check(!finalDb.Accounts.DbFirst.ExistsTable("schema_version") &&
+                !string.IsNullOrWhiteSpace(confirmationPage.QuerySelector("form.setup-form")?.GetAttribute("data-confirm")),
+                "Missing account version table asks for confirmation before changing an installed site");
+            data = await FormAsync();
+            await SendAsync("?handler=Initialize", data);
+            check(!finalDb.Accounts.DbFirst.ExistsTable("schema_version"), "An unconfirmed retry cannot change existing unversioned tables");
+            data = await FormAsync(); data["ConfirmExistingDatabase"] = "true";
+            var confirmedUpgrade = await SendAsync("?handler=Initialize", data);
+            check(confirmedUpgrade.StatusCode == HttpStatusCode.Redirect && finalDb.CheckSchema() &&
+                finalDb.Accounts.Select<CmsUser>().Where(u => u.Id == shared.Id).First().PasswordHash == originalPasswordHash &&
+                finalDb.Site.Select<Post>().Count() == 1,
+                "Confirmation restores the account version table and keeps accounts, passwords and posts");
+
+            // Existing tables no longer need classification as a legacy or current application database.
             await StopAsync();
             await new MySqlCommand($"CREATE DATABASE `{databases[3]}` CHARACTER SET utf8mb4", server).ExecuteNonQueryAsync();
             await new MySqlCommand($"CREATE TABLE `{databases[3]}`.legacy_data (id INT PRIMARY KEY)", server).ExecuteNonQueryAsync();
@@ -203,7 +273,13 @@ internal static class SetupChecks
             await StartAsync();
             html = await client.GetStringAsync("/Setup");
             using var legacyDb = Database(databases[3]);
-            check(legacyDb.Site.DbFirst.ExistsTable("legacy_data") && !legacyDb.Site.DbFirst.ExistsTable("schema_version") && html.Contains("handler=Initialize"), "Automatic startup refuses legacy tables and keeps a browser retry available");
+            check(legacyDb.Site.DbFirst.ExistsTable("legacy_data") && !legacyDb.Site.DbFirst.ExistsTable("schema_version") &&
+                !string.IsNullOrWhiteSpace(parser.ParseDocument(html).QuerySelector("form.setup-form")?.GetAttribute("data-confirm")),
+                "Startup waits for confirmation when an existing database has no version table");
+            data = await FormAsync(); data["ConfirmExistingDatabase"] = "true";
+            await SendAsync("?handler=Initialize", data);
+            check(legacyDb.CheckSchema() && legacyDb.Site.DbFirst.ExistsTable("legacy_data"),
+                "Confirmed initialization adds the application's schema without deleting unrelated tables");
             data = await FormAsync();
             await SendAsync("?handler=Forget", data);
             check(parser.ParseDocument(await client.GetStringAsync("/Setup")).QuerySelector("input[name=Token]") != null, "Forget authorization returns the browser to the token form");

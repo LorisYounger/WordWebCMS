@@ -1,7 +1,7 @@
 document.querySelectorAll('.language-nav select[name=culture]').forEach(select => select.addEventListener('change', () => select.form.requestSubmit()));
 const ui = JSON.parse(document.getElementById('ui-text').textContent);
 document.querySelectorAll('form[data-confirm]').forEach(form => form.addEventListener('submit', event => {
-    if (!confirm(form.dataset.confirm)) event.preventDefault();
+    if (form.dataset.confirm && !confirm(form.dataset.confirm)) event.preventDefault();
 }));
 
 const editor = document.getElementById('editor');
