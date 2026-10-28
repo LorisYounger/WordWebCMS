@@ -187,7 +187,7 @@ try
     foreach (var entry in settings) start.Environment[entry.Key.Replace(":", "__")] = entry.Value;
     start.Environment["Storage__Path"] = storage;
     start.Environment["Site__CookieName"] = database;
-    start.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
+    start.Environment["ASPNETCORE_ENVIRONMENT"] = OperatingSystem.IsWindows() ? "Development" : "Production";
     start.Environment["Mail__Host"] = ""; start.Environment["Mail__From"] = "";
     start.Environment["Mail__User"] = ""; start.Environment["Mail__Password"] = "";
     web = Process.Start(start)!;

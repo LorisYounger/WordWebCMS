@@ -29,7 +29,7 @@ WordWebCMS是一个简单的内容管理网站 (博客,文章等)
    dotnet publish WordWebCMS/WordWebCMS.csproj -c Release -o artifacts/publish
    ```
 
-2. 把 `artifacts/publish` 上传到服务器，创建空的 MySQL 数据库。数据库连接稍后在 `/Setup` 填写。
+2. 把 `artifacts/publish` 上传到服务器，准备好 MySQL。数据库信息稍后在 `/Setup` 填写；账号有权限时，程序会自动创建数据库。
 
 3. 在发布目录启动网站
 
@@ -37,23 +37,25 @@ WordWebCMS是一个简单的内容管理网站 (博客,文章等)
    dotnet WordWebCMS.dll --urls http://127.0.0.1:8080
    ```
 
-4. 打开 `/Setup`，填写安装令牌。填好 `ConnectionStrings:Accounts` 和 `ConnectionStrings:Site`，点击「验证并保存连接」。再点击「执行 initialize」，填写站点和管理员信息，完成安装后就能去后台写文章。
+4. 打开 `/Setup`，复制启动日志里的 Setup Token。填好数据库地址、名称、账号和密码，点击「保存并准备数据库」，程序会自动建表。再填写站点和管理员信息，就能去后台写文章。
 
-安装令牌可以自己设置；没有设置时，程序会自动生成，请在服务器的 `Storage:Path/setup.json` 中读取。
+Token 会在控制台或容器日志中打印，浏览器验证后记住授权 7 天，刷新、保存都不用重填。也可以自己设置 Token；没有设置时，程序会自动生成并保存到 `Storage:Path/setup.json`。
 
-页面保存的连接也放在这个文件里，保存后立即生效，重启后仍保留，并优先于同名部署配置。请保护并备份这个文件。页面不会显示已保存的连接密码和令牌，安装完成后会锁定安装入口。
+数据库连接也保存在这个文件里，保存后立即生效，重启后仍保留，并优先于同名部署配置。请保护并备份它。已保存的数据库密码不会在页面显示，留空即可保留；多个站点共享账号时，展开「多个站点共享账号」填写账号库。
+
+更新程序或重建容器后，站点会自动检查并升级数据库，不需要另跑初始化命令。未能完成时，在 `/Setup` 点击重试即可。已有站点不会重复创建管理员或欢迎文章。
 
 <details>
 <summary>使用环境变量或命令行安装</summary>
 
-也可以提前设置环境变量，省去在页面填写连接的步骤：
+也可以提前设置环境变量，启动后自动初始化，省去在页面填写连接的步骤：
 
 - `ConnectionStrings__Accounts`：用户数据库连接。
 - `ConnectionStrings__Site`：本站数据库连接，不共享用户时可以和上面填一样的。
 - `Setup__Token`：自己生成的随机安装令牌。不设置也可以，程序会自动生成。
 - `Storage__Path`：媒体、主题和登录密钥的保存目录，建议放在发布目录外，更新程序时保留。
 
-如需手动初始化，在发布目录运行 `dotnet WordWebCMS.dll --initialize`，再回到安装页面点击「重新检查数据库」。
+仍保留手动命令 `dotnet WordWebCMS.dll --initialize`，但普通安装和更新不需要执行它。
 
 </details>
 

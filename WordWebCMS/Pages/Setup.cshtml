@@ -1,64 +1,93 @@
 @page
 @model SetupModel
-@{ ViewData["Title"] = UiText.T("安装"); }
-<div class="page-heading"><h1>@UiText.T("安装 WordWebCMS")</h1><p>@UiText.T("配置数据库、初始化结构，然后创建站点和管理员账号。")</p></div>
-@if (!string.IsNullOrEmpty(Model.Message)) {
-<p class="notice" role="status">@UiText.T(Model.Message)</p>
+@{ ViewData["Title"] = UiText.T(Model.Installed ? "更新数据库" : "安装"); }
+<div class="page-heading"><h1>@UiText.T(Model.Installed ? "更新站点数据库" : "安装 WordWebCMS")</h1><p>@UiText.T("填好数据库信息，程序会自动完成初始化和升级。")</p></div>
+@if (!string.IsNullOrEmpty(Model.Message)) { <p class="notice" role="status">@UiText.T(Model.Message)</p> }
+@if (Model.Authorized) {
+    <div class="form-panel setup-authorization">
+        <span>@UiText.T("已记住安装授权，刷新页面也不用重新填写 Token。")</span>
+        <form method="post" asp-page="/Setup" asp-page-handler="Forget"><button type="submit" class="link">@UiText.T("忘记授权")</button></form>
+    </div>
 }
-@if (Model.Installed) {
-    <section class="card form-panel"><h2>@UiText.T("安装已完成，入口已锁定。")</h2>
-        <p>@UiText.T("已有站点的结构升级请在停站后通过命令行执行，完成后重新启动站点。")</p>
-        <pre><code>dotnet WordWebCMS.dll --initialize</code></pre>
-    </section>
-} else {
-<form method="post" class="setup-form">
+<form method="post" asp-page="/Setup" class="setup-form">
     <div asp-validation-summary="All" role="alert"></div>
-    <section class="card form-panel">
-        <h2>@UiText.T("安装授权")</h2>
-        <p>@UiText.T("每次操作均需填写部署安装令牌。使用部署配置中的 Setup:Token；未配置时，程序会在 Storage:Path/setup.json 中自动生成，请在服务器上读取。")</p>
-        <label asp-for="Token">@UiText.T("部署安装令牌")</label><input asp-for="Token" type="password" autocomplete="off" required maxlength="256" />
-    </section>
-    <section class="card form-panel">
-        <h2>@UiText.T("1. 数据库连接") <span class="badge">@UiText.T(Model.Configured ? "已配置" : "未配置")</span></h2>
-        <p>@UiText.T("请先创建 MySQL 数据库。单站可将两条连接填写为同一个空库；共享账号时，账号库可以使用已初始化的新版数据库。")</p>
-        <label asp-for="AccountsConnection">ConnectionStrings:Accounts · @UiText.T("账号数据库")</label>
-        <input asp-for="AccountsConnection" type="password" autocomplete="off" maxlength="4096" spellcheck="false" placeholder="Server=localhost;Port=3306;Database=cms_accounts;User ID=cms;Password=...;SslMode=Required" />
-        <label asp-for="SiteConnection">ConnectionStrings:Site · @UiText.T("站点数据库")</label>
-        <input asp-for="SiteConnection" type="password" autocomplete="off" maxlength="4096" spellcheck="false" placeholder="Server=localhost;Port=3306;Database=cms_site;User ID=cms;Password=...;SslMode=Required" />
-        <p class="help">@UiText.T("已保存的连接不会回显；留空保留当前值。验证通过后保存到 Storage:Path/setup.json，立即生效，重启后仍保留。该文件中的连接优先于部署配置。")</p>
-        <div class="form-actions"><button type="submit" asp-page-handler="Configure" formnovalidate>@UiText.T("验证并保存连接")</button></div>
-    </section>
-    <section class="card form-panel">
-        <h2>@UiText.T("2. 初始化数据库") <span class="badge">@UiText.T(Model.Ready ? "结构已就绪" : "等待初始化")</span></h2>
-        @if (!string.IsNullOrEmpty(Model.DatabaseError)) { <p role="alert">@UiText.T(Model.DatabaseError)</p> }
-        <p>@UiText.T("初始化会创建或升级新版数据表，保留已有共享账号；不会创建数据库，也不支持覆盖旧版数据表。")</p>
-        <div class="form-actions">
-            <button type="submit" asp-page-handler="Initialize" formnovalidate disabled="@(!Model.Configured || Model.Ready)">@UiText.T("执行 initialize")</button>
-            <button type="submit" asp-page-handler="Check" formnovalidate class="secondary">@UiText.T("重新检查数据库")</button>
-        </div>
-        <details>
-            <summary>@UiText.T("手动初始化（命令行）")</summary>
-            <div class="setup-instructions">
-                <p>@UiText.T("也可以在服务器发布目录执行以下命令，然后点击“重新检查数据库”，无需重启当前站点。命令使用相同的 Storage:Path 和已保存配置。")</p>
-                <pre><code>dotnet WordWebCMS.dll --initialize</code></pre>
-                <p class="help">@UiText.T("若数据库连接由环境变量或 appsettings.json 提供，可直接使用当前配置，无需在上一步重复保存。")</p>
-            </div>
-        </details>
-    </section>
-    <section class="card form-panel">
-        <h2>@UiText.T("3. 站点和管理员")</h2>
-        @if (!Model.Ready) { <p class="muted">@UiText.T("数据库结构就绪后即可完成安装。")</p> }
-        <fieldset class="setup-account" disabled="@(!Model.Ready)">
-            <div class="form-grid">
-                <div><label asp-for="Title">@UiText.T("站点名称")</label><input asp-for="Title" required /></div>
-                <div><label asp-for="BaseUrl">@UiText.T("公开根地址")</label><input asp-for="BaseUrl" type="url" required placeholder="https://blog.example.com" /></div>
-                <div><label asp-for="UserName">@UiText.T("管理员用户名")</label><input asp-for="UserName" autocomplete="username" required /></div>
-                <div><label asp-for="Email">@UiText.T("管理员邮箱")</label><input asp-for="Email" type="email" autocomplete="email" required /></div>
-                <div class="wide"><label asp-for="Password">@UiText.T("密码（已有共享账号请填写原密码）")</label><input asp-for="Password" type="password" autocomplete="new-password" required minlength="12" maxlength="128" /></div>
-            </div>
-            <p class="help">@UiText.T("新密码至少 12 位。已有共享账号必须已验证邮箱，并使用其原密码。")</p>
-            <div class="form-actions"><button type="submit">@UiText.T("完成安装")</button></div>
-        </fieldset>
-    </section>
+    @if (!Model.Authorized) {
+        <section class="card form-panel">
+            <h2>@UiText.T("输入安装 Token")</h2>
+            <p>@UiText.T("从程序启动日志或容器日志中复制 Setup Token，填写一次即可。本浏览器会记住授权 7 天。")</p>
+            <label asp-for="Token">Setup Token</label><input asp-for="Token" type="password" autocomplete="off" required />
+            <div class="form-actions"><button type="submit" asp-page-handler="Authorize" formnovalidate>@UiText.T("继续")</button></div>
+        </section>
+    } else {
+        @if (!string.IsNullOrEmpty(Model.DatabaseError)) { <p class="notice form-panel" role="alert">@UiText.T(Model.DatabaseError)</p> }
+        @if (Model.Installed) {
+            <section class="card form-panel">
+                <h2>@UiText.T("更新数据库后继续使用")</h2>
+                <p>@UiText.T("程序会自动更新所需的数据表，保留已有账号、文章和站点设置。更新完成后直接进入站点，不用执行命令或重启容器。")</p>
+                <div class="form-actions"><button type="submit" asp-page-handler="Initialize" formnovalidate>@UiText.T("更新数据库并进入站点")</button></div>
+            </section>
+        } else {
+            <section class="card form-panel">
+                <h2>@UiText.T("1. 连接数据库") <span class="badge">@UiText.T(Model.Ready ? "已就绪" : "待设置")</span></h2>
+                <p>@UiText.T("通常只需要一套数据库。使用 Docker 时，数据库地址可填写 MySQL 服务名。")</p>
+                <div class="form-grid">
+                    <div><label asp-for="SiteDatabase.Server">@UiText.T("数据库地址")</label><input asp-for="SiteDatabase.Server" placeholder="localhost / mysql" autocomplete="off" /></div>
+                    <div><label asp-for="SiteDatabase.Name">@UiText.T("数据库名称")</label><input asp-for="SiteDatabase.Name" autocomplete="off" /></div>
+                    <div><label asp-for="SiteDatabase.UserName">@UiText.T("数据库账号")</label><input asp-for="SiteDatabase.UserName" autocomplete="off" /></div>
+                    <div><label asp-for="SiteDatabase.Password">@UiText.T("数据库密码")</label><input asp-for="SiteDatabase.Password" type="password" autocomplete="new-password" /></div>
+                </div>
+                <details>
+                    <summary>@UiText.T("端口与连接加密")</summary>
+                    <div class="setup-instructions form-grid">
+                        <div><label asp-for="SiteDatabase.Port">@UiText.T("端口")</label><input asp-for="SiteDatabase.Port" type="number" min="1" max="65535" /></div>
+                        <div><label asp-for="SiteDatabase.SslMode">@UiText.T("连接加密")</label><select asp-for="SiteDatabase.SslMode">
+                            <option value="Preferred">@UiText.T("自动（推荐）")</option><option value="Required">@UiText.T("要求加密")</option>
+                            <option value="VerifyCA">@UiText.T("验证 CA 证书")</option><option value="VerifyFull">@UiText.T("验证证书和主机名")</option><option value="Disabled">@UiText.T("不加密")</option>
+                        </select></div>
+                        <label class="check wide"><input asp-for="SiteDatabase.ClearPassword" />@UiText.T("清除已保存的数据库密码")</label>
+                    </div>
+                </details>
+                <details open="@Model.UseSeparateAccounts">
+                    <summary>@UiText.T("多个站点共享账号")</summary>
+                    <div class="setup-instructions">
+                        <label class="check"><input asp-for="UseSeparateAccounts" />@UiText.T("账号使用单独的数据库")</label>
+                        <fieldset class="setup-account form-grid" id="accounts-database">
+                            <div><label asp-for="AccountsDatabase.Server">@UiText.T("账号库地址")</label><input asp-for="AccountsDatabase.Server" autocomplete="off" /></div>
+                            <div><label asp-for="AccountsDatabase.Name">@UiText.T("账号库名称")</label><input asp-for="AccountsDatabase.Name" autocomplete="off" /></div>
+                            <div><label asp-for="AccountsDatabase.UserName">@UiText.T("账号库账号")</label><input asp-for="AccountsDatabase.UserName" autocomplete="off" /></div>
+                            <div><label asp-for="AccountsDatabase.Password">@UiText.T("账号库密码")</label><input asp-for="AccountsDatabase.Password" type="password" autocomplete="new-password" /></div>
+                            <div><label asp-for="AccountsDatabase.Port">@UiText.T("端口")</label><input asp-for="AccountsDatabase.Port" type="number" min="1" max="65535" /></div>
+                            <div><label asp-for="AccountsDatabase.SslMode">@UiText.T("连接加密")</label><select asp-for="AccountsDatabase.SslMode">
+                                <option value="Preferred">@UiText.T("自动（推荐）")</option><option value="Required">@UiText.T("要求加密")</option>
+                                <option value="VerifyCA">@UiText.T("验证 CA 证书")</option><option value="VerifyFull">@UiText.T("验证证书和主机名")</option><option value="Disabled">@UiText.T("不加密")</option>
+                            </select></div>
+                            <label class="check wide"><input asp-for="AccountsDatabase.ClearPassword" />@UiText.T("清除已保存的账号库密码")</label>
+                        </fieldset>
+                    </div>
+                </details>
+                <p class="help">@UiText.T("保存后自动建表并升级；数据库不存在时会尝试创建，需要数据库账号有相应权限。")</p>
+                <p class="help">@UiText.T("已保存的密码留空即可保留；修改地址或账号时请重新填写密码。设置会保留到下次启动。")</p>
+                <div class="form-actions">
+                    <button type="submit" asp-page-handler="Configure" formnovalidate>@UiText.T("保存并准备数据库")</button>
+                    @if (Model.Configured && !Model.Ready) { <button type="submit" asp-page-handler="Initialize" formnovalidate class="secondary">@UiText.T("重试")</button> }
+                </div>
+            </section>
+            <section class="card form-panel">
+                <h2>@UiText.T("2. 站点和管理员")</h2>
+                @if (!Model.Ready) { <p class="muted">@UiText.T("先保存上面的数据库信息，再填写这里。")</p> }
+                <fieldset class="setup-account" id="setup-administrator" disabled="@(!Model.Ready)">
+                    <div class="form-grid">
+                        <div><label asp-for="Title">@UiText.T("站点名称")</label><input asp-for="Title" required /></div>
+                        <div><label asp-for="BaseUrl">@UiText.T("公开根地址")</label><input asp-for="BaseUrl" type="url" required placeholder="https://blog.example.com" /></div>
+                        <div><label asp-for="UserName">@UiText.T("管理员用户名")</label><input asp-for="UserName" autocomplete="username" required /></div>
+                        <div><label asp-for="Email">@UiText.T("管理员邮箱")</label><input asp-for="Email" type="email" autocomplete="email" required /></div>
+                        <div class="wide"><label asp-for="Password">@UiText.T("密码（已有共享账号请填写原密码）")</label><input asp-for="Password" type="password" autocomplete="new-password" required minlength="12" maxlength="128" /></div>
+                    </div>
+                    <p class="help">@UiText.T("新密码至少 12 位。已有共享账号必须已验证邮箱，并使用其原密码。")</p>
+                    <div class="form-actions"><button type="submit">@UiText.T("完成安装")</button></div>
+                </fieldset>
+            </section>
+        }
+    }
 </form>
-}
+@section Scripts { <script src="~/js/setup.js" asp-append-version="true" defer></script> }

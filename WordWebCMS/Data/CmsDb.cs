@@ -12,7 +12,7 @@ public sealed class CmsDb(IConfiguration config) : IDisposable
     public bool CheckSchema() => Accounts.DbFirst.ExistsTable("schema_version") && Site.DbFirst.ExistsTable("schema_version") &&
         Accounts.Select<SchemaVersion>().First()?.Version == 4 && Site.Select<SchemaVersion>().First()?.Version == 4;
 
-    // Only called under the setup lock, before the site is installed.
+    // Reconfigure only during startup or under the setup lock while normal traffic is unavailable.
     public void Configure(IConfiguration config)
     {
         var accounts = new FreeSqlBuilder().UseConnectionString(DataType.MySql,
@@ -30,7 +30,7 @@ public sealed class CmsDb(IConfiguration config) : IDisposable
         this.site = site;
     }
 
-    // Only the explicit CLI command or token-protected setup action runs DDL.
+    // Startup migration and the token-protected setup action share this migration path.
     public void InitializeSchema()
     {
         var upgrading = Site.DbFirst.ExistsTable("schema_version") && Site.Select<SchemaVersion>().First()?.Version == 1;
