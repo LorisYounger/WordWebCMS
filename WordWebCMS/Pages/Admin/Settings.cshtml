@@ -22,3 +22,14 @@
 <div class="setting-row"><span>@UiText.T("评论权限")</span><div><label class="check"><input asp-for="Settings.CommentsEnabled" />@UiText.T("允许发表新评论")</label><p class="help">@UiText.T("关闭后保留已有评论。")</p></div></div>
 <div class="setting-row"><span>@UiText.T("评论审核")</span><div><label class="check"><input asp-for="Settings.ModerateComments" />@UiText.T("新评论需审核后显示")</label></div></div>
 </section><button>@UiText.T("保存设置")</button></form>
+<form method="post" asp-page-handler="Mail" class="settings-form">
+<section class="card"><h2 class="panel-heading">@UiText.T("邮件服务（SMTP）")</h2>
+@if (TempData["MailSaved"] != null) { <p class="notice" role="status">@UiText.T("邮件设置已保存并生效。")</p> }
+<p class="help">@UiText.T("用于注册验证和密码找回。保存后立即生效；同时清空服务器和发件地址可停用邮件。")</p>
+<div class="setting-row"><label asp-for="Mail.Host">@UiText.T("SMTP 服务器")</label><div><input asp-for="Mail.Host" maxlength="253" placeholder="smtp.example.com" /><p class="help">@UiText.T("填写主机名或 IP，不含协议和端口。")</p></div></div>
+<div class="setting-row"><label asp-for="Mail.Port">@UiText.T("SMTP 端口")</label><input asp-for="Mail.Port" type="number" min="1" max="65535" required /></div>
+<div class="setting-row"><label asp-for="Mail.Security">@UiText.T("连接加密")</label><div><select asp-for="Mail.Security"><option value="StartTls">STARTTLS</option><option value="SslOnConnect">SSL/TLS</option><option value="None">@UiText.T("不加密（仅本地测试）")</option></select><p class="help">@UiText.T("通常 587 使用 STARTTLS，465 使用 SSL/TLS；以邮件服务商要求为准。")</p></div></div>
+<div class="setting-row"><label asp-for="Mail.From">@UiText.T("发件地址")</label><input asp-for="Mail.From" type="email" maxlength="254" placeholder="noreply@example.com" /></div>
+<div class="setting-row"><label asp-for="Mail.User">@UiText.T("SMTP 用户名")</label><div><input asp-for="Mail.User" maxlength="320" autocomplete="off" /><p class="help">@UiText.T("通常为邮箱地址；服务器不要求身份验证时留空。")</p></div></div>
+<div class="setting-row"><label asp-for="Mail.Password">@UiText.T("SMTP 密码或授权码")</label><div><input asp-for="Mail.Password" type="password" maxlength="4096" autocomplete="new-password" /><p class="help">@UiText.T(Model.HasMailPassword ? "已保存密码。留空保留原值，填写新值即可替换。" : "尚未保存密码。请填写邮件服务商提供的密码或授权码。")</p><label class="check"><input asp-for="ClearMailPassword" />@UiText.T("清除已保存的 SMTP 密码")</label></div></div>
+</section><button>@UiText.T("保存邮件设置")</button></form>

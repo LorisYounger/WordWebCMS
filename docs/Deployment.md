@@ -26,6 +26,10 @@ Server=database-host;Port=3306;Database=cms_site;User ID=cms;Password=replace-me
 | `ReverseProxy__KnownProxies__0` | 实际反向代理 IP；可继续配置 `__1` 等 |
 | `AllowedHosts` | 生产域名，分号分隔 |
 
+安装后，管理员可在「后台 → 设置 → 邮件服务（SMTP）」填写服务器、端口、连接加密、发件地址、用户名和密码/授权码，点击「保存邮件设置」后立即用于注册验证和密码找回，无需重启。通常 587 配 `StartTls`，465 配 `SslOnConnect`，以服务商要求为准。密码不会回显；留空保留原值，填写新值替换，勾选清除则删除密码。同时清空服务器和发件地址可停用邮件。
+
+后台保存的配置优先于上表的 `Mail` 部署配置；首次保存前仍使用配置文件/环境变量。后台配置保存在 `Storage:Path/mail.json`，密码使用现有 ASP.NET Core Data Protection 密钥加密。迁移和备份时必须同时保留该文件、`Storage:Path/keys` 和原 `Site:CookieName`；这项功能无需数据库结构升级。
+
 没有 SMTP 配置时仍可安装管理员和写作，但注册页面明确显示暂不可注册，找回流程不能发信。公开根地址在安装/后台设置中填写，用于邮件链接、RSS、sitemap 和 canonical，不从请求 Host 拼接。
 
 开发机私有配置放在仓库根目录 `Local/appsettings.local.json`，只有 `--local` 才加载；环境变量和命令行仍可覆盖它。示例：

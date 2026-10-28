@@ -5,8 +5,11 @@ using WordWebCMS.Models;
 using WordWebCMS.Services;
 
 namespace WordWebCMS.Pages.Admin;
-public class SettingsModel(CmsDb db) : PageModel
+public class SettingsModel(CmsDb db, MailService mail) : PageModel
 {
+    [BindProperty] public MailSettings Mail { get; set; } = new();
+    [BindProperty] public bool ClearMailPassword { get; set; }
+    public bool HasMailPassword { get; set; }
     [BindProperty] public SiteSettings Settings { get; set; } = new();
     [BindProperty] public List<string> SelectedLanguages { get; set; } = [];
     [BindProperty] public Dictionary<string, SiteTranslation> Translations { get; set; } = [];
@@ -16,6 +19,16 @@ public class SettingsModel(CmsDb db) : PageModel
         Settings.Language = UiText.Normalize(Settings.Language);
         SelectedLanguages = UiText.Enabled(Settings).Select(c => c.Name).ToList();
         Translations = ContentLanguages.Read<SiteTranslation>(Settings.Translations);
+        Mail = mail.ReadSettings();
+        HasMailPassword = Mail.Password.Length > 0;
+        Mail.Password = "";
+    }
+    public IActionResult OnPostMail()
+    {
+        if (!ModelState.IsValid) return BadRequest(UiText.T("表单字段无效。"));
+        mail.SaveSettings(Mail, ClearMailPassword);
+        TempData["MailSaved"] = true;
+        return RedirectToPage();
     }
     public async Task<IActionResult> OnPostAsync()
     {
