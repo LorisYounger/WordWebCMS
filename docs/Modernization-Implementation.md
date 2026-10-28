@@ -6,7 +6,7 @@
 
 | 流程 | 实现位置与行为 |
 | --- | --- |
-| 启动与安装 | `Program.cs`、`Data/CmsDb.cs`、`Pages/Setup*`。升级 .NET 10，显式 `--initialize` 建表/记录版本，安装令牌与完成后的写入口锁定 |
+| 启动与安装 | `Program.cs`、`Data/CmsDb.cs`、`Pages/Setup*`。启动和保存数据库设置时自动建表、升级；控制台打印安装 Token，浏览器记住授权。安装完成后阻止重复安装，仍可在网页重试升级 |
 | 账号与权限 | `Models/Accounts.cs`、`Services/AccountService.cs`、`Pages/Account/*`、`Pages/Admin/Users*`。Cookie + 框架 PasswordHasher；单次、到期凭证；每请求核对账号状态与本站角色 |
 | 内容发布 | `Models/Content.cs`、`Services/ContentService.cs`、`Pages/Admin/Index*`、`Edit*`。编辑草稿、修订和线上指针分离；提交后的修改不改变待审修订；审批只发布选定修订 |
 | 分类与标签 | 单分类、版本标签关联；公开归档关联 `PublishedRevisionId`，不读取草稿。分类删除与草稿保存使用事务保护引用关系 |

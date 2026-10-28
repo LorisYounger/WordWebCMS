@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
@@ -7,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using MySqlConnector;
 using WordWebCMS.Data;
 using WordWebCMS.Models;
+using WordWebCMS.Pages;
 using WordWebCMS.Services;
 
 internal static class SetupChecks
@@ -14,13 +16,14 @@ internal static class SetupChecks
     public static async Task RunAsync(string root, string connectionString, Action<bool, string> check)
     {
         var prefix = "wwcms_setup_" + Guid.NewGuid().ToString("N");
-        var databases = new[] { prefix + "_web", prefix + "_cli" };
+        var databases = new[] { prefix + "_web", prefix + "_site", prefix + "_accounts", prefix + "_legacy", prefix + "_auto" };
         var connection = new MySqlConnectionStringBuilder(connectionString) { Database = "" };
         using var server = new MySqlConnection(connection.ConnectionString);
         await server.OpenAsync();
         var storage = Path.Combine(root, "artifacts", prefix);
         var baseUrl = "http://127.0.0.1:5194";
         Process? web = null;
+        var logs = new ConcurrentQueue<string>();
         var parser = new HtmlParser();
         var start = new ProcessStartInfo("dotnet") { WorkingDirectory = Path.Combine(root, "WordWebCMS"),
             UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
@@ -31,18 +34,20 @@ internal static class SetupChecks
         start.Environment["Setup__Token"] = "";
         start.Environment["Storage__Path"] = storage;
         start.Environment["Site__CookieName"] = prefix;
-        start.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
-        using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, CookieContainer = new CookieContainer() })
-            { BaseAddress = new Uri(baseUrl), Timeout = TimeSpan.FromSeconds(30) };
+        start.Environment["ASPNETCORE_ENVIRONMENT"] = OperatingSystem.IsWindows() ? "Development" : "Production";
+        using var handler = new HttpClientHandler { AllowAutoRedirect = false, CookieContainer = new CookieContainer() };
+        using var client = new HttpClient(handler) { BaseAddress = new Uri(baseUrl), Timeout = TimeSpan.FromSeconds(30) };
         async Task StartAsync()
         {
+            logs.Clear();
             web = Process.Start(start)!;
-            web.OutputDataReceived += (_, _) => { }; web.ErrorDataReceived += (_, _) => { };
+            web.OutputDataReceived += (_, e) => { if (e.Data != null) logs.Enqueue(e.Data); };
+            web.ErrorDataReceived += (_, e) => { if (e.Data != null) logs.Enqueue(e.Data); };
             web.BeginOutputReadLine(); web.BeginErrorReadLine();
             for (var attempt = 0; ; attempt++)
             {
                 try { await client.GetAsync("/Setup"); break; }
-                catch (HttpRequestException) when (attempt < 50 && !web.HasExited) { await Task.Delay(200); }
+                catch (HttpRequestException) when (attempt < 100 && !web.HasExited) { await Task.Delay(200); }
             }
             check(!web.HasExited, "Setup host starts successfully");
         }
@@ -51,101 +56,166 @@ internal static class SetupChecks
             if (web != null && !web.HasExited) { web.Kill(entireProcessTree: true); await web.WaitForExitAsync(); }
             web?.Dispose(); web = null;
         }
-        async Task<Dictionary<string, string>> FormAsync(string token)
+        async Task<Dictionary<string, string>> FormAsync(string? token = null)
         {
-            var document = parser.ParseDocument(await client.GetStringAsync("/Setup"));
-            return new() { ["__RequestVerificationToken"] = document.QuerySelector("input[name=__RequestVerificationToken]")!.GetAttribute("value")!, ["Token"] = token };
+            var page = await client.GetAsync("/Setup");
+            var html = page.StatusCode == HttpStatusCode.Redirect ? await client.GetStringAsync("/Admin") : await page.Content.ReadAsStringAsync();
+            var document = parser.ParseDocument(html);
+            var data = new Dictionary<string, string> { ["__RequestVerificationToken"] = document.QuerySelector("input[name=__RequestVerificationToken]")!.GetAttribute("value")! };
+            if (token != null) data["Token"] = token;
+            return data;
         }
-        async Task<HttpResponseMessage> SendAsync(string handler, Dictionary<string, string> data) =>
-            await client.PostAsync("/Setup" + handler, new FormUrlEncodedContent(data));
-        string ReadToken() => JsonDocument.Parse(File.ReadAllText(Path.Combine(storage, "setup.json"))).RootElement.GetProperty("Setup").GetProperty("Token").GetString()!;
+        async Task<HttpResponseMessage> SendAsync(string action, Dictionary<string, string> data) =>
+            await client.PostAsync("/Setup" + action, new FormUrlEncodedContent(data));
+        string ReadToken()
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(storage, "setup.json")));
+            return document.RootElement.GetProperty("Setup").GetProperty("Token").GetString()!;
+        }
+        void FillDatabase(Dictionary<string, string> data, string name, string field = "SiteDatabase")
+        {
+            data[field + ".Server"] = connection.Server;
+            data[field + ".Port"] = connection.Port.ToString();
+            data[field + ".Name"] = name;
+            data[field + ".UserName"] = connection.UserID;
+            data[field + ".Password"] = connection.Password;
+            data[field + ".SslMode"] = connection.SslMode.ToString();
+        }
+        CmsDb Database(string site, string? accounts = null)
+        {
+            var siteConnection = new MySqlConnectionStringBuilder(connection.ConnectionString) { Database = site };
+            var accountsConnection = new MySqlConnectionStringBuilder(connection.ConnectionString) { Database = accounts ?? site };
+            return new CmsDb(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
+                ["ConnectionStrings:Site"] = siteConnection.ConnectionString, ["ConnectionStrings:Accounts"] = accountsConnection.ConnectionString }).Build());
+        }
         try
         {
-            foreach (var name in databases)
-                await new MySqlCommand($"CREATE DATABASE `{name}` CHARACTER SET utf8mb4", server).ExecuteNonQueryAsync();
             await StartAsync();
             var token = ReadToken();
-            check(token.Length == 64, "Blank setup token is generated in private persistent storage");
+            check(token.Length == 64 && logs.Any(line => line.Contains("WordWebCMS Setup Token: " + token)), "Generated setup token is printed in the console");
             var html = await client.GetStringAsync("/Setup");
-            check(!html.Contains(token) && html.Contains("AccountsConnection") && html.Contains("handler=Initialize") && html.Contains("--initialize"), "Setup shows configuration and both initialization paths without revealing the token");
-            check((await client.GetStringAsync("/Setup?culture=en")).Contains("Manual initialization (command line)"), "New setup steps are translated into English");
-            await StopAsync();
-            start.Environment["ConnectionStrings__Accounts"] = "UnsupportedKeyword=startup-secret";
-            start.Environment["ConnectionStrings__Site"] = "UnsupportedKeyword=startup-secret";
-            await StartAsync();
-            var recovery = await client.GetStringAsync("/Setup");
-            check(parser.ParseDocument(recovery).QuerySelector("[role=alert]") != null && !recovery.Contains("startup-secret"), "Malformed deployment connections keep setup available for recovery");
-            await StopAsync();
-            start.Environment["ConnectionStrings__Accounts"] = ""; start.Environment["ConnectionStrings__Site"] = "";
-            await StartAsync();
-            check((await SendAsync("?handler=Configure", new() { ["Token"] = token })).StatusCode == HttpStatusCode.BadRequest, "Setup configuration requires antiforgery protection");
+            check(!html.Contains(token) && !html.Contains("AccountsConnection") && !html.Contains("--initialize"), "Initial page asks for the console token without exposing credentials or requiring commands");
+            check((await SendAsync("?handler=Authorize", new() { ["Token"] = token })).StatusCode == HttpStatusCode.BadRequest, "Setup authorization requires antiforgery protection");
             var data = await FormAsync("wrong-token");
-            check((await SendAsync("?handler=Initialize", data)).StatusCode == HttpStatusCode.Forbidden, "Invalid token cannot initialize a database");
+            check((await SendAsync("?handler=Initialize", data)).StatusCode == HttpStatusCode.Forbidden, "Invalid token cannot initialize databases");
             data = await FormAsync(token);
-            check((await SendAsync("?handler=Configure", data)).StatusCode == HttpStatusCode.OK && !File.ReadAllText(Path.Combine(storage, "setup.json")).Contains("ConnectionStrings"), "Empty connections are rejected without saving");
-            data = await FormAsync(token);
-            data["AccountsConnection"] = "Server=localhost;Database=invalid;User ID=test;UnsupportedKeyword=secret-marker";
-            data["SiteConnection"] = data["AccountsConnection"];
-            var invalid = await SendAsync("?handler=Configure", data);
-            check(invalid.StatusCode == HttpStatusCode.OK && !(await invalid.Content.ReadAsStringAsync()).Contains("secret-marker"), "Malformed connections return a recoverable error without reflecting credentials");
-            foreach (var name in databases)
+            var authorized = await SendAsync("?handler=Authorize", data);
+            var cookie = authorized.Headers.GetValues("Set-Cookie").First(value => value.StartsWith(prefix + ".Setup="));
+            check(authorized.StatusCode == HttpStatusCode.OK && cookie.Contains("httponly", StringComparison.OrdinalIgnoreCase) &&
+                cookie.Contains("samesite=strict", StringComparison.OrdinalIgnoreCase) && cookie.Contains("max-age=604800") && !cookie.Contains(token), "Browser remembers authorization for seven days in a protected HttpOnly cookie");
+            html = await client.GetStringAsync("/Setup");
+            var document = parser.ParseDocument(html);
+            check(document.QuerySelector("input[name=Token]") == null && document.QuerySelector("input[name='SiteDatabase.Server']") != null &&
+                document.QuerySelector("input[name='SiteDatabase.Password']")?.GetAttribute("type") == "password", "Refresh retains authorization and shows friendly database fields");
+            check(document.QuerySelector("form.setup-form")?.GetAttribute("action") == "/Setup" &&
+                document.QuerySelector("form.setup-form button")?.GetAttribute("formaction")?.Contains("handler=Configure") == true,
+                "The main form completes setup at its default handler and Enter does not forget authorization");
+            check((await client.GetStringAsync("/Setup?culture=en")).Contains("Database address"), "Friendly setup fields are translated into English");
+            check(parser.ParseDocument(await client.GetStringAsync("/setup")).QuerySelector("input[name=Token]") == null, "Remembered authorization works with lowercase setup URLs");
+            data = await FormAsync();
+            FillDatabase(data, databases[0]); data["SiteDatabase.Port"] = "not-a-port";
+            check((await SendAsync("?handler=Configure", data)).StatusCode == HttpStatusCode.OK && !File.ReadAllText(Path.Combine(storage, "setup.json")).Contains("ConnectionStrings"), "Invalid port cannot save a configuration");
+            data = await FormAsync(); FillDatabase(data, databases[0]); data["SiteDatabase.SslMode"] = "999";
+            await SendAsync("?handler=Configure", data);
+            check(!File.ReadAllText(Path.Combine(storage, "setup.json")).Contains("ConnectionStrings"), "Invalid encryption mode is rejected");
+            data = await FormAsync(); FillDatabase(data, databases[0]);
+            var saved = await SendAsync("?handler=Configure", data);
+            var savedHtml = parser.ParseDocument(await saved.Content.ReadAsStringAsync());
+            using (var database = Database(databases[0]))
+                check(saved.StatusCode == HttpStatusCode.OK && database.CheckSchema(), "Save automatically creates the named database and initializes its tables");
+            check(savedHtml.QuerySelector("input[name='SiteDatabase.Password']")?.GetAttribute("value") is null or "" &&
+                !savedHtml.QuerySelector("fieldset#setup-administrator")!.HasAttribute("disabled"), "Password is not reflected and administrator fields are immediately available");
+            data = await FormAsync(); FillDatabase(data, databases[0]); data["SiteDatabase.Password"] = "";
+            await SendAsync("?handler=Configure", data);
+            using (var savedConfig = JsonDocument.Parse(File.ReadAllText(Path.Combine(storage, "setup.json"))))
             {
-                connection.Database = name;
-                data = await FormAsync(token);
-                data["AccountsConnection"] = connection.ConnectionString;
-                data["SiteConnection"] = connection.ConnectionString;
-                var saved = await SendAsync("?handler=Configure", data);
-                var savedHtml = parser.ParseDocument(await saved.Content.ReadAsStringAsync());
-                check(saved.StatusCode == HttpStatusCode.OK && savedHtml.QuerySelector("input[name=AccountsConnection]")?.GetAttribute("value") is null or "", "Saved database credentials are never rendered into the form");
-                check(ReadToken() == token, "Saving connections preserves the bootstrap token");
-                var settings = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
-                    ["ConnectionStrings:Accounts"] = connection.ConnectionString, ["ConnectionStrings:Site"] = connection.ConnectionString }).Build();
-                using var database = new CmsDb(settings);
-                if (name == databases[0])
-                {
-                    data = await FormAsync(token);
-                    check((await SendAsync("?handler=Initialize", data)).StatusCode == HttpStatusCode.OK && database.CheckSchema(), "Token-protected web initialize creates the schema without restarting");
-                    data = await FormAsync(token);
-                    check((await SendAsync("?handler=Initialize", data)).StatusCode == HttpStatusCode.OK && database.CheckSchema(), "Repeated explicit initialization is safe before installation");
-                }
-                else
-                {
-                    // The CLI reads the exact saved setup file used by the running host.
-                    var command = new ProcessStartInfo("dotnet") { WorkingDirectory = start.WorkingDirectory,
-                        UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
-                    command.ArgumentList.Add(Path.Combine(AppContext.BaseDirectory, "WordWebCMS.dll"));
-                    command.ArgumentList.Add("--initialize");
-                    foreach (var entry in start.Environment) command.Environment[entry.Key] = entry.Value;
-                    using var initialize = Process.Start(command)!;
-                    var output = initialize.StandardOutput.ReadToEndAsync(); var error = initialize.StandardError.ReadToEndAsync();
-                    await initialize.WaitForExitAsync(); await output; await error;
-                    check(initialize.ExitCode == 0 && database.CheckSchema(), "Manual CLI initialization uses the saved connections");
-                    data = await FormAsync(token);
-                    var rechecked = parser.ParseDocument(await (await SendAsync("?handler=Check", data)).Content.ReadAsStringAsync());
-                    check(!rechecked.QuerySelector("fieldset")!.HasAttribute("disabled"), "Running host recognizes manual initialization without restarting");
-                }
+                var parsed = new MySqlConnectionStringBuilder(savedConfig.RootElement.GetProperty("ConnectionStrings").GetProperty("Site").GetString()!);
+                check(parsed.Password == connection.Password, "Leaving the database password blank preserves its saved value");
+                var edited = SetupModel.DatabaseInput.FromConnectionString(parsed.ConnectionString);
+                edited.UserName += "_other";
+                check(new MySqlConnectionStringBuilder(edited.ToConnectionString(parsed.ConnectionString)).Password == "", "Changing the server account does not reuse the old password");
             }
+            check(ReadToken() == token, "Saving database settings preserves the setup token");
             await StopAsync();
             await StartAsync();
-            check(ReadToken() == token && !parser.ParseDocument(await client.GetStringAsync("/Setup")).QuerySelector("fieldset")!.HasAttribute("disabled"), "Connections and token survive a process restart");
-            var finalConfig = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
-                ["ConnectionStrings:Accounts"] = connection.ConnectionString, ["ConnectionStrings:Site"] = connection.ConnectionString }).Build();
-            using var finalDb = new CmsDb(finalConfig);
+            document = parser.ParseDocument(await client.GetStringAsync("/Setup"));
+            check(document.QuerySelector("input[name=Token]") == null && document.QuerySelector("input[name='SiteDatabase.Name']")?.GetAttribute("value") == databases[0], "Authorization and database fields survive application restart");
+            check(logs.Any(line => line.Contains("WordWebCMS Setup Token: " + token)), "Existing token is printed again after restart");
+
+            data = await FormAsync(); FillDatabase(data, databases[1]);
+            FillDatabase(data, databases[2], "AccountsDatabase"); data["UseSeparateAccounts"] = "true";
+            await SendAsync("?handler=Configure", data);
+            using var finalDb = Database(databases[1], databases[2]);
+            check(finalDb.CheckSchema() && !finalDb.Site.DbFirst.ExistsTable("cms_user") && finalDb.Accounts.DbFirst.ExistsTable("cms_user"), "Separate account and site databases initialize automatically");
             var password = "Setup-" + Guid.NewGuid().ToString("N");
             var shared = await new AccountService(finalDb, new PasswordHasher<CmsUser>()).CreateAsync("shared-admin", "setup@example.test", password, true);
-            data = await FormAsync(token);
-            data["Title"] = "Setup regression"; data["BaseUrl"] = baseUrl;
-            data["UserName"] = "shared-admin"; data["Email"] = shared.Email; data["Password"] = "incorrect-shared-password";
-            check((await SendAsync("", data)).StatusCode == HttpStatusCode.OK && !finalDb.Site.Select<SiteSettings>().Any(), "Existing shared account requires its original verified password");
+            data = await FormAsync(); data["Title"] = "Setup regression"; data["BaseUrl"] = baseUrl;
+            data["UserName"] = shared.UserName; data["Email"] = shared.Email; data["Password"] = "incorrect-shared-password";
+            check((await SendAsync("", data)).StatusCode == HttpStatusCode.OK && !finalDb.Site.Select<SiteSettings>().Any(), "Existing shared account still requires its original verified password");
             data["Password"] = password;
             var completed = await SendAsync("", data);
-            check(completed.StatusCode == HttpStatusCode.Redirect && completed.Headers.Location?.ToString() == "/Admin", "Setup completes and signs in the administrator");
-            check(finalDb.Accounts.Select<CmsUser>().Count() == 1 && finalDb.Site.Select<SiteUserRole>().Where(r => r.UserId == shared.Id && r.Role == SiteRole.Administrator).Any(), "Setup reuses the shared account and grants the local administrator role");
-            check(finalDb.Site.Select<Post>().Count() == 1 && (await client.GetAsync("/")).StatusCode == HttpStatusCode.OK, "New site is immediately accessible with one welcome post");
-            data["__RequestVerificationToken"] = parser.ParseDocument(await client.GetStringAsync("/Admin"))
-                .QuerySelector("input[name=__RequestVerificationToken]")!.GetAttribute("value")!;
-            foreach (var handler in new[] { "", "?handler=Configure", "?handler=Initialize", "?handler=Check" })
-                check((await SendAsync(handler, data)).StatusCode == HttpStatusCode.Conflict, "Completed setup locks handler " + handler);
+            check(completed.StatusCode == HttpStatusCode.Redirect && completed.Headers.Location?.ToString() == "/Admin", "Complete setup uses remembered authorization and signs in the administrator");
+            check(finalDb.Accounts.Select<CmsUser>().Count() == 1 && finalDb.Site.Select<SiteUserRole>().Where(r => r.UserId == shared.Id && r.Role == SiteRole.Administrator).Any(), "Setup reuses the shared account and grants only the local administrator role");
+            check(finalDb.Site.Select<Post>().Count() == 1 && (await client.GetAsync("/")).StatusCode == HttpStatusCode.OK, "New site is accessible immediately with one welcome article");
+            data = await FormAsync(token);
+            foreach (var action in new[] { "", "?handler=Configure" })
+                check((await SendAsync(action, data)).StatusCode == HttpStatusCode.Conflict, "Completed installation cannot recreate administrators or change connections: " + action);
+
+            // Simulate an upgrade that needs to be resumed while the process remains running.
+            finalDb.Accounts.Update<SchemaVersion>().Set(v => v.Version, 3).Where(v => v.Id == 1).ExecuteAffrows();
+            finalDb.Site.Update<SchemaVersion>().Set(v => v.Version, 3).Where(v => v.Id == 1).ExecuteAffrows();
+            data = await FormAsync(token); // Refresh marks schema unavailable before testing a missing column.
+            finalDb.Accounts.Ado.ExecuteNonQuery("ALTER TABLE cms_user DROP COLUMN Bio");
+            await SendAsync("?handler=Authorize", data);
+            html = WebUtility.HtmlDecode(await client.GetStringAsync("/Setup"));
+            check(parser.ParseDocument(html).QuerySelector("button[formaction*='handler=Initialize']") != null && !html.Contains("--initialize") && !html.Contains("入口已锁定"), "Existing site gets a browser upgrade action instead of a command-line lock");
+            using (var anonymous = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, CookieContainer = new CookieContainer() }) { BaseAddress = new Uri(baseUrl) })
+            {
+                var anonymousHtml = parser.ParseDocument(await anonymous.GetStringAsync("/Setup"));
+                var untrusted = new Dictionary<string, string> { ["__RequestVerificationToken"] = anonymousHtml.QuerySelector("input[name=__RequestVerificationToken]")!.GetAttribute("value")! };
+                check((await anonymous.PostAsync("/Setup?handler=Initialize", new FormUrlEncodedContent(untrusted))).StatusCode == HttpStatusCode.Forbidden, "Anonymous callers cannot upgrade the existing database");
+            }
+            check((await client.GetAsync("/")).StatusCode == HttpStatusCode.Redirect, "Normal traffic waits at setup while schema needs an upgrade");
+            data = await FormAsync();
+            var upgraded = await SendAsync("?handler=Initialize", data);
+            check(upgraded.StatusCode == HttpStatusCode.Redirect && finalDb.CheckSchema() && finalDb.Accounts.DbFirst.GetTableByName("cms_user").Columns.Any(c => c.Name == "Bio"), "Browser upgrade repairs an installed site without a process restart");
+            check(finalDb.Site.Select<Post>().Count() == 1 && finalDb.Accounts.Select<CmsUser>().First().Email == shared.Email, "Browser upgrade preserves existing content and shared accounts");
+            await StopAsync();
+            finalDb.Accounts.Ado.ExecuteNonQuery("ALTER TABLE cms_user DROP COLUMN Bio");
+            finalDb.Accounts.Update<SchemaVersion>().Set(v => v.Version, 3).Where(v => v.Id == 1).ExecuteAffrows();
+            finalDb.Site.Update<SchemaVersion>().Set(v => v.Version, 3).Where(v => v.Id == 1).ExecuteAffrows();
+            await StartAsync();
+            check(finalDb.CheckSchema() && finalDb.Accounts.DbFirst.GetTableByName("cms_user").Columns.Any(c => c.Name == "Bio") &&
+                (await client.GetAsync("/")).StatusCode == HttpStatusCode.OK, "Container-style restart automatically upgrades the existing schema before serving traffic");
+            check((await client.GetAsync("/Setup")).StatusCode == HttpStatusCode.Redirect && finalDb.Site.Select<Post>().Count() == 1, "Successful automatic upgrade closes setup without reinstalling the site");
+
+            // A legacy database must remain untouched, while recovery stays available in the browser.
+            await StopAsync();
+            await new MySqlCommand($"CREATE DATABASE `{databases[3]}` CHARACTER SET utf8mb4", server).ExecuteNonQueryAsync();
+            await new MySqlCommand($"CREATE TABLE `{databases[3]}`.legacy_data (id INT PRIMARY KEY)", server).ExecuteNonQueryAsync();
+            connection.Database = databases[3];
+            using (var legacySettings = JsonDocument.Parse(File.ReadAllText(Path.Combine(storage, "setup.json"))))
+            {
+                var settings = JsonSerializer.Deserialize<Dictionary<string, object>>(legacySettings.RootElement.GetRawText())!;
+                settings["ConnectionStrings"] = new { Accounts = connection.ConnectionString, Site = connection.ConnectionString };
+                File.WriteAllText(Path.Combine(storage, "setup.json"), JsonSerializer.Serialize(settings));
+            }
+            await StartAsync();
+            html = await client.GetStringAsync("/Setup");
+            using var legacyDb = Database(databases[3]);
+            check(legacyDb.Site.DbFirst.ExistsTable("legacy_data") && !legacyDb.Site.DbFirst.ExistsTable("schema_version") && html.Contains("handler=Initialize"), "Automatic startup refuses legacy tables and keeps a browser retry available");
+            data = await FormAsync();
+            await SendAsync("?handler=Forget", data);
+            check(parser.ParseDocument(await client.GetStringAsync("/Setup")).QuerySelector("input[name=Token]") != null, "Forget authorization returns the browser to the token form");
+            await StopAsync();
+            File.Delete(Path.Combine(storage, "setup.json"));
+            connection.Database = databases[4];
+            start.Environment["ConnectionStrings__Site"] = connection.ConnectionString;
+            start.Environment["ConnectionStrings__Accounts"] = connection.ConnectionString;
+            await StartAsync();
+            using var automaticDb = Database(databases[4]);
+            check(automaticDb.CheckSchema() && !automaticDb.Site.Select<SiteSettings>().Any() && (await client.GetAsync("/Setup")).StatusCode == HttpStatusCode.OK,
+                "Environment-only deployment automatically creates a new database and its schema on startup, even with an old login cookie");
         }
         finally
         {

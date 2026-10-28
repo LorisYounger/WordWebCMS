@@ -125,7 +125,7 @@ assets/
 
 评论 Markdown 在解析阶段禁用原始 HTML，再执行同一允许列表。预览与公开文章使用同一 `MarkdownService`。图片地址和导航地址在保存时另做 Web URL 检查。媒体库支持 PNG/JPEG/GIF/WebP 和下载型 PDF，不允许 HTML/SVG 上传。
 
-## 作者主页与浏览器时间（结构版本 4）
+## 作者主页与浏览器时间
 
 作者主页复用 `list.liquid`，`profile` 包含 `name`、`avatar`、`bio`、`own`；`posts` 是该作者的公开文章并按 10 篇分页。请对个人介绍正常转义，不使用 `raw`。`own` 为真时可以链接到 `/Account/Profile` 编辑个人介绍。
 

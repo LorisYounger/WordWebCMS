@@ -41,8 +41,16 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     options.LoginPath = "/Account/Login";
     options.AccessDeniedPath = "/Error/403";
     options.ExpireTimeSpan = TimeSpan.FromDays(14);
-    options.Events.OnValidatePrincipal = context => context.HttpContext.RequestServices
-        .GetRequiredService<AccountService>().ValidateCookieAsync(context);
+    options.Events.OnValidatePrincipal = context =>
+    {
+        var setup = context.HttpContext.RequestServices.GetRequiredService<SetupService>();
+        if (!setup.SchemaReady || !setup.Installed)
+        {
+            context.RejectPrincipal();
+            return Task.CompletedTask;
+        }
+        return context.HttpContext.RequestServices.GetRequiredService<AccountService>().ValidateCookieAsync(context);
+    };
 });
 builder.Services.AddAuthorization(options =>
 {
@@ -95,8 +103,8 @@ if (args.Contains("--initialize"))
     return;
 }
 var setup = app.Services.GetRequiredService<SetupService>();
-setup.Refresh();
-if (!setup.Installed) setup.EnsureToken();
+setup.EnsureToken();
+setup.InitializeOnStartup();
 app.Services.GetRequiredService<ThemeService>().InitializeDefault();
 UiText.Load(Path.Combine(app.Environment.ContentRootPath, "Languages"), Path.Combine(storage, "languages"));
 var localization = new RequestLocalizationOptions {
