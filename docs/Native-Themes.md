@@ -55,7 +55,7 @@ assets/
 | `language`, `languages` | 当前 CultureInfo 名称；可切换语言的 `name`、`code`、`url` |
 | `is_page`, `registration_open`, `user_avatar` | 是否独立页面、是否接受注册、当前用户头像 |
 | `client_messages` | 使用安全 JSON 编码生成的 JS 界面文本，可在 application/json 数据节点中 raw 输出 |
-| `csrf` | 当前请求防伪令牌，所有 POST 表单必须提交 |
+| `csrf` | 模板执行到此变量时才生成防伪令牌；所有 POST 表单必须提交，纯浏览分支不要读取 |
 | `body` | 仅 layout 使用：已渲染的页面片段，用 `{{ body \| raw }}` 输出 |
 
 布局示例（完整可用样例见 `WordWebCMS/theme/default`）：
@@ -106,6 +106,17 @@ assets/
 ```
 
 点赞是设置期望状态，不是盲目翻转；重复提交 `liked=true` 不会叠加数量。只允许登录且在本站未封禁的用户写入。
+
+`csrf` 只在实际执行的模板分支中按需生成。请将它放在对应 POST 表单内，不要在全局布局无条件赋值或输出；GET 搜索与语言选择表单不需要令牌。使用令牌的响应禁止缓存，包括自定义主题中的匿名表单。登录用户的页面仍禁止缓存，以免复用个人状态。
+
+静态资源使用 `asset_url` 过滤器生成内容哈希版本；文件内容改变后 URL 自动改变：
+
+```liquid
+<link rel="stylesheet" href="{{ theme_url | append: '/assets/site.css' | asset_url }}">
+<script src="{{ '/js/local-time.js' | asset_url }}" defer></script>
+```
+
+过滤器接受当前主题资源或 wwwroot 中的本地绝对 URL，不带查询参数。版本化资源采用 `public, max-age=31536000, immutable`；未带版本的旧资源链接（包括 CSS 内引用的字体）采用 `public, no-cache`，保留副本并通过 ETag / Last-Modified 验证。不要给可变文件手写固定 `?v=4` 一类版本。
 
 ## page.liquid
 

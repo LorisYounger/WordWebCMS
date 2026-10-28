@@ -24,6 +24,6 @@ public class FeedModel(CmsDb db) : PageModel
                         new XElement("guid", link), new XElement("description", text.Summary),
                         new XElement("pubDate", DateTime.SpecifyKind(r.PublishedUtc!.Value, DateTimeKind.Utc).ToString("r")));
                 }))));
-        return Content(xml.ToString(), "application/rss+xml; charset=utf-8");
+        return HttpCache.Content(HttpContext, xml.ToString(), "application/rss+xml; charset=utf-8");
     }
 }

@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -16,7 +17,7 @@ public class ThemeService(StoragePaths paths, IWebHostEnvironment env, IAntiforg
     public static readonly string[] Templates = ["layout.liquid", "list.liquid", "post.liquid", "error.liquid"];
     private readonly FluidParser parser = new();
 
-    public async Task<ContentResult> PageAsync(CmsDb db, HttpContext http, string template, Dictionary<string, object?> data, int status = 200)
+    public async Task<IActionResult> PageAsync(CmsDb db, HttpContext http, string template, Dictionary<string, object?> data, int status = 200)
     {
         var settings = http.Items["SiteSettings"] as SiteSettings ?? await db.Site.Select<SiteSettings>().FirstAsync();
         var navigation = await db.Site.Select<NavigationItem>().OrderBy(n => n.SortOrder).OrderBy(n => n.Id).ToListAsync();
@@ -64,12 +65,11 @@ public class ThemeService(StoragePaths paths, IWebHostEnvironment env, IAntiforg
         data["signed_in"] = http.User.Identity?.IsAuthenticated == true;
         data["can_manage"] = AccountService.CanEditAll(http.User) || http.User.IsInRole("Contributor");
         data["user_name"] = http.User.Identity?.Name ?? "";
-        data["csrf"] = antiforgery.GetAndStoreTokens(http).RequestToken;
         data.TryAdd("title", siteText.Title);
         data.TryAdd("description", siteText.Description);
         data.TryAdd("canonical", settings.BaseUrl + http.Request.Path);
-        http.Response.Headers.CacheControl = "no-store";
-        return new ContentResult { Content = await RenderAsync(settings.Theme, template, data), ContentType = "text/html; charset=utf-8", StatusCode = status };
+        var html = await RenderAsync(settings.Theme, template, data, http);
+        return HttpCache.Content(http, html, "text/html; charset=utf-8", status);
     }
 
     private static bool OpensNewWindow(string url) => Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" ||
@@ -99,14 +99,36 @@ public class ThemeService(StoragePaths paths, IWebHostEnvironment env, IAntiforg
         }
     }
 
-    public async Task<string> RenderAsync(string theme, string template, Dictionary<string, object?> data)
+    public async Task<string> RenderAsync(string theme, string template, Dictionary<string, object?> data, HttpContext? http = null)
     {
         if (!Regex.IsMatch(theme, "^[a-z0-9][a-z0-9-]{0,63}$") || !(Templates.Contains(template) || template == "page.liquid"))
             throw new InvalidDataException(UiText.T("主题或模板名称无效。"));
         var options = new TemplateOptions { MaxRecursion = 32, MaxSteps = 100000 };
         options.Filters.AddFilter("t", (input, arguments, context) => new ValueTask<FluidValue>(new StringValue(UiText.T(input.ToStringValue()))));
+        options.Filters.AddFilter("asset_url", (input, arguments, context) =>
+        {
+            var url = input.ToStringValue();
+            var prefix = "/theme-assets/" + theme + "/";
+            var relative = url.StartsWith(prefix, StringComparison.Ordinal) ? url[prefix.Length..] : url.TrimStart('/');
+            var root = url.StartsWith(prefix, StringComparison.Ordinal) ? Path.Combine(paths.Themes, theme) : env.WebRootPath;
+            if (url.StartsWith('/') && !url.StartsWith("//") && Regex.IsMatch(relative, "^[a-zA-Z0-9_./-]+$") &&
+                !relative.Split('/').Any(part => part is ".." or "." or ""))
+            {
+                var file = Path.Combine(root, relative);
+                if (File.Exists(file)) url += "?v=" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(file)));
+            }
+            return new ValueTask<FluidValue>(new StringValue(url));
+        });
         var context = new TemplateContext(options);
         foreach (var item in data) context.SetValue(item.Key, item.Value);
+        if (http != null)
+        {
+            // Resolve csrf only when an executed template branch uses it, including custom themes.
+            FluidValue? token = null;
+            context.Undefined = name => new ValueTask<FluidValue>(name == "csrf"
+                ? token ??= new StringValue(antiforgery.GetAndStoreTokens(http).RequestToken ?? "")
+                : NilValue.Instance);
+        }
         context.SetValue("theme_url", "/theme-assets/" + theme);
         foreach (var file in new[] { template, "layout.liquid" })
         {
