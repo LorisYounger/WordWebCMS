@@ -77,7 +77,7 @@ public class IndexModel(CmsDb db, ThemeService themes) : PageModel
             .OrderByDescending((post, revision) => post.Id).Page(p, 10).ToListAsync((post, revision) => new { Post = post, Revision = revision });
         var ids = rows.Select(r => r.Post.Id).ToArray();
         var authorIds = rows.Select(r => r.Post.AuthorId).ToArray();
-        var authors = (await db.Accounts.Select<CmsUser>().Where(u => authorIds.Contains(u.Id)).ToListAsync(u => new { u.Id, u.UserName })).ToDictionary(u => u.Id, u => u.UserName);
+        var authors = (await db.Accounts.Select<CmsUser>().Where(u => authorIds.Contains(u.Id)).ToListAsync(u => new { u.Id, u.UserName, u.AvatarUrl })).ToDictionary(u => u.Id);
         var likes = (await db.Site.Select<PostLike>().Where(l => ids.Contains(l.PostId)).GroupBy(l => l.PostId)
             .ToListAsync(g => new { Id = g.Key, Count = g.Count() })).ToDictionary(l => l.Id, l => l.Count);
         var settings = (SiteSettings)HttpContext.Items["SiteSettings"]!;
@@ -85,7 +85,7 @@ public class IndexModel(CmsDb db, ThemeService themes) : PageModel
         var data = new Dictionary<string, object?> {
             ["heading"] = author != null ? author.UserName : q != null ? UiText.T("搜索：") + q : category.HasValue ? categories.FirstOrDefault(c => c.Id == category)?.Name ?? UiText.T("分类") : tag.HasValue ? selectedTag!.Name : year.HasValue ? UiText.Format("{0} 年 {1} 归档", year, month?.ToString()) : UiText.T("最新文章"),
             ["title"] = author?.UserName ?? selectedCategory?.Name ?? selectedTag?.Name ?? q ?? (year.HasValue ? UiText.Format("{0} 年 {1} 归档", year, month?.ToString()) : UiText.T("最新文章")),
-            ["profile"] = author == null ? null : new Dictionary<string, object?> { ["name"] = author.UserName, ["avatar"] = ShortLinks.Avatar(author.UserName), ["bio"] = author.Bio, ["own"] = author.Id == AccountService.UserId(User) },
+            ["profile"] = author == null ? null : new Dictionary<string, object?> { ["name"] = author.UserName, ["avatar"] = ShortLinks.Avatar(author.UserName, author.AvatarUrl), ["bio"] = author.Bio, ["own"] = author.Id == AccountService.UserId(User) },
             ["query"] = q ?? "", ["total"] = total, ["page"] = p,
             ["is_home"] = string.IsNullOrWhiteSpace(q) && !category.HasValue && !tag.HasValue && !year.HasValue && author == null && p == 1,
             ["previous"] = p > 1 ? QueryHelpers.AddQueryString(ListUrl(p - 1), extraQuery) : "",
@@ -95,8 +95,8 @@ public class IndexModel(CmsDb db, ThemeService themes) : PageModel
                 ["id"] = r.Post.Id, ["title"] = r.Text.Title, ["summary"] = r.Text.Summary, ["pinned"] = r.Post.PinOrder > 0,
                 ["category"] = categories.FirstOrDefault(c => c.Id == r.Revision.CategoryId)?.Name ?? "", ["category_url"] = PublicUrls.Category(categories.FirstOrDefault(c => c.Id == r.Revision.CategoryId)?.Name),
                 ["url"] = "/" + r.Post.Slug, ["cover"] = r.Text.CoverUrl, ["date"] = r.Post.PublishedUtc?.ToString("yyyy-MM-dd"), ["date_utc"] = PublicUrls.Utc(r.Post.PublishedUtc),
-                ["author_url"] = PublicUrls.Author(authors.GetValueOrDefault(r.Post.AuthorId, "user")),
-                ["avatar"] = ShortLinks.Avatar(authors.GetValueOrDefault(r.Post.AuthorId, "user")), ["author"] = authors.GetValueOrDefault(r.Post.AuthorId, UiText.T("用户")), ["likes"] = likes.GetValueOrDefault(r.Post.Id), ["views"] = r.Post.Views
+                ["author_url"] = PublicUrls.Author(authors.GetValueOrDefault(r.Post.AuthorId)?.UserName ?? "user"),
+                ["avatar"] = ShortLinks.Avatar(authors.GetValueOrDefault(r.Post.AuthorId)?.UserName ?? "user", authors.GetValueOrDefault(r.Post.AuthorId)?.AvatarUrl), ["author"] = authors.GetValueOrDefault(r.Post.AuthorId)?.UserName ?? UiText.T("用户"), ["likes"] = likes.GetValueOrDefault(r.Post.Id), ["views"] = r.Post.Views
             }).ToArray()
         };
         return await themes.PageAsync(db, HttpContext, "list.liquid", data);

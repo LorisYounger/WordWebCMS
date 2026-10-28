@@ -16,5 +16,7 @@ public static class ShortLinks
         return IsValid(slug) ? slug : fallback;
     }
 
-    public static string Avatar(string username) => "https://avatar.exlb.net/" + Uri.EscapeDataString(username);
+    public static string Avatar(string username, string? avatarUrl = null) =>
+        !string.IsNullOrWhiteSpace(avatarUrl) && MarkdownService.IsWebUrl(avatarUrl)
+            ? avatarUrl : "https://avatar.exlb.net/" + Uri.EscapeDataString(username);
 }

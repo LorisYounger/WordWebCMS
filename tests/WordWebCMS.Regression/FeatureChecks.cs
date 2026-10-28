@@ -7,7 +7,7 @@ using WordWebCMS.Services;
 
 internal static class FeatureChecks
 {
-    public static async Task RunAsync(CmsDb db, HttpClient admin, HttpClient visitor, CmsUser owner, Action<bool, string> check)
+    public static async Task RunAsync(CmsDb db, HttpClient admin, HttpClient visitor, CmsUser owner, string password, Action<bool, string> check)
     {
         var parser = new HtmlParser();
         var content = new ContentService(db);
@@ -60,8 +60,18 @@ internal static class FeatureChecks
         check((await visitor.GetAsync("/Account/Profile")).StatusCode == HttpStatusCode.Redirect, "Profile editing requires authentication");
         check((await admin.PostAsync("/Account/Profile", new FormUrlEncodedContent(new Dictionary<string,string> { ["Bio"] = "forged" }))).StatusCode == HttpStatusCode.BadRequest, "Profile editing requires CSRF token");
         var bio = "Writes about software.\n<script>alert(1)</script>";
-        var responseProfile = await admin.PostAsync("/Account/Profile", new FormUrlEncodedContent(new Dictionary<string,string> { ["__RequestVerificationToken"] = await Token("/Account/Profile"), ["Bio"] = bio, ["UserId"] = "99999" }));
+        var avatar = "https://example.test/user-avatar.png";
+        var responseProfile = await admin.PostAsync("/Account/Profile", new FormUrlEncodedContent(new Dictionary<string,string> { ["__RequestVerificationToken"] = await Token("/Account/Profile"), ["Bio"] = bio, ["AvatarUrl"] = "  " + avatar + "  ", ["UserId"] = other.Id.ToString() }));
         check(responseProfile.Headers.Location?.ToString() == PublicUrls.Author(owner.UserName) && db.Accounts.Select<CmsUser>().Where(u => u.Id == owner.Id).First().Bio == bio, "Profile edit updates the authenticated user's introduction");
+        check(db.Accounts.Select<CmsUser>().Where(u => u.Id == owner.Id).First().AvatarUrl == avatar &&
+            string.IsNullOrEmpty(db.Accounts.Select<CmsUser>().Where(u => u.Id == other.Id).First().AvatarUrl), "Avatar URL is trimmed and only updates the signed-in user");
+        foreach (var invalid in new[] { "javascript:alert(1)", "//example.test/avatar.png", new string('a', 1001) })
+        {
+            await admin.PostAsync("/Account/Profile", new FormUrlEncodedContent(new Dictionary<string,string> {
+                ["__RequestVerificationToken"] = await Token("/Account/Profile"), ["AvatarUrl"] = invalid, ["Bio"] = "Must not save" }));
+            check(db.Accounts.Select<CmsUser>().Where(u => u.Id == owner.Id).First().AvatarUrl == avatar &&
+                db.Accounts.Select<CmsUser>().Where(u => u.Id == owner.Id).First().Bio == bio, "Invalid avatar does not update profile: " + invalid[..Math.Min(invalid.Length, 30)]);
+        }
         var profile = await Document(PublicUrls.Author(owner.UserName));
         check(profile.QuerySelector(".profile-bio")?.TextContent == bio && profile.QuerySelector(".profile-bio script") == null, "Profile bio is escaped and never exposes executable HTML");
         check(profile.QuerySelector(".profile-card img") != null && profile.QuerySelectorAll(".post-card").Length > 0 && profile.QuerySelectorAll(".post-card a").All(a => a.GetAttribute("href") != "/about"), "Profile contains avatar, bio and author's articles, excluding pages");
@@ -69,6 +79,35 @@ internal static class FeatureChecks
         check(!profile.DocumentElement.OuterHtml.Contains(owner.Email) && !profile.DocumentElement.OuterHtml.Contains(owner.PasswordHash), "Public profile does not expose account secrets");
         check((await Document(PublicUrls.Author(owner.UserName), admin)).QuerySelector(".profile-card a[href='/Account/Profile']") != null, "Profile owner can find the edit action");
         check((await visitor.GetAsync("/author/unknown-user")).StatusCode == HttpStatusCode.NotFound, "Unknown author returns 404");
+        var avatarComment = db.Site.Insert(new Comment { PostId = posts[0], UserId = owner.Id, Markdown = "Avatar check", Approved = true }).ExecuteIdentity();
+        foreach (var theme in new[] { "default", "milky" })
+        {
+            db.Site.Update<SiteSettings>().Set(s => s.Theme, theme).Where(s => s.Id == 1).ExecuteAffrows();
+            var authorPage = await Document(PublicUrls.Author(owner.UserName), admin);
+            var article = await Document("/feature-article-0", admin);
+            check(authorPage.QuerySelector(".profile-card img")?.GetAttribute("src") == avatar &&
+                authorPage.QuerySelectorAll(".post-card .avatar").All(img => img.GetAttribute("src") == avatar) &&
+                article.QuerySelector(".article-header .avatar")?.GetAttribute("src") == avatar &&
+                article.QuerySelector("#comment-" + avatarComment + " .avatar")?.GetAttribute("src") == avatar,
+                theme + " uses custom avatars for profiles, article lists, authors and comments");
+            check(article.DocumentElement.OuterHtml.Contains("/WWC.png"), theme + " uses bundled site avatar");
+        }
+        db.Site.Update<SiteSettings>().Set(s => s.Theme, "default").Where(s => s.Id == 1).ExecuteAffrows();
+        db.Site.Delete<Comment>().Where(c => c.Id == avatarComment).ExecuteAffrows();
+        check((await Document("/Account/Profile", admin)).QuerySelector(".admin-bar .avatar")?.GetAttribute("src") == avatar, "Account navigation immediately reflects custom avatar");
+        check((await Document("/Admin/Settings", admin)).QuerySelector("input[name='Settings.AvatarUserName']") == null, "Removed default avatar username setting");
+        await AdminCustomizationChecks.RunAsync(db, admin, visitor, owner, password, check);
+        var previewPath = "/Admin/Edit/" + posts[0];
+        var previewForm = new Dictionary<string, string> { ["__RequestVerificationToken"] = await Token(previewPath),
+            ["Draft.Markdown"] = "## Unsaved preview\n<script>alert(1)</script>", ["Translations[en].Markdown"] = "**English preview**" };
+        var previewVersion = db.Site.Select<PostDraft>().Where(d => d.PostId == posts[0]).First().Version;
+        var previewResponse = await admin.PostAsync(previewPath + "?handler=Preview", new FormUrlEncodedContent(previewForm));
+        var previewHtml = await previewResponse.Content.ReadAsStringAsync();
+        check(previewResponse.IsSuccessStatusCode && previewHtml.Contains("<h2>") && previewHtml.Contains("Unsaved preview") && !previewHtml.Contains("<script>"), "Preview renders unsaved Markdown and sanitizes HTML");
+        previewForm["contentLanguage"] = "en";
+        previewResponse = await admin.PostAsync(previewPath + "?handler=Preview", new FormUrlEncodedContent(previewForm));
+        check((await previewResponse.Content.ReadAsStringAsync()).Contains("<strong>English preview</strong>") &&
+            db.Site.Select<PostDraft>().Where(d => d.PostId == posts[0]).First().Version == previewVersion, "Preview selects the current translation without saving the draft");
         if (Environment.GetEnvironmentVariable("WWCMS_BROWSER_CHECKS") == "1")
         {
             try
@@ -76,17 +115,26 @@ internal static class FeatureChecks
                 foreach (var theme in new[] { "default", "milky" })
                 {
                     db.Site.Update<SiteSettings>().Set(s => s.Theme, theme).Where(s => s.Id == 1).ExecuteAffrows();
-                    var start = new System.Diagnostics.ProcessStartInfo("node") { UseShellExecute = false, CreateNoWindow = true };
+                    var start = new System.Diagnostics.ProcessStartInfo("node") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
                     start.ArgumentList.Add("tests/WordWebCMS.Regression/browser-features.cjs");
                     start.ArgumentList.Add(visitor.BaseAddress!.ToString().TrimEnd('/'));
                     start.ArgumentList.Add(theme); start.ArgumentList.Add(owner.UserName);
+                    start.ArgumentList.Add(posts[0].ToString());
+                    start.Environment["WWCMS_TEST_PASSWORD"] = password;
                     using var browser = System.Diagnostics.Process.Start(start)!;
+                    var browserOutput = browser.StandardOutput.ReadToEndAsync();
+                    var browserErrors = browser.StandardError.ReadToEndAsync();
                     await browser.WaitForExitAsync();
+                    Console.Write(await browserOutput);
+                    Console.Write(await browserErrors);
                     check(browser.ExitCode == 0, "Browser acceptance: " + theme);
                 }
             }
             finally { db.Site.Update<SiteSettings>().Set(s => s.Theme, "default").Where(s => s.Id == 1).ExecuteAffrows(); }
         }
+        await admin.PostAsync("/Account/Profile", new FormUrlEncodedContent(new Dictionary<string,string> {
+            ["__RequestVerificationToken"] = await Token("/Account/Profile"), ["AvatarUrl"] = "", ["Bio"] = bio }));
+        check((await Document(PublicUrls.Author(owner.UserName))).QuerySelector(".profile-card img")?.GetAttribute("src") == ShortLinks.Avatar(owner.UserName), "Clearing user avatar restores the username default");
         var idToConvert = posts[0];
         var oldPost = db.Site.Select<Post>().Where(p => p.Id == idToConvert).First();
         var oldPublished = oldPost.PublishedRevisionId!.Value;

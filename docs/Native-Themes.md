@@ -151,3 +151,8 @@ assets/
 评论和后台完整时间使用 `data-local-time="datetime"`。浏览器使用自己的时区，显示格式跟随页面语言。
 
 `/css/icons.css` 和 `/fonts/remixicon.ttf` 提供本地 Remix Icon 子集类名；可使用 `<i class="ri-home-line" aria-hidden="true"></i>`。图标旁保留文字，纯图标按钮需有可读标签。字体来源为 [Remix Icon](https://remixicon.com/)，授权链接随字体分发。
+
+
+### 前台头像和页脚设置
+
+`site.hide_user_avatars` 为后台头像开关；自定义主题应以 `{% unless site.hide_user_avatars %}` 包裹列表、文章、评论和前台导航的用户头像，保留作者名称。`site.footer_html` 是已根据当前语言回退并经过 HTML 清理的 Markdown 页脚，使用 `{{ site.footer_html | raw }}` 输出；为空时使用主题自己的默认页脚。站点头像仍由 `site.avatar` 提供。

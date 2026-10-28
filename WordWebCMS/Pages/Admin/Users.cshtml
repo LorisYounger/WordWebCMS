@@ -1,13 +1,34 @@
 @page
 @model WordWebCMS.Pages.Admin.UsersModel
-@{ ViewData["Title"] = UiText.T("站点权限"); }
+@{ ViewData["Title"] = UiText.T("用户管理"); }
 <div class="page-heading"><h1>@UiText.T("用户管理")</h1><p>@UiText.T("角色和封禁仅对本站生效。")</p></div>
-<section class="card"><h2>@UiText.T("待审核注册")</h2><p>@UiText.T("这里每次显示最早的 100 条申请。审核通过后，用户还需要验证邮箱才能登录。")</p>
+@if (TempData["UsersSaved"] is string message) { <p class="notice" role="status">@message</p> }
+<section class="card" id="pending-users"><h2>@UiText.T("待审核注册")</h2><p class="help">@UiText.T("仅显示已验证邮箱且账号可用的申请，每次显示最早的 100 条。未验证邮箱的用户不会进入审核。")</p>
 @foreach (var account in Model.Pending) {
-<div class="list-row"><span>@account.UserName · @account.Email · @(account.EmailConfirmed ? UiText.T("邮箱已验证") : UiText.T("邮箱未验证"))</span><form method="post" class="inline"><input type="hidden" name="login" value="@account.UserName" /><button name="role" value="Reader">@UiText.T("批准注册")</button><button name="role" value="Banned" class="secondary">@UiText.T("拒绝注册")</button></form></div>
+<div class="list-row"><span>@account.UserName · @account.Email <small>@UiText.T("邮箱已验证")</small></span><form method="post" class="inline"><input type="hidden" name="login" value="@account.UserName" /><button name="role" value="Reader">@UiText.T("批准注册")</button><button name="role" value="Banned" class="secondary">@UiText.T("拒绝注册")</button></form></div>
 }
-@if (Model.Pending.Count == 0) { <p>@UiText.T("没有待审核注册。")</p> }
+@if (Model.Pending.Count == 0) { <p class="muted">@UiText.T("没有待审核注册。")</p> }
 </section>
-<form method="post" class="card form-panel"><label for="login">@UiText.T("已注册的用户名或邮箱")</label><input id="login" name="login" required maxlength="254" /><label for="role">@UiText.T("本站角色")</label><select id="role" name="role"><option value="Reader">@UiText.T("注册用户 · 评论")</option><option value="Contributor">@UiText.T("投稿者 · 编辑自己的内容并提交审核")</option><option value="Editor">@UiText.T("编辑 · 全站内容与评论审核")</option><option value="Administrator">@UiText.T("管理员 · 包含用户、设置与主题管理")</option><option value="Banned">@UiText.T("在本站封禁")</option></select><div class="form-actions"><button>@UiText.T("更新本站角色")</button></div></form>
-<section class="card"><h2>@UiText.T("已设定角色")</h2>@foreach (var role in Model.Roles) { <div class="list-row"><span>@Model.Names.GetValueOrDefault(role.UserId, UiText.T("用户")) (#@role.UserId)</span><span>@(role.Role switch { SiteRole.Pending => UiText.T("待审核"), SiteRole.Reader => UiText.T("注册用户"), SiteRole.Contributor => UiText.T("投稿者"), SiteRole.Editor => UiText.T("编辑"), SiteRole.Administrator => UiText.T("管理员"), SiteRole.Banned => UiText.T("已封禁"), _ => role.Role.ToString() })</span></div> }
-<nav class="pagination">@if (Model.P > 1) { <a asp-route-p="@(Model.P - 1)">@UiText.T("上一页")</a> }@if (Model.Roles.Count == 30) { <a asp-route-p="@(Model.P + 1)">@UiText.T("下一页")</a> }</nav></section>
+<section class="card"><h2>@UiText.T("本站用户") <small class="muted">(@Model.Total)</small></h2>
+<form method="get" class="user-filters"><div><label for="user-search">@UiText.T("搜索用户名或邮箱")</label><input id="user-search" name="Q" value="@Model.Q" maxlength="254" type="search" /></div><div><label asp-for="Status">@UiText.T("状态")</label><select asp-for="Status"><option value="">@UiText.T("全部本站用户")</option><option value="unverified">@UiText.T("邮箱未验证")</option>@foreach (var role in Enum.GetValues<SiteRole>()) { <option value="@role">@WordWebCMS.Pages.Admin.UsersModel.RoleName(role)</option> }</select></div><button>@UiText.T("筛选")</button><a href="/Admin/Users">@UiText.T("重置")</a></form>
+<p class="help">@UiText.T("移除会撤销本站访问权限，保留已发表内容，不删除其他站点共享的账号。可在“已移除”筛选中重新授予角色。")</p>
+<div class="user-list">
+@foreach (var membership in Model.Roles) {
+    var account = Model.Accounts.GetValueOrDefault(membership.UserId);
+    if (account == null) { continue; }
+    var isSelf = account.Id == AccountService.UserId(User);
+<div class="user-row" data-user-id="@account.Id"><div class="user-details"><strong>@account.UserName</strong> <small>#@account.Id</small><div>@account.Email</div><div class="user-meta"><span>@UiText.T(account.Disabled ? "账号已停用" : account.EmailConfirmed ? "邮箱已验证" : "邮箱未验证")</span><span>@(membership.Role == SiteRole.Pending && !account.EmailConfirmed ? UiText.T("等待邮箱验证") : WordWebCMS.Pages.Admin.UsersModel.RoleName(membership.Role))</span><span>@UiText.T("注册时间") <time data-local-time="datetime" datetime="@PublicUrls.Utc(account.CreatedUtc)">@account.CreatedUtc.ToString("yyyy-MM-dd") UTC</time></span></div></div>
+@if (!isSelf) {
+<div class="user-actions"><form method="post" class="inline"><input type="hidden" name="login" value="@account.UserName" /><label class="sr-only" for="role-@account.Id">@UiText.T("本站角色")</label><select id="role-@account.Id" name="role">
+@if (membership.Role is SiteRole.Pending or SiteRole.Removed) { <option value="" selected disabled>@(membership.Role == SiteRole.Pending && !account.EmailConfirmed ? UiText.T("等待邮箱验证") : WordWebCMS.Pages.Admin.UsersModel.RoleName(membership.Role))</option> }
+@foreach (var role in new[] { SiteRole.Reader, SiteRole.Contributor, SiteRole.Editor, SiteRole.Administrator, SiteRole.Banned }) { <option value="@role" selected="@(role == membership.Role)" disabled="@(role >= SiteRole.Reader && (!account.EmailConfirmed || account.Disabled))">@WordWebCMS.Pages.Admin.UsersModel.RoleName(role)</option> }
+</select><button class="secondary">@UiText.T("更新本站角色")</button></form>
+@if (membership.Role != SiteRole.Removed) { <form method="post" asp-page-handler="Remove" data-confirm="@UiText.T("确定将此用户从本站移除？其本站访问权限将撤销，已发表内容会保留。")"><input type="hidden" name="userId" value="@account.Id" /><button class="danger">@UiText.T("从本站移除")</button></form> }
+</div>
+} else { <span class="muted">@UiText.T("当前账号")</span> }
+</div>
+}
+@if (Model.Roles.Count == 0) { <p class="empty">@UiText.T("没有符合条件的用户。")</p> }
+</div>
+<nav class="pagination">@if (Model.P > 1) { <a asp-route-p="@(Model.P - 1)" asp-route-q="@Model.Q" asp-route-status="@Model.Status">@UiText.T("上一页")</a> }<span>@Model.P / @Model.Pages</span>@if (Model.P < Model.Pages) { <a asp-route-p="@(Model.P + 1)" asp-route-q="@Model.Q" asp-route-status="@Model.Status">@UiText.T("下一页")</a> }</nav></section>
+<details class="card"><summary>@UiText.T("添加共享账号到本站")</summary><form method="post" class="form-panel"><label for="login">@UiText.T("已注册的用户名或邮箱")</label><input id="login" name="login" required maxlength="254" /><label for="role">@UiText.T("本站角色")</label><select id="role" name="role">@foreach (var role in new[] { SiteRole.Reader, SiteRole.Contributor, SiteRole.Editor, SiteRole.Administrator, SiteRole.Banned }) { <option value="@role">@WordWebCMS.Pages.Admin.UsersModel.RoleName(role)</option> }</select><div class="form-actions"><button>@UiText.T("更新本站角色")</button></div></form></details>

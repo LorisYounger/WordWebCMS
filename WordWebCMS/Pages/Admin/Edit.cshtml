@@ -23,7 +23,7 @@
 </fieldset>
 }
 <p class="help">@UiText.T("各语言的内容会一起保存、审核和发布。没有译文时，中文会显示简体中文内容，其他语言会显示英文内容；如果仍为空，就显示站点默认内容。")</p>
-<details><summary>@UiText.T("正文预览")</summary><div id="preview" class="prose"></div></details>
+<details id="body-preview"><summary>@UiText.T("正文预览")</summary><div id="preview" class="prose" aria-live="polite"></div></details>
 </section><aside class="card">
 <h2>@UiText.T("发布设置")</h2><label asp-for="Draft.Slug">@UiText.T("短链接")</label><input asp-for="Draft.Slug" maxlength="160" pattern="[a-z0-9][a-z0-9-]*" /><small>@UiText.T("发布后可通过 /短链接 访问。留空时，按英文标题生成短链接，中文标题则使用 new-article-编号 或 new-page-编号。修改后需重新发布，旧地址不会自动跳转到新地址。")</small>
 

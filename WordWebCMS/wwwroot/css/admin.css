@@ -95,3 +95,15 @@ fieldset[data-content-language] legend { padding:0; font-size:15px; font-weight:
  .list-row > a, .list-row > span { overflow-wrap:anywhere; min-width:0; }
 }
 @media(forced-colors:active) { select { appearance:auto; background-image:none; } }
+
+.user-filters { display:flex; align-items:flex-end; flex-wrap:wrap; gap:12px; margin:20px 0; }
+.user-filters label { margin-top:0; }
+.user-filters > div:first-child { flex:1; min-width:180px; }
+.user-filters input { width:100%; }
+.user-row { display:flex; justify-content:space-between; gap:20px; align-items:center; padding:20px 0; border-bottom:1px solid var(--line); }
+.user-details { min-width:0; overflow-wrap:anywhere; }
+.user-meta { display:flex; flex-wrap:wrap; gap:6px 16px; font-size:12px; color:var(--muted); margin-top:6px; }
+.user-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:10px; flex-shrink:0; }
+.user-actions .inline { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.user-actions form { margin:0; }
+@media(max-width:1100px) { .user-row { align-items:flex-start; flex-direction:column; } .user-actions { justify-content:flex-start; max-width:100%; } }

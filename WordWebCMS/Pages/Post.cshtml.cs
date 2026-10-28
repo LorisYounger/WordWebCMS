@@ -41,7 +41,7 @@ public class PostModel(CmsDb db, ThemeService themes, MarkdownService markdown) 
         var comments = await commentsQuery.OrderBy(c => c.Id).Page(cp, 30).ToListAsync();
         var ids = comments.Select(c => c.Id).ToArray();
         var users = comments.Select(c => c.UserId).Append(post.AuthorId).ToArray();
-        var names = (await db.Accounts.Select<CmsUser>().Where(u => users.Contains(u.Id)).ToListAsync(u => new { u.Id, u.UserName })).ToDictionary(u => u.Id, u => u.UserName);
+        var names = (await db.Accounts.Select<CmsUser>().Where(u => users.Contains(u.Id)).ToListAsync(u => new { u.Id, u.UserName, u.AvatarUrl })).ToDictionary(u => u.Id);
         var commentLikes = (await db.Site.Select<CommentLike>().Where(l => ids.Contains(l.CommentId)).GroupBy(l => l.CommentId)
             .ToListAsync(g => new { Id = g.Key, Count = g.Count() })).ToDictionary(l => l.Id, l => l.Count);
         var likedComments = (await db.Site.Select<CommentLike>().Where(l => ids.Contains(l.CommentId) && l.UserId == userId).ToListAsync(l => l.CommentId)).ToHashSet();
@@ -68,21 +68,21 @@ public class PostModel(CmsDb db, ThemeService themes, MarkdownService markdown) 
             ["next_post"] = newer == null ? null : ThemeService.ArticleLink(newer.Post, newer.Revision, settings),
             ["related_posts"] = related.Select(p => ThemeService.ArticleLink(p.Post, p.Revision, settings)).ToArray(),
             ["post"] = new Dictionary<string, object?> { ["title"] = rendered.Title, ["summary"] = rendered.Summary, ["html"] = markdown.Render(rendered.Markdown),
-                ["url"] = "/" + post.Slug, ["cover"] = rendered.CoverUrl, ["avatar"] = ShortLinks.Avatar(names.GetValueOrDefault(post.AuthorId, "user")), ["author"] = names.GetValueOrDefault(post.AuthorId, UiText.T("用户")),
+                ["url"] = "/" + post.Slug, ["cover"] = rendered.CoverUrl, ["avatar"] = ShortLinks.Avatar(names.GetValueOrDefault(post.AuthorId)?.UserName ?? "user", names.GetValueOrDefault(post.AuthorId)?.AvatarUrl), ["author"] = names.GetValueOrDefault(post.AuthorId)?.UserName ?? UiText.T("用户"),
                 ["date"] = post.PublishedUtc?.ToString("yyyy-MM-dd"), ["date_utc"] = PublicUrls.Utc(post.PublishedUtc), ["archive_url"] = PublicUrls.Archive(post.PublishedUtc),
-                ["author_url"] = PublicUrls.Author(names.GetValueOrDefault(post.AuthorId, "user")),
+                ["author_url"] = PublicUrls.Author(names.GetValueOrDefault(post.AuthorId)?.UserName ?? "user"),
                 ["views"] = post.Views, ["comment_count"] = count, ["likes"] = await db.Site.Select<PostLike>().Where(l => l.PostId == post.Id).CountAsync(),
                 ["liked"] = userId != 0 && await db.Site.Select<PostLike>().Where(l => l.PostId == post.Id && l.UserId == userId).AnyAsync(),
                 ["category"] = category?.Name ?? "", ["category_url"] = PublicUrls.Category(category?.Name) },
             ["tags"] = tags.Select(t => new Dictionary<string, object?> { ["name"] = t.Name, ["url"] = PublicUrls.Tag(t.Name) }).ToArray(),
             ["comments_open"] = settings.CommentsEnabled && revision.AllowComments, ["moderated"] = settings.ModerateComments,
             ["comments"] = comments.Select(c => new Dictionary<string, object?> { ["id"] = c.Id, ["parent_id"] = c.ParentId,
-                ["avatar"] = ShortLinks.Avatar(names.GetValueOrDefault(c.UserId, "user")), ["author"] = names.GetValueOrDefault(c.UserId, UiText.T("用户")), ["html"] = markdown.Render(c.Markdown, true),
+                ["avatar"] = ShortLinks.Avatar(names.GetValueOrDefault(c.UserId)?.UserName ?? "user", names.GetValueOrDefault(c.UserId)?.AvatarUrl), ["author"] = names.GetValueOrDefault(c.UserId)?.UserName ?? UiText.T("用户"), ["html"] = markdown.Render(c.Markdown, true),
                 ["date"] = c.CreatedUtc.ToString("yyyy-MM-dd HH:mm"), ["date_utc"] = PublicUrls.Utc(c.CreatedUtc),
-                ["author_url"] = PublicUrls.Author(names.GetValueOrDefault(c.UserId, "user")), ["likes"] = commentLikes.GetValueOrDefault(c.Id), ["liked"] = likedComments.Contains(c.Id) }).ToArray(),
+                ["author_url"] = PublicUrls.Author(names.GetValueOrDefault(c.UserId)?.UserName ?? "user"), ["likes"] = commentLikes.GetValueOrDefault(c.Id), ["liked"] = likedComments.Contains(c.Id) }).ToArray(),
             ["comment_previous"] = cp > 1 ? (cp == 2 ? $"/{post.Slug}#comments" : $"/{post.Slug}/comments/{cp - 1}#comments") : "",
             ["comment_next"] = cp * 30 < count ? $"/{post.Slug}/comments/{cp + 1}#comments" : "",
-            ["notice"] = TempData["Notice"]?.ToString() ?? ""
+            ["notice"] = User.Identity?.IsAuthenticated == true ? TempData["Notice"]?.ToString() ?? "" : ""
         });
     }
 

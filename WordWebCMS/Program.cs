@@ -99,7 +99,7 @@ var app = builder.Build();
 if (args.Contains("--initialize"))
 {
     app.Services.GetRequiredService<CmsDb>().InitializeSchema();
-    app.Logger.LogInformation("数据库结构已初始化为版本 4；已有共享账号保持不变。请启动站点并访问 /Setup。");
+    app.Logger.LogInformation("数据库结构已初始化为版本 6；已有共享账号保持不变。请启动站点并访问 /Setup。");
     return;
 }
 var setup = app.Services.GetRequiredService<SetupService>();

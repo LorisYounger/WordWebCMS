@@ -48,10 +48,27 @@ if (editor) {
         editor.requestSubmit(submitter);
     });
     window.addEventListener('beforeunload', event => { if (!submitting && snapshot() !== saved) { event.preventDefault(); event.returnValue = ''; } });
-    editor.querySelectorAll('#preview-button, .translation-preview').forEach(button => button.addEventListener('click', async () => {
-        const response = await fetch(location.pathname + '?handler=Preview', { method: 'POST', body: new FormData(editor) });
-        if (!response.ok) { status.textContent = ui['预览失败，请检查登录状态后重试。']; return; }
-        document.getElementById('preview').innerHTML = await response.text();
-        document.getElementById('preview').parentElement.open = true;
+    const previewPanel = document.getElementById('body-preview');
+    const preview = document.getElementById('preview');
+    let previewRequest = 0;
+    async function updatePreview() {
+        const request = ++previewRequest;
+        preview.setAttribute('aria-busy', 'true');
+        try {
+            const response = await fetch(location.pathname + '?handler=Preview', { method: 'POST', body: new FormData(editor) });
+            if (!response.ok || response.redirected) throw new Error('Preview failed');
+            const html = await response.text();
+            if (request === previewRequest) preview.innerHTML = html;
+        } catch {
+            if (request === previewRequest) preview.textContent = ui['预览失败，请检查登录状态后重试。'];
+        } finally {
+            if (request === previewRequest) preview.removeAttribute('aria-busy');
+        }
+    }
+    previewPanel.addEventListener('toggle', () => { if (previewPanel.open) updatePreview(); });
+    language.addEventListener('change', () => { if (previewPanel.open) updatePreview(); });
+    editor.querySelectorAll('#preview-button, .translation-preview').forEach(button => button.addEventListener('click', () => {
+        if (previewPanel.open) updatePreview();
+        else previewPanel.open = true;
     }));
 }

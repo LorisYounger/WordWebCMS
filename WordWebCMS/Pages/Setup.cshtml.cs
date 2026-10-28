@@ -157,7 +157,7 @@ public class SetupModel(IConfiguration config, SetupService setup, CmsDb db) : P
         db.Site.Transaction(() =>
         {
             // Singleton primary key is the installation lock, including concurrent setup requests.
-            db.Site.Insert(new SiteSettings { Title = Title.Trim(), BaseUrl = BaseUrl.TrimEnd('/'), AvatarUserName = account.UserName }).ExecuteAffrows();
+            db.Site.Insert(new SiteSettings { Title = Title.Trim(), BaseUrl = BaseUrl.TrimEnd('/') }).ExecuteAffrows();
             db.Site.Insert(new SiteUserRole { UserId = account.Id, Role = SiteRole.Administrator }).ExecuteAffrows();
 
             // Keep the original welcome article, using the new draft/published revision model.

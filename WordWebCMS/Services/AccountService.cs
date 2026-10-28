@@ -39,8 +39,10 @@ public class AccountService(CmsDb db, IPasswordHasher<CmsUser> hasher)
 
     public async Task SignInAsync(HttpContext context, CmsUser account, bool remember)
     {
+        if (!account.EmailConfirmed || account.Disabled)
+            throw new UnauthorizedAccessException(UiText.T("账号未验证或已在本站停用。"));
         var membership = await db.Site.Select<SiteUserRole>().Where(r => r.UserId == account.Id).FirstAsync();
-        if (membership == null && account.EmailConfirmed && !account.Disabled)
+        if (membership == null)
         {
             var settings = await db.Site.Select<SiteSettings>().FirstAsync();
             if (settings.Registration == RegistrationMode.Closed) throw new UnauthorizedAccessException(UiText.T("本站已关闭注册，请联系管理员加入本站。"));
@@ -50,7 +52,7 @@ public class AccountService(CmsDb db, IPasswordHasher<CmsUser> hasher)
         }
         var role = membership?.Role ?? SiteRole.Reader;
         if (role == SiteRole.Pending) throw new UnauthorizedAccessException(UiText.T("注册申请正在等待本站管理员审核。"));
-        if (!account.EmailConfirmed || account.Disabled || role == SiteRole.Banned)
+        if (role is SiteRole.Banned or SiteRole.Removed)
             throw new UnauthorizedAccessException(UiText.T("账号未验证或已在本站停用。"));
         var identity = new ClaimsIdentity(new[] {
             new Claim(ClaimTypes.NameIdentifier, account.Id.ToString()), new Claim(ClaimTypes.Name, account.UserName),
@@ -67,13 +69,14 @@ public class AccountService(CmsDb db, IPasswordHasher<CmsUser> hasher)
         var membership = await db.Site.Select<SiteUserRole>().Where(r => r.UserId == id).FirstAsync();
         var role = membership?.Role ?? SiteRole.Reader;
         var closedToNewMembers = membership == null && (await db.Site.Select<SiteSettings>().FirstAsync()).Registration != RegistrationMode.Open;
-        if (account == null || account.Disabled || !account.EmailConfirmed || role is SiteRole.Banned or SiteRole.Pending || closedToNewMembers ||
+        if (account == null || account.Disabled || !account.EmailConfirmed || role is SiteRole.Banned or SiteRole.Pending or SiteRole.Removed || closedToNewMembers ||
             context.Principal!.FindFirstValue("stamp") != account.SecurityStamp)
         {
             context.RejectPrincipal();
             await context.HttpContext.SignOutAsync();
             return;
         }
+        context.HttpContext.Items["UserAvatar"] = ShortLinks.Avatar(account.UserName, account.AvatarUrl);
         var identity = (ClaimsIdentity)context.Principal!.Identity!;
         if (identity.FindFirst(ClaimTypes.Role)?.Value == role.ToString()) return;
         foreach (var claim in identity.FindAll(ClaimTypes.Role).ToList()) identity.RemoveClaim(claim);

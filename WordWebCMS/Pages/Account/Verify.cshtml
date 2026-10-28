@@ -2,5 +2,5 @@
 @model WordWebCMS.Pages.Account.VerifyModel
 @{ ViewData["Title"] = UiText.T("验证邮箱"); }
 <section class="card narrow"><h1>@UiText.T("验证邮箱")</h1>
-@if (Model.Done) { <p>@UiText.T("邮箱验证成功。")<a href="/Account/Login">@UiText.T("现在登录")</a></p> }
+@if (Model.Done) { <p>@UiText.T(Model.RequiresApproval ? "邮箱验证成功，请等待本站管理员审核通过后再登录。" : "邮箱验证成功。")<a href="/Account/Login">@UiText.T("登录")</a></p> }
 else { <form method="post"><div asp-validation-summary="All"></div><input asp-for="Token" type="hidden" /><p>@UiText.T("确认后将完成邮箱验证。")</p><button>@UiText.T("确认验证")</button></form> }</section>
