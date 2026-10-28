@@ -1,0 +1,6 @@
+@page
+@model WordWebCMS.Pages.Account.ResetModel
+@{ ViewData["Title"] = UiText.T("重置密码"); }
+<section class="card narrow"><h1>@UiText.T("设置新密码")</h1>
+@if (Model.Done) { <p>@UiText.T("密码已重置，所有旧登录票据已失效。")<a href="/Account/Login">@UiText.T("重新登录")</a></p> }
+else { <form method="post"><div asp-validation-summary="All"></div><input asp-for="Token" type="hidden" /><label asp-for="Password">@UiText.T("新密码（12–128 位）")</label><input asp-for="Password" type="password" autocomplete="new-password" /><partial name="_MathChallenge" /><button>@UiText.T("重置密码")</button></form> }</section>

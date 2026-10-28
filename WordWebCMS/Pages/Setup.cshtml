@@ -1,0 +1,17 @@
+@page
+@model SetupModel
+@{ ViewData["Title"] = UiText.T("安装"); }
+<div class="page-heading"><h1>@UiText.T("安装 WordWebCMS")</h1><p>@UiText.T("设置站点信息和管理员账号。")</p></div>
+@if (!Model.Configured || !Model.Ready) {
+<section class="card"><h2>@UiText.T("部署准备")</h2><p>@UiText.T("配置 ConnectionStrings:Accounts、ConnectionStrings:Site 和 Setup:Token，然后执行：")</p>
+<pre>dotnet WordWebCMS.dll --initialize</pre><p>@UiText.T("两个 MySQL 数据库须预先创建。首次使用空库；共享账号库可复用已初始化的新式账号库。")</p><p>@UiText.T("重启站点后刷新此页继续。配置说明见 docs/Deployment.md。")</p></section>
+} else {
+<form method="post" class="card narrow"><div asp-validation-summary="All" role="alert"></div>
+<label asp-for="Token">@UiText.T("部署安装令牌")</label><input asp-for="Token" type="password" autocomplete="off" />
+<label asp-for="Title">@UiText.T("站点名称")</label><input asp-for="Title" />
+<label asp-for="BaseUrl">@UiText.T("公开根地址")</label><input asp-for="BaseUrl" placeholder="https://blog.example.com" />
+<label asp-for="UserName">@UiText.T("管理员用户名")</label><input asp-for="UserName" autocomplete="username" />
+<label asp-for="Email">@UiText.T("管理员邮箱")</label><input asp-for="Email" type="email" autocomplete="email" />
+<label asp-for="Password">@UiText.T("密码（已有共享账号请填写原密码）")</label><input asp-for="Password" type="password" autocomplete="new-password" />
+<button type="submit">@UiText.T("完成安装")</button></form>
+}

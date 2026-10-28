@@ -1,0 +1,8 @@
+@page
+@model WordWebCMS.Pages.Account.LoginModel
+@{ ViewData["Title"] = UiText.T("登录"); }
+<form method="post" class="card narrow"><h1>@UiText.T("登录")</h1><div asp-validation-summary="All" role="alert"></div>
+<label asp-for="Login">@UiText.T("用户名或邮箱")</label><input asp-for="Login" autocomplete="username" />
+<label asp-for="Password">@UiText.T("密码")</label><input asp-for="Password" type="password" autocomplete="current-password" />
+<partial name="_MathChallenge" /><label class="check"><input asp-for="Remember" />@UiText.T("保持登录")</label><button>@UiText.T("登录")</button>
+<p><a href="/Account/Recover">@UiText.T("忘记密码 / 重发验证邮件")</a></p><p>@UiText.T("还没有账号？")<a href="/Account/Register">@UiText.T("注册")</a></p></form>

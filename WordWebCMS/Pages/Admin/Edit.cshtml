@@ -1,0 +1,54 @@
+@page "{id:long}"
+@model WordWebCMS.Pages.Admin.EditModel
+@{ ViewData["ContentKind"] = Model.Post.Kind; ViewData["Title"] = UiText.T("编辑内容"); }
+<div class="page-heading split"><div><a href="/Admin">@UiText.T("← 所有内容")</a><h1>@(Model.Post.Kind == PostKind.Page ? UiText.T("编辑页面") : UiText.T("编辑文章"))</h1></div><span id="save-status" role="status" aria-live="polite">@UiText.Format("草稿版本 {0}", Model.Draft.Version)</span></div>
+<form method="post" id="editor" data-post-id="@Model.Post.Id">
+<input asp-for="Draft.Version" type="hidden" /><div asp-validation-summary="All" role="alert"></div>
+<div class="editor-grid"><section class="card">
+<label for="content-language">@UiText.T("编辑语言")</label><select id="content-language" name="contentLanguage"><option value="">@UiText.T("站点默认语言") · @Model.DefaultCulture.NativeName</option>@foreach (var culture in Model.ContentCultures) { <option value="@culture.Name">@culture.NativeName</option> }</select>
+<div data-content-language="">
+<label asp-for="Draft.Title">@UiText.T("标题")</label><input asp-for="Draft.Title" maxlength="200" class="title-input" placeholder="@UiText.T("输入标题")" />
+<div class="split"><label asp-for="Draft.Markdown">@UiText.T("正文 · Markdown")</label><button type="button" id="preview-button" class="secondary">@UiText.T("更新预览")</button></div>
+<textarea asp-for="Draft.Markdown" maxlength="500000" rows="24" spellcheck="false"></textarea>
+<label asp-for="Draft.Summary">@UiText.T("摘要")</label><textarea asp-for="Draft.Summary" maxlength="1000" rows="4"></textarea>
+<label asp-for="Draft.CoverUrl">@UiText.T("封面地址")</label><input asp-for="Draft.CoverUrl" maxlength="1000" placeholder="/media/…" /><a href="/Admin/Media" target="_blank" rel="noopener">@UiText.T("打开媒体库")</a>
+</div>
+@foreach (var culture in Model.ContentCultures) { var translation = Model.Translations.GetValueOrDefault(culture.Name) ?? new ContentTranslation();
+<fieldset data-content-language="@culture.Name"><legend>@culture.NativeName</legend>
+<label for="translation-title-@culture.Name">@UiText.T("标题")</label><input id="translation-title-@culture.Name" name="Translations[@culture.Name].Title" value="@translation.Title" maxlength="200" />
+<label for="translation-summary-@culture.Name">@UiText.T("摘要")</label><textarea id="translation-summary-@culture.Name" name="Translations[@culture.Name].Summary" maxlength="1000" rows="3">@translation.Summary</textarea>
+<label for="translation-body-@culture.Name">@UiText.T("正文 · Markdown")</label><textarea id="translation-body-@culture.Name" name="Translations[@culture.Name].Markdown" maxlength="500000" rows="24">@translation.Markdown</textarea>
+<label for="translation-cover-@culture.Name">@UiText.T("封面地址")</label><input id="translation-cover-@culture.Name" name="Translations[@culture.Name].CoverUrl" value="@translation.CoverUrl" maxlength="1000" />
+<button type="button" class="secondary translation-preview">@UiText.T("更新预览")</button>
+</fieldset>
+}
+<p class="help">@UiText.T("各语言内容一起保存、审核和发布；缺少译文时，中文系回退到简体中文，其他语言回退到英文，仍为空则使用站点默认内容。")</p>
+<details><summary>@UiText.T("正文预览")</summary><div id="preview" class="prose"></div></details>
+</section><aside class="card">
+<h2>@UiText.T("发布设置")</h2><label asp-for="Draft.Slug">@UiText.T("短链接")</label><input asp-for="Draft.Slug" maxlength="160" pattern="[a-z0-9][a-z0-9-]*" /><small>@UiText.T("直接访问 /短链接。留空按英文标题生成；中文标题默认使用 new-article-编号 或 new-page-编号。发布时生效，改名不建立跳转。")</small>
+
+
+@if (Model.Post.Kind == PostKind.Article) {
+<label asp-for="Draft.CategoryId">@UiText.T("分类")</label><select asp-for="Draft.CategoryId"><option value="">@UiText.T("未分类")</option>@foreach (var category in Model.Categories) { <option value="@category.Id">@category.Name</option> }</select>
+<label asp-for="Draft.Tags">@UiText.T("标签（英文逗号分隔）")</label><input asp-for="Draft.Tags" maxlength="1000" />
+<label class="check"><input asp-for="Draft.AllowComments" />@UiText.T("允许评论")</label>
+} else { <p class="help">@UiText.T("页面不显示评论和侧边栏。")</p> }
+<div class="stack"><button name="action" value="save" class="secondary">@UiText.T("保存草稿与修订")</button>
+@if (AccountService.CanEditAll(User)) { <button name="action" value="publish">@UiText.T("发布当前内容")</button> } else { <button name="action" value="submit">@UiText.T("提交审核")</button> }
+</div><p class="muted">@UiText.T("自动保存仅更新草稿，不影响线上版本或已提交审核的修订。")</p></aside></div></form>
+<section class="card revisions"><h2>@UiText.T("修订记录")</h2><p>@UiText.T("明确保存、提交或发布时生成修订。恢复只改草稿，需重新发布。")</p>
+@foreach (var revision in Model.Revisions) {
+<div class="list-row"><a asp-route-id="@Model.Post.Id" asp-route-revision="@revision.Id" asp-route-rp="@Model.Rp">#@revision.Id · @revision.Title · @revision.CreatedUtc.ToString("yyyy-MM-dd HH:mm:ss") UTC</a><span class="badge">@(revision.State switch { RevisionState.Saved => UiText.T("已保存"), RevisionState.Pending => UiText.T("待审核"), RevisionState.Published => UiText.T("已发布"), RevisionState.Rejected => UiText.T("已驳回"), _ => revision.State.ToString() })</span></div>
+}
+<nav class="pagination">@if (Model.Rp > 1) { <a asp-route-id="@Model.Post.Id" asp-route-rp="@(Model.Rp - 1)">@UiText.T("较新修订")</a> }@if (Model.Revisions.Count == 20) { <a asp-route-id="@Model.Post.Id" asp-route-rp="@(Model.Rp + 1)">@UiText.T("较早修订")</a> }</nav>
+@if (Model.Selected != null) { var revision = Model.Selected;
+<h3>@UiText.T("修订") #@revision.Id：@revision.Title</h3><p>@revision.Summary</p><p>@UiText.T("短链接"): @revision.Slug · @UiText.T("分类 ID"): @revision.CategoryId · @UiText.T("标签"): @revision.Tags</p>
+<details><summary>@UiText.T("译文修订对照")</summary><pre>@System.Text.Json.JsonSerializer.Serialize(ContentLanguages.Read<ContentTranslation>(revision.Translations), new System.Text.Json.JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping })</pre><h4>@UiText.T("当前草稿")</h4><pre>@System.Text.Json.JsonSerializer.Serialize(ContentLanguages.Read<ContentTranslation>(Model.Draft.Translations), new System.Text.Json.JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping })</pre></details>
+<div class="diff-grid"><div><h4>@UiText.T("所选修订")</h4><pre>@revision.Markdown</pre></div><div><h4>@UiText.T("当前草稿")</h4><pre>@Model.Draft.Markdown</pre></div></div>
+<details><summary>@UiText.T("所选修订的渲染预览")</summary><div class="prose">@Html.Raw(Model.Preview)</div></details>
+<div class="actions"><form method="post" asp-page-handler="Restore" data-confirm="@UiText.T("用该修订替换当前草稿？")"><input name="revisionId" value="@revision.Id" type="hidden" /><input name="version" value="@Model.Draft.Version" type="hidden" /><button class="secondary">@UiText.T("恢复到草稿")</button></form>
+@if (AccountService.CanEditAll(User) && revision.State == RevisionState.Pending) {
+<form method="post" asp-page-handler="Review"><input type="hidden" name="revisionId" value="@revision.Id" /><button name="approve" value="true">@UiText.T("审核通过并发布此修订")</button><button name="approve" value="false" class="danger">@UiText.T("驳回")</button></form>
+}</div>
+}
+</section>

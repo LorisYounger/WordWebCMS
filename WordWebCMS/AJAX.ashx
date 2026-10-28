@@ -1,1 +1,0 @@
-﻿<%@ WebHandler Language="C#" CodeBehind="AJAX.ashx.cs" Class="WordWebCMS.AJAX" %>

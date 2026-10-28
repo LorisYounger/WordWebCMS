@@ -1,0 +1,11 @@
+@page
+@model WordWebCMS.Pages.Admin.CommentsModel
+@inject MarkdownService Markdown
+@{ ViewData["Title"] = UiText.T("评论审核"); }
+<div class="page-heading"><h1>@UiText.T("评论审核")</h1></div><nav class="filter-tabs" aria-label="@UiText.T("评论审核")"><a asp-route-all="false" aria-current="@(!Model.All ? "page" : null)">@UiText.T("待审核")</a><a asp-route-all="true" aria-current="@(Model.All ? "page" : null)">@UiText.T("全部评论")</a></nav>
+<section class="card">
+@if (Model.Comments.Count == 0) { <p>@UiText.T("没有需要处理的评论。")</p> }
+@foreach (var comment in Model.Comments) {
+<article class="list-row"><div><p><strong>@Model.Names.GetValueOrDefault(comment.UserId, UiText.T("用户"))</strong> · #@comment.Id · <a asp-page="Edit" asp-route-id="@comment.PostId">@UiText.T("所属内容") #@comment.PostId</a> · @(comment.Approved ? UiText.T("已公开") : UiText.T("待审核"))</p><div class="prose">@Html.Raw(Markdown.Render(comment.Markdown, true))</div></div>
+<form method="post" class="actions"><input type="hidden" name="id" value="@comment.Id" /><button name="action" value="approve">@UiText.T("通过")</button><button name="action" value="hide" class="secondary">@UiText.T("隐藏")</button><button name="action" value="delete" class="danger">@UiText.T("删除")</button></form></article>
+}<nav class="pagination">@if (Model.P > 1) { <a asp-route-p="@(Model.P - 1)" asp-route-all="@Model.All">@UiText.T("上一页")</a> }@if (Model.Comments.Count == 30) { <a asp-route-p="@(Model.P + 1)" asp-route-all="@Model.All">@UiText.T("下一页")</a> }</nav></section>

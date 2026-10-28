@@ -1,0 +1,7 @@
+@page
+@model WordWebCMS.Pages.Account.RecoverModel
+@{ ViewData["Title"] = UiText.T("找回账号"); }
+<section class="card narrow"><h1>@UiText.T("找回账号")</h1>
+@if (Model.Sent) { <p role="status">@UiText.T("如果邮箱符合条件，邮件已经发送，请检查收件箱。")</p> }
+else { <form method="post"><div asp-validation-summary="All" role="alert"></div><label asp-for="Email">@UiText.T("邮箱")</label><input asp-for="Email" type="email" />
+<label class="check"><input asp-for="VerifyEmail" />@UiText.T("重新发送邮箱验证邮件（不勾选则重置密码）")</label><partial name="_MathChallenge" /><button>@UiText.T("发送邮件")</button></form> }</section>

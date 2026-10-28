@@ -1,0 +1,13 @@
+@page
+@model WordWebCMS.Pages.Account.RegisterModel
+@{ ViewData["Title"] = UiText.T("注册"); }
+<section class="card narrow"><h1>@UiText.T("注册账号")</h1>
+@if (Model.Sent) { <p role="status">@UiText.T("验证邮件已发送，请验证邮箱。启用注册审核时，还需等待管理员批准后才能登录本站。")</p> }
+else if (Model.Registration == RegistrationMode.Closed) { <p>@UiText.T("本站已关闭注册。")</p> }
+else if (!Model.MailConfigured) { <p>@UiText.T("站点尚未配置邮件服务，请稍后再来。")</p> }
+else { <form method="post"><div asp-validation-summary="All" role="alert"></div>
+<label asp-for="UserName">@UiText.T("用户名")</label><input asp-for="UserName" autocomplete="username" /><small>@UiText.T("3–64 位小写字母、数字、下划线或连字符")</small>
+<label asp-for="Email">@UiText.T("邮箱")</label><input asp-for="Email" type="email" autocomplete="email" />
+<label asp-for="Password">@UiText.T("密码")</label><input asp-for="Password" type="password" autocomplete="new-password" /><small>@UiText.T("12–128 位")</small>
+<partial name="_MathChallenge" /><button>@UiText.T("注册并发送验证邮件")</button></form> }
+</section>

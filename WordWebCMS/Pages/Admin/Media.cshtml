@@ -1,0 +1,12 @@
+@page
+@model WordWebCMS.Pages.Admin.MediaModel
+@{ ViewData["Title"] = UiText.T("媒体库"); }
+<div class="page-heading"><h1>@UiText.T("媒体库")</h1><p>@UiText.T("上传图片或 PDF 后，复制地址或 Markdown 到编辑器。")</p></div>
+<form method="post" asp-page-handler="Upload" enctype="multipart/form-data" class="card form-panel"><label for="upload">@UiText.T("文件（最大 10 MB）")</label><input id="upload" type="file" name="upload" accept=".png,.jpg,.jpeg,.gif,.webp,.pdf" required /><label for="altText">@UiText.T("替代文本")</label><input id="altText" name="altText" maxlength="300" /><div class="form-actions"><button>@UiText.T("上传媒体")</button></div></form>
+<div class="media-grid">@foreach (var item in Model.Items) { <article class="card">
+@if (item.ContentType.StartsWith("image/")) { <img src="/media/@item.FileName" alt="@item.AltText" loading="lazy" /> } else { <h2>@UiText.T("PDF 附件")</h2> }
+<p>@item.OriginalName</p><small>@item.Size bytes</small><label>@UiText.T("公开地址")<input readonly value="/media/@item.FileName" /></label>
+<label>Markdown<input readonly value="@(item.ContentType.StartsWith("image/") ? "!" : "")[@item.AltText](/media/@item.FileName)" /></label>
+<form method="post" asp-page-handler="Alt"><input type="hidden" name="id" value="@item.Id" /><label>@UiText.T("替代文本")<input name="altText" maxlength="300" value="@item.AltText" /></label><button class="secondary">@UiText.T("保存")</button></form>
+<form method="post" asp-page-handler="Delete" data-confirm="@UiText.T("删除后引用此媒体的内容会失去图片或附件，确定删除？")"><input type="hidden" name="id" value="@item.Id" /><button class="danger">@UiText.T("删除文件")</button></form></article> }</div>
+<nav class="pagination">@if (Model.P > 1) { <a asp-route-p="@(Model.P - 1)">@UiText.T("上一页")</a> }@if (Model.Items.Count == 24) { <a asp-route-p="@(Model.P + 1)">@UiText.T("下一页")</a> }</nav>

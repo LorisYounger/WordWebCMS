@@ -1,0 +1,4 @@
+@page "/Error/{code:int?}"
+@model WordWebCMS.Pages.ErrorModel
+@{ ViewData["Title"] = UiText.T("暂时无法完成请求"); }
+<section class="card narrow"><h1>@Model.Code · @Model.Message</h1><p>@UiText.T("请返回检查输入，或稍后重试。")</p><a href="/">@UiText.T("返回首页")</a><p class="muted">@UiText.T("请求号"): @HttpContext.TraceIdentifier</p></section>

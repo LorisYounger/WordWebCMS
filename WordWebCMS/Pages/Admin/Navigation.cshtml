@@ -1,0 +1,23 @@
+@page
+@model WordWebCMS.Pages.Admin.NavigationModel
+@{ ViewData["Title"] = UiText.T("导航"); }
+<div class="page-heading"><h1>@UiText.T("导航菜单")</h1><p>@UiText.T("按顺序从小到大排列，支持顶层及一层子菜单。独立页面发布后可在这里添加链接。")</p></div>
+<form method="post" class="card form-panel"><h2 class="panel-heading">@UiText.T("添加导航")</h2>
+<div class="form-grid">
+<div><label for="text">@UiText.T("文字")</label><input id="text" name="text" required maxlength="80" /></div>
+<div><label for="url">@UiText.T("地址")</label><input id="url" name="url" required maxlength="1000" placeholder="/about" /></div>
+<div><label for="sort">@UiText.T("排序")</label><input id="sort" name="sortOrder" type="number" value="0" /></div>
+<div><label for="parent">@UiText.T("父菜单")</label><select id="parent" name="parentId"><option value="">@UiText.T("顶层")</option>@foreach (var item in Model.Items.Where(n => n.ParentId == null)) { <option value="@item.Id">@item.Text</option> }</select></div>
+</div><div class="form-actions"><button>@UiText.T("添加")</button></div></form>
+@foreach (var item in Model.Items) {
+<section class="card navigation-item">
+<form method="post"><input type="hidden" name="id" value="@item.Id" />
+<div class="form-grid">
+<div><label for="nav-text-@item.Id">@UiText.T("导航文字")</label><input id="nav-text-@item.Id" name="text" value="@item.Text" maxlength="80" required /></div>
+<div><label for="nav-url-@item.Id">@UiText.T("导航地址")</label><input id="nav-url-@item.Id" name="url" value="@item.Url" maxlength="1000" required /></div>
+<div><label for="nav-sort-@item.Id">@UiText.T("排序")</label><input id="nav-sort-@item.Id" name="sortOrder" value="@item.SortOrder" type="number" /></div>
+<div><label for="nav-parent-@item.Id">@UiText.T("父菜单")</label><select id="nav-parent-@item.Id" name="parentId"><option value="">@UiText.T("顶层")</option>@foreach (var parent in Model.Items.Where(n => n.ParentId == null && n.Id != item.Id)) { <option value="@parent.Id" selected="@(parent.Id == item.ParentId)">@parent.Text</option> }</select></div>
+</div><div class="form-actions"><button class="secondary">@UiText.T("保存")</button></div></form>
+<form method="post" asp-page-handler="Delete"><input type="hidden" name="id" value="@item.Id" /><button class="danger">@UiText.T("删除")</button></form>
+</section>
+}

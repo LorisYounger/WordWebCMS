@@ -1,0 +1,3 @@
+<article class="article page"><header class="article-header"><h1>{{ post.title }}</h1>{% if post.summary != blank %}<p class="lead">{{ post.summary }}</p>{% endif %}</header>
+{% if post.cover != blank %}<img class="article-cover" src="{{ post.cover }}" alt="">{% endif %}
+<div class="prose">{{ post.html | raw }}</div></article>

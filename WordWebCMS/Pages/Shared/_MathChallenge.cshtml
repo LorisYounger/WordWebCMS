@@ -1,0 +1,3 @@
+<input type="hidden" name="ChallengeToken" value="@ViewData["ChallengeToken"]" />
+<label for="ChallengeAnswer">@UiText.T("算术验证") · @ViewData["ChallengeQuestion"]</label>
+<input id="ChallengeAnswer" name="ChallengeAnswer" inputmode="numeric" autocomplete="off" required maxlength="3" />
