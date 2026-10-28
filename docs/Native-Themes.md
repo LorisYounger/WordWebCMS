@@ -22,7 +22,20 @@ assets/
 {"id":"my-theme","name":"我的主题","version":1}
 ```
 
-`id` 为 1–64 位小写字母、数字或连字符，首字符不能为连字符。`version` 是主题接口版本，当前为 1。`default` 由程序管理，不可上传覆盖；已安装 ID 不覆盖，更新主题使用新 ID，确认后在后台切换。
+`id` 为 1–64 位小写字母、数字或连字符，首字符不能为连字符。`version` 是主题接口版本，当前为 1。`default` 和 `milky` 是内置主题，由程序在启动时同步，不可上传覆盖；其他已安装 ID 不覆盖，更新主题使用新 ID，确认后在后台切换。
+
+## 内置 milky 主题
+
+`WordWebCMS/theme/milky` 随编译和发布输出，在「后台 → 主题」中直接选择启用，无需下载或上传 ZIP。不会自动切换站点当前使用的主题。
+
+milky 参考 DUX 页面和所提供截图的布局风格，独立编写 Liquid、CSS 和 JavaScript；未引入 DUX 的 PHP、CSS、脚本、字体、图片或第三方前端框架。默认浅灰底、白色内容卡片、蓝色强调色，桌面采用 1200px 双栏，手机为单栏。支持系统/手动深色模式、下拉导航、搜索、文章分页、评论及回复、点赞、分享链接、独立页面和错误页。
+
+- Logo、站名、简介取站点设置，顶部菜单取后台导航，文章图片取已发布封面；无封面时显示原创文字占位。
+- 首页置顶提示和推荐取后台已置顶的公开文章；没有置顶文章时隐藏提示，推荐位置显示近期文章。站点没有独立公告字段，因此不把普通文章伪装成公告。
+- 网站统计只计公开文章、这些文章的已审核评论和当前发布版本使用的标签；“最近发布”为最新文章首次发布时间（UTC）。
+- 文章页提供时间顺序的上一篇/下一篇、同分类相关文章（未分类文章之间也可推荐）、标签和分享按钮。分享使用系统分享面板，或复制链接；受限环境显示可手动复制的地址。
+- 使用现有评论审核、登录和注册规则。关闭 JavaScript 后，导航、搜索、文章、分页、点赞表单和评论提交仍可使用。
+- 新版本启动会同步覆盖存储目录内的两个内置主题。需要自行长期定制时，请复制并修改为另一个主题 ID。
 
 最多 200 个文件，ZIP 最大 20 MB、解压声明总大小最大 50 MB、单模板最大 256 KB。禁止绝对路径、父级路径、反斜线、重复文件及符号链接。`assets/` 只接受 CSS、JS、PNG、JPEG、GIF、WebP、WOFF2。路径区分大小写，扩展名使用小写；主题清单和模板不通过资源路由公开。
 
@@ -38,7 +51,9 @@ assets/
 | `navigation` | 顶层项数组，每项为 `text`、`url`、`new_window`、`children`；子项也有 `text`、`url`、`new_window` |
 | `signed_in`, `user_name`, `can_manage` | 当前请求登录状态、用户名与是否可进入管理后台 |
 | `categories` | 分类数组，每项为 `name`、`url` |
-| `recent_posts` | 最近公开的 5 篇文章，每项为 `title`、`url`；不包含草稿、撤下内容或独立页面 |
+| `recent_posts` | 最近公开的 5 篇文章，每项为 `title`、`summary`、`url`、`cover`、`date`；不包含草稿、撤下内容或独立页面 |
+| `featured_posts` | 最多 5 篇公开置顶文章，字段同 `recent_posts`；按置顶权重、发布时间、ID 降序 |
+| `site_stats` | `posts` 公开文章数、`comments` 公开文章已审核评论数、`tags` 公开文章当前版本使用的标签数、`latest_post` 最近首次发布日期（空站为空字符串） |
 | `language`, `languages` | 当前 CultureInfo 名称；可切换语言的 `name`、`code`、`url` |
 | `is_page`, `registration_open`, `user_avatar` | 是否独立页面、是否接受注册、当前用户头像 |
 | `client_messages` | 使用安全 JSON 编码生成的 JS 界面文本，可在 application/json 数据节点中 raw 输出 |
@@ -62,14 +77,17 @@ assets/
 首页、分类/标签/日期归档及搜索共用模板。输入为 `heading`、`query`、`total`、`page`、`previous`、`next`、`categories` 和 `posts`。空分页链接是空字符串。
 
 - `categories`：`name`、`url`。
-- `posts`：`id`、`title`、`summary`、`url`、`cover`、`date`、`author`、`avatar`、`likes`、`views`。
+- `posts`：`id`、`title`、`summary`、`url`、`cover`、`date`、`author`、`avatar`、`likes`、`views`、`pinned`、`category`、`category_url`。
+- `is_home`：未筛选的第一页首页，用于显示首页置顶提示。
 - 首页只显示已公开文章；独立页面不出现在文章列表中，可通过导航访问。
 
 搜索向 `/` 提交 GET 参数 `q`。归档参数为 `category`（分类 ID）、`tag`（标签 ID）、`year`、`month`；分页为 `p`。日期基于首次实际发布时间（UTC）。
 
 ## post.liquid
 
-文章地址 `/<slug>`；`/p/<slug>` 永久重定向到该根路径。`post` 包含 `title`、`summary`、`html`、`url`、`cover`、`author`、`date`、`archive_url`、`views`、`likes`、`liked`、`category`、`category_url`。`post.html` 已经过统一文章允许列表，可使用 `raw`。
+文章地址 `/<slug>`；`/p/<slug>` 永久重定向到该根路径。`post` 包含 `title`、`summary`、`html`、`url`、`cover`、`author`、`date`、`archive_url`、`views`、`likes`、`liked`、`category`、`category_url`、`comment_count`（全部已审核评论数）。`post.html` 已经过统一文章允许列表，可使用 `raw`。
+
+`previous_post` / `next_post` 为按首次发布时间、ID 排序的较早/较新公开文章，没有邻居时为 null。`related_posts` 为当前分类下除自身外最多 8 篇公开文章，按发布时间、ID 降序。三者条目字段同 `recent_posts`，仅使用当前发布版本，不包含独立页面。
 
 `tags` 数组包含 `name`、`url`。`comments` 数组包含 `id`、`parent_id`、`author`、`avatar`、`html`、`date`、`likes`、`liked`；`html` 由禁止原始 HTML 的 Markdown 管线和同一清洗器生成，可使用 `raw`。评论每页 30 条，分页链接为 `comment_previous` 和 `comment_next`。回复显示目标评论 ID，目标可能在其他分页；已删除目标的回复会转为顶层评论。
 

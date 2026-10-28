@@ -43,8 +43,22 @@ public class ThemeService(StoragePaths paths, IWebHostEnvironment env, IAntiforg
         var recent = await db.Site.Select<Post, PostRevision>().InnerJoin((p, r) => p.PublishedRevisionId == r.Id)
             .Where((p, r) => p.IsPublic && p.Kind == PostKind.Article)
             .OrderByDescending((p, r) => p.PublishedUtc).OrderByDescending((p, r) => p.Id).Limit(5)
-            .ToListAsync((p, r) => new { p.Slug, Revision = r });
-        data["recent_posts"] = recent.Select(p => new Dictionary<string, object?> { ["title"] = ContentLanguages.Display(p.Revision, settings).Title, ["url"] = "/" + p.Slug }).ToArray();
+            .ToListAsync((p, r) => new { Post = p, Revision = r });
+        data["recent_posts"] = recent.Select(p => ArticleLink(p.Post, p.Revision, settings)).ToArray();
+        var featured = await db.Site.Select<Post, PostRevision>().InnerJoin((p, r) => p.PublishedRevisionId == r.Id)
+            .Where((p, r) => p.IsPublic && p.Kind == PostKind.Article && p.PinOrder > 0)
+            .OrderByDescending((p, r) => p.PinOrder).OrderByDescending((p, r) => p.PublishedUtc).OrderByDescending((p, r) => p.Id)
+            .Limit(5).ToListAsync((p, r) => new { Post = p, Revision = r });
+        data["featured_posts"] = featured.Select(p => ArticleLink(p.Post, p.Revision, settings)).ToArray();
+        data["site_stats"] = new Dictionary<string, object?> {
+            ["posts"] = await db.Site.Select<Post, PostRevision>().InnerJoin((p, r) => p.PublishedRevisionId == r.Id)
+                .Where((p, r) => p.IsPublic && p.Kind == PostKind.Article).CountAsync(),
+            ["comments"] = await db.Site.Select<Comment, Post, PostRevision>().InnerJoin((c, p, r) => c.PostId == p.Id).InnerJoin((c, p, r) => p.PublishedRevisionId == r.Id)
+                .Where((c, p, r) => c.Approved && p.IsPublic && p.Kind == PostKind.Article).CountAsync(),
+            ["tags"] = await db.Site.Select<Tag>().Where(t => db.Site.Select<RevisionTag, Post>().InnerJoin((rt, p) => rt.RevisionId == p.PublishedRevisionId)
+                .Where((rt, p) => rt.TagId == t.Id && p.IsPublic && p.Kind == PostKind.Article).Any()).CountAsync(),
+            ["latest_post"] = recent.FirstOrDefault()?.Post.PublishedUtc?.ToString("yyyy-MM-dd") ?? ""
+        };
         data["signed_in"] = http.User.Identity?.IsAuthenticated == true;
         data["can_manage"] = AccountService.CanEditAll(http.User) || http.User.IsInRole("Contributor");
         data["user_name"] = http.User.Identity?.Name ?? "";
@@ -59,17 +73,27 @@ public class ThemeService(StoragePaths paths, IWebHostEnvironment env, IAntiforg
     private static bool OpensNewWindow(string url) => Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" ||
         url.Split('?', '#')[0] is "/feed.xml" or "/sitemap.xml";
 
+    internal static Dictionary<string, object?> ArticleLink(Post post, PostRevision revision, SiteSettings settings)
+    {
+        var text = ContentLanguages.Display(revision, settings);
+        return new() { ["title"] = text.Title, ["summary"] = text.Summary, ["url"] = "/" + post.Slug,
+            ["cover"] = text.CoverUrl, ["date"] = post.PublishedUtc?.ToString("yyyy-MM-dd") };
+    }
+
     public void InitializeDefault()
     {
-        var source = Path.Combine(env.ContentRootPath, "theme", "default");
-        var destination = Path.Combine(paths.Themes, "default");
-        // Bundled theme is managed by the release. User themes have separate IDs and are preserved.
-        Directory.CreateDirectory(destination);
-        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        foreach (var id in new[] { "default", "milky" })
         {
-            var target = Path.Combine(destination, Path.GetRelativePath(source, file));
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            File.Copy(file, target, true);
+            var source = Path.Combine(env.ContentRootPath, "theme", id);
+            var destination = Path.Combine(paths.Themes, id);
+            // Both bundled themes are release-managed. Uploaded themes use separate IDs.
+            Directory.CreateDirectory(destination);
+            foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+            {
+                var target = Path.Combine(destination, Path.GetRelativePath(source, file));
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                File.Copy(file, target, true);
+            }
         }
     }
 
@@ -104,9 +128,9 @@ public class ThemeService(StoragePaths paths, IWebHostEnvironment env, IAntiforg
         var manifestEntry = zip.GetEntry("theme.json") ?? throw new InvalidDataException(UiText.T("ZIP 根目录缺少 theme.json。"));
         using var manifestStream = manifestEntry.Open();
         var manifest = await JsonSerializer.DeserializeAsync<ThemeManifest>(manifestStream, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        if (manifest == null || !Regex.IsMatch(manifest.Id, "^[a-z0-9][a-z0-9-]{0,63}$") || manifest.Id == "default" ||
+        if (manifest == null || !Regex.IsMatch(manifest.Id, "^[a-z0-9][a-z0-9-]{0,63}$") || manifest.Id is "default" or "milky" ||
             manifest.Version != 1 || string.IsNullOrWhiteSpace(manifest.Name) || manifest.Name.Length > 100)
-            throw new InvalidDataException(UiText.T("主题清单无效，或试图覆盖内置 default 主题。"));
+            throw new InvalidDataException(UiText.T("主题清单无效，或试图覆盖内置主题。"));
         var destination = Path.Combine(paths.Themes, manifest.Id);
         if (Directory.Exists(destination)) throw new InvalidDataException(UiText.T("同名主题已存在。请使用新的主题标识安装新版本。"));
         foreach (var template in Templates.Append("page.liquid"))
