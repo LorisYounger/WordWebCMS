@@ -17,6 +17,8 @@ public class Post
     [Column(StringLength = 160)] public string Slug { get; set; } = Guid.NewGuid().ToString("N");
     public long? PublishedRevisionId { get; set; }
     public bool IsPublic { get; set; }
+    public bool IsPrivate { get; set; }
+    public long LegacyLikes { get; set; }
     public int PinOrder { get; set; }
     public DateTime? PublishedUtc { get; set; }
     public long Views { get; set; }
@@ -105,4 +107,18 @@ public class CommentLike
 {
     [Column(IsPrimary = true)] public long CommentId { get; set; }
     [Column(IsPrimary = true)] public long UserId { get; set; }
+}
+
+[Table(Name = "anonymous_post_like")]
+public class AnonymousPostLike
+{
+    [Column(IsPrimary = true)] public long PostId { get; set; }
+    [Column(IsPrimary = true, StringLength = 64)] public string IpHash { get; set; } = "";
+}
+
+[Table(Name = "anonymous_comment_like")]
+public class AnonymousCommentLike
+{
+    [Column(IsPrimary = true)] public long CommentId { get; set; }
+    [Column(IsPrimary = true, StringLength = 64)] public string IpHash { get; set; } = "";
 }

@@ -81,6 +81,8 @@ public class IndexModel(CmsDb db, ThemeService themes) : PageModel
         var likes = (await db.Site.Select<PostLike>().Where(l => ids.Contains(l.PostId)).GroupBy(l => l.PostId)
             .ToListAsync(g => new { Id = g.Key, Count = g.Count() })).ToDictionary(l => l.Id, l => l.Count);
         var settings = (SiteSettings)HttpContext.Items["SiteSettings"]!;
+        foreach (var entry in await db.Site.Select<AnonymousPostLike>().Where(l => ids.Contains(l.PostId)).GroupBy(l => l.PostId)
+            .ToListAsync(g => new { Id = g.Key, Count = g.Count() })) likes[entry.Id] = likes.GetValueOrDefault(entry.Id) + entry.Count;
         var localizedRows = rows.Select(r => new { r.Post, r.Revision, Text = ContentLanguages.Display(r.Revision, settings) }).ToArray();
         var data = new Dictionary<string, object?> {
             ["heading"] = author != null ? author.UserName : q != null ? UiText.T("搜索：") + q : category.HasValue ? categories.FirstOrDefault(c => c.Id == category)?.Name ?? UiText.T("分类") : tag.HasValue ? selectedTag!.Name : year.HasValue ? UiText.Format("{0} 年 {1} 归档", year, month?.ToString()) : UiText.T("最新文章"),
@@ -96,7 +98,7 @@ public class IndexModel(CmsDb db, ThemeService themes) : PageModel
                 ["category"] = categories.FirstOrDefault(c => c.Id == r.Revision.CategoryId)?.Name ?? "", ["category_url"] = PublicUrls.Category(categories.FirstOrDefault(c => c.Id == r.Revision.CategoryId)?.Name),
                 ["url"] = "/" + r.Post.Slug, ["cover"] = r.Text.CoverUrl, ["date"] = r.Post.PublishedUtc?.ToString("yyyy-MM-dd"), ["date_utc"] = PublicUrls.Utc(r.Post.PublishedUtc),
                 ["author_url"] = PublicUrls.Author(authors.GetValueOrDefault(r.Post.AuthorId)?.UserName ?? "user"),
-                ["avatar"] = ShortLinks.Avatar(authors.GetValueOrDefault(r.Post.AuthorId)?.UserName ?? "user", authors.GetValueOrDefault(r.Post.AuthorId)?.AvatarUrl), ["author"] = authors.GetValueOrDefault(r.Post.AuthorId)?.UserName ?? UiText.T("用户"), ["likes"] = likes.GetValueOrDefault(r.Post.Id), ["views"] = r.Post.Views
+                ["avatar"] = ShortLinks.Avatar(authors.GetValueOrDefault(r.Post.AuthorId)?.UserName ?? "user", authors.GetValueOrDefault(r.Post.AuthorId)?.AvatarUrl), ["author"] = authors.GetValueOrDefault(r.Post.AuthorId)?.UserName ?? UiText.T("用户"), ["likes"] = r.Post.LegacyLikes + likes.GetValueOrDefault(r.Post.Id), ["views"] = r.Post.Views
             }).ToArray()
         };
         return await themes.PageAsync(db, HttpContext, "list.liquid", data);

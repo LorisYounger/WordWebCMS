@@ -51,6 +51,11 @@ internal static class CacheLocalChecks
             var html = await themeService.RenderAsync(theme, template, data, visitor);
             var result = HttpCache.Content(visitor, html, "text/html; charset=utf-8");
             var label = theme + "/" + template;
+            if (template == "post.liquid")
+            {
+                Check(html.Contains("__RequestVerificationToken") && visitor.Response.GetTypedHeaders().CacheControl?.NoStore == true, label + " anonymous like forms are protected and not cached");
+                continue;
+            }
             Check(!html.Contains("__RequestVerificationToken") && !visitor.Response.Headers.ContainsKey("Set-Cookie") &&
                 visitor.Response.GetTypedHeaders().CacheControl is { Public: true, NoCache: true, NoStore: false }, label + " anonymous output is cacheable without tokens");
             var etag = visitor.Response.Headers.ETag.ToString();

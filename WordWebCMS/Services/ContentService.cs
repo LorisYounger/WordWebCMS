@@ -6,6 +6,9 @@ namespace WordWebCMS.Services;
 
 public class ContentService(CmsDb db)
 {
+    public static bool CanRead(Post post, ClaimsPrincipal user) => post.PublishedRevisionId != null &&
+        (post.IsPublic || post.IsPrivate && user.Identity?.IsAuthenticated == true &&
+            (post.AuthorId == AccountService.UserId(user) || AccountService.CanEditAll(user)));
     public Post RequireEditable(long id, ClaimsPrincipal user, bool forUpdate = false)
     {
         var query = db.Site.Select<Post>().Where(p => p.Id == id);
@@ -33,8 +36,8 @@ public class ContentService(CmsDb db)
 
     public long Save(long id, PostDraft input, ClaimsPrincipal user, string action)
     {
-        if (action is not ("autosave" or "save" or "submit" or "publish")) throw new InvalidDataException(UiText.T("未知操作。"));
-        if (action == "publish" && !AccountService.CanEditAll(user)) throw new UnauthorizedAccessException(UiText.T("需要发布权限。"));
+        if (action is not ("autosave" or "save" or "submit" or "publish" or "private")) throw new InvalidDataException(UiText.T("未知操作。"));
+        if (action is "publish" or "private" && !AccountService.CanEditAll(user)) throw new UnauthorizedAccessException(UiText.T("需要发布权限。"));
         input.Title = (input.Title ?? "").Trim();
         input.Slug = (input.Slug ?? "").Trim().ToLowerInvariant();
         input.Markdown ??= "";
@@ -93,20 +96,21 @@ public class ContentService(CmsDb db)
                 long tagId = tag?.Id ?? db.Site.Insert(new Tag { Name = name }).ExecuteIdentity();
                 db.Site.Insert(new RevisionTag { RevisionId = revision.Id, TagId = tagId }).ExecuteAffrows();
             }
-            if (action == "publish") Publish(post, revision);
+            if (action is "publish" or "private") Publish(post, revision, action == "private");
         });
         return input.Version;
     }
 
     // Called only inside the post transaction, after checking publish permission.
-    private void Publish(Post post, PostRevision revision)
+    private void Publish(Post post, PostRevision revision, bool isPrivate = false)
     {
         if (!ShortLinks.IsValid(revision.Slug)) throw new InvalidDataException(UiText.T("短链接无效或使用了系统保留路径。"));
         if (db.Site.Select<Post>().Where(p => p.Slug == revision.Slug && p.Id != post.Id).Any())
             throw new InvalidDataException(UiText.T("短链接已被使用，请选择其他地址。"));
         post.PublishedRevisionId = revision.Id;
         post.Slug = revision.Slug;
-        post.IsPublic = true;
+        post.IsPublic = !isPrivate;
+        post.IsPrivate = isPrivate;
         post.PublishedUtc ??= DateTime.UtcNow;
         db.Site.Update<Post>().SetSource(post).ExecuteAffrows();
         db.Site.Update<PostRevision>().Set(r => r.State, RevisionState.Published).Where(r => r.Id == revision.Id).ExecuteAffrows();
@@ -179,8 +183,11 @@ public class ContentService(CmsDb db)
             {
                 var comments = db.Site.Select<Comment>().Where(c => c.PostId == id).ToList(c => c.Id);
                 db.Site.Delete<CommentLike>().Where(l => comments.Contains(l.CommentId)).ExecuteAffrows();
+                db.Site.Delete<AnonymousCommentLike>().Where(l => comments.Contains(l.CommentId)).ExecuteAffrows();
                 db.Site.Delete<Comment>().Where(c => c.PostId == id).ExecuteAffrows();
                 db.Site.Delete<PostLike>().Where(l => l.PostId == id).ExecuteAffrows();
+                db.Site.Delete<AnonymousPostLike>().Where(l => l.PostId == id).ExecuteAffrows();
+                post.LegacyLikes = 0;
             }
             db.Site.Update<PostDraft>().SetSource(draft).ExecuteAffrows();
             db.Site.Update<Post>().SetSource(post).ExecuteAffrows();
@@ -198,8 +205,10 @@ public class ContentService(CmsDb db)
             var comments = db.Site.Select<Comment>().Where(c => c.PostId == id).ToList(c => c.Id);
             db.Site.Delete<RevisionTag>().Where(t => revisions.Contains(t.RevisionId)).ExecuteAffrows();
             db.Site.Delete<CommentLike>().Where(l => comments.Contains(l.CommentId)).ExecuteAffrows();
+            db.Site.Delete<AnonymousCommentLike>().Where(l => comments.Contains(l.CommentId)).ExecuteAffrows();
             db.Site.Delete<Comment>().Where(c => c.PostId == id).ExecuteAffrows();
             db.Site.Delete<PostLike>().Where(l => l.PostId == id).ExecuteAffrows();
+            db.Site.Delete<AnonymousPostLike>().Where(l => l.PostId == id).ExecuteAffrows();
             db.Site.Delete<PostRevision>().Where(r => r.PostId == id).ExecuteAffrows();
             db.Site.Delete<PostDraft>().Where(d => d.PostId == id).ExecuteAffrows();
             db.Site.Delete<Post>().Where(p => p.Id == id).ExecuteAffrows();

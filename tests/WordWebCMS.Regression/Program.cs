@@ -286,6 +286,7 @@ try
     var loginResult = await Send(signedIn, "/Account/Login?culture=en", login);
     Check(loginResult.StatusCode == HttpStatusCode.Redirect, "Login accepts correct arithmetic and credentials");
     await CacheChecks.RunAsync(db, signedIn, new Uri(baseUrl), storage, Check);
+    await MigrationFeatureChecks.RunAsync(db, signedIn, admin, storage, Check);
     await FeatureChecks.RunAsync(db, signedIn, visitor, admin, password, Check);
     Check((await Get(signedIn, "/Admin/Settings?culture=en")).Contains("Registration mode"), "English admin settings render");
     var mailForm = await Form(signedIn, "/Admin/Settings?culture=en");

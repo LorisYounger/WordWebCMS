@@ -103,7 +103,7 @@ internal static class FeatureChecks
         var previewVersion = db.Site.Select<PostDraft>().Where(d => d.PostId == posts[0]).First().Version;
         var previewResponse = await admin.PostAsync(previewPath + "?handler=Preview", new FormUrlEncodedContent(previewForm));
         var previewHtml = await previewResponse.Content.ReadAsStringAsync();
-        check(previewResponse.IsSuccessStatusCode && previewHtml.Contains("<h2>") && previewHtml.Contains("Unsaved preview") && !previewHtml.Contains("<script>"), "Preview renders unsaved Markdown and sanitizes HTML");
+        check(previewResponse.IsSuccessStatusCode && parser.ParseDocument(previewHtml).QuerySelector("h2[id]") != null && previewHtml.Contains("Unsaved preview") && !previewHtml.Contains("<script>"), "Preview renders unsaved Markdown with heading anchors and sanitizes HTML");
         previewForm["contentLanguage"] = "en";
         previewResponse = await admin.PostAsync(previewPath + "?handler=Preview", new FormUrlEncodedContent(previewForm));
         check((await previewResponse.Content.ReadAsStringAsync()).Contains("<strong>English preview</strong>") &&

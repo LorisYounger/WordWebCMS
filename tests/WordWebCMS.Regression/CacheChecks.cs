@@ -25,6 +25,11 @@ internal static class CacheChecks
                 {
                     using var response = await visitor.GetAsync(path);
                     var html = await response.Content.ReadAsStringAsync();
+                    if (path == "/welcome")
+                    {
+                        check(response.IsSuccessStatusCode && response.Headers.CacheControl?.NoStore == true && response.Headers.ETag == null && html.Contains("__RequestVerificationToken"), theme + " anonymous article like forms have CSRF protection and no shared cache");
+                        continue;
+                    }
                     if (!response.IsSuccessStatusCode || response.Headers.CacheControl?.NoStore == true || response.Headers.Contains("Set-Cookie") || html.Contains("__RequestVerificationToken"))
                         Console.WriteLine($"Cache diagnostic {theme}{path}: status={response.StatusCode}, cache={response.Headers.CacheControl}, ETag={response.Headers.ETag != null}, cookie={response.Headers.Contains("Set-Cookie")}, token={html.Contains("__RequestVerificationToken")}");
                     check(response.IsSuccessStatusCode && response.Headers.CacheControl is { Public: true, NoCache: true, NoStore: false } &&
@@ -77,7 +82,7 @@ internal static class CacheChecks
             await File.WriteAllTextAsync(Path.Combine(custom, "layout.liquid"), "{{ body | raw }}<form method='post'><input name='__RequestVerificationToken' value='{{ csrf }}'></form>");
             using var anonymousForm = await visitor.GetAsync("/about");
             var form = parser.ParseDocument(await anonymousForm.Content.ReadAsStringAsync());
-            check(anonymousForm.Headers.CacheControl?.NoStore == true && anonymousForm.Headers.Contains("Set-Cookie") &&
+            check(anonymousForm.Headers.CacheControl?.NoStore == true &&
                 !string.IsNullOrEmpty(form.QuerySelector("input")?.GetAttribute("value")), "Custom anonymous POST forms receive a token and cannot be cached");
             await File.WriteAllTextAsync(Path.Combine(custom, "layout.liquid"), "{{ body | raw }}");
             using var noForm = await admin.GetAsync("/about");

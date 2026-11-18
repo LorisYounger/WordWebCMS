@@ -24,10 +24,13 @@ public class SiteSettings
 }
 
 [Table(Name = "media")]
+[Index("ux_media_link", nameof(LinkName), true)]
 public class Media
 {
     [Column(IsPrimary = true, IsIdentity = true)] public long Id { get; set; }
-    [Column(StringLength = 100)] public string FileName { get; set; } = "";
+    [Column(StringLength = 500)] public string FileName { get; set; } = "";
+    [Column(StringLength = 500, IsNullable = true)] public string? LinkName { get; set; }
+    public bool IsLegacyUpload { get; set; }
     [Column(StringLength = 255)] public string OriginalName { get; set; } = "";
     [Column(StringLength = 100)] public string ContentType { get; set; } = "";
     [Column(StringLength = 300)] public string AltText { get; set; } = "";

@@ -5,7 +5,7 @@
 <form method="post" asp-page-handler="Create" class="inline"><select name="kind" aria-label="@UiText.T("新建内容类型")"><option value="Article" selected="@(Model.Kind != PostKind.Page)">@UiText.T("文章")</option><option value="Page" selected="@(Model.Kind == PostKind.Page)">@UiText.T("独立页面")</option></select><button>@UiText.T("新建")</button></form></div>
 <form method="get" class="filter-bar">
 <div class="inline"><select asp-for="Kind" aria-label="@UiText.T("筛选内容类型")"><option value="">@UiText.T("全部类型")</option><option value="Article">@UiText.T("文章")</option><option value="Page">@UiText.T("独立页面")</option></select>
-<select asp-for="Status" aria-label="@UiText.T("筛选状态")"><option value="">@UiText.T("全部状态")</option><option value="published">@UiText.T("已发布")</option><option value="draft">@UiText.T("草稿")</option><option value="pending">@UiText.T("待审核")</option><option value="hidden">@UiText.T("已撤下")</option></select><button class="secondary">@UiText.T("筛选")</button></div>
+<select asp-for="Status" aria-label="@UiText.T("筛选状态")"><option value="">@UiText.T("全部状态")</option><option value="published">@UiText.T("已发布")</option><option value="draft">@UiText.T("草稿")</option><option value="pending">@UiText.T("待审核")</option><option value="private">@UiText.T("私有")</option><option value="hidden">@UiText.T("已撤下")</option></select><button class="secondary">@UiText.T("筛选")</button></div>
 <div class="search"><input asp-for="Q" placeholder="@UiText.T("搜索标题")" aria-label="@UiText.T("搜索标题")" /><button class="secondary">@UiText.T("搜索")</button></div>
 </form>
 <div class="table-caption"><span>@UiText.Format("共 {0} 项", Model.Total)</span><span>@UiText.Format("第 {0} / {1} 页", Model.P, Model.Pages)</span></div>
@@ -15,19 +15,19 @@
 <tr><td class="title-cell"><a class="row-title" asp-page="Edit" asp-route-id="@post.Id">@(draft.Title.Length == 0 ? UiText.T("未命名内容") : draft.Title)</a>
 <span class="post-kind">@(post.Kind == PostKind.Page ? UiText.T("页面") : UiText.T("文章"))@if (post.PinOrder != 0) { <span> · @UiText.Format("置顶 {0}", post.PinOrder)</span> }</span>
 <div class="row-actions"><a asp-page="Edit" asp-route-id="@post.Id">@UiText.T("编辑")</a>
-@if (post.IsPublic) { <a href="/@post.Slug">@UiText.T("查看")</a> }
+@if (post.IsPublic || post.IsPrivate) { <a href="/@post.Slug">@UiText.T("查看")</a> }
 @if (AccountService.CanEditAll(User) && post.PublishedRevisionId != null) {
-<form method="post" asp-page-handler="Visibility"><input type="hidden" name="id" value="@post.Id" /><input type="hidden" name="visible" value="@(!post.IsPublic)" /><input type="hidden" name="pinOrder" value="@post.PinOrder" /><button class="link">@(post.IsPublic ? UiText.T("撤下") : UiText.T("重新发布"))</button></form>
+<form method="post" asp-page-handler="Visibility"><input type="hidden" name="id" value="@post.Id" /><input type="hidden" name="visible" value="@(!post.IsPublic)" /><input type="hidden" name="pinOrder" value="@post.PinOrder" /><button class="link">@(post.IsPublic ? UiText.T("撤下") : post.IsPrivate ? UiText.T("公开发布") : UiText.T("重新发布"))</button></form><form method="post" asp-page-handler="Visibility"><input type="hidden" name="id" value="@post.Id" /><input type="hidden" name="visible" value="false" /><input type="hidden" name="isPrivate" value="@(!post.IsPrivate)" /><input type="hidden" name="pinOrder" value="@post.PinOrder" /><button class="link">@(post.IsPrivate ? UiText.T("撤下") : UiText.T("设为私有"))</button></form>
 }
 @if (AccountService.CanEditAll(User) || post.PublishedRevisionId == null) {
 <form method="post" asp-page-handler="Delete" data-confirm="@UiText.T("永久删除这篇内容及其修订、评论和点赞？")"><input type="hidden" name="id" value="@post.Id" /><button class="link danger-link">@UiText.T("删除")</button></form>
 }
 </div>
 @if (AccountService.CanEditAll(User) && post.PublishedRevisionId != null) {
-<details class="pin-settings"><summary>@UiText.T("置顶排序")</summary><form method="post" asp-page-handler="Visibility" class="inline"><input type="hidden" name="id" value="@post.Id" /><input type="hidden" name="visible" value="@post.IsPublic" /><input type="number" name="pinOrder" value="@post.PinOrder" aria-label="@UiText.T("置顶顺序，越大越靠前，0 不置顶")" class="compact" /><button class="secondary">@UiText.T("保存")</button></form></details>
+<details class="pin-settings"><summary>@UiText.T("置顶排序")</summary><form method="post" asp-page-handler="Visibility" class="inline"><input type="hidden" name="id" value="@post.Id" /><input type="hidden" name="visible" value="@post.IsPublic" /><input type="hidden" name="isPrivate" value="@post.IsPrivate" /><input type="number" name="pinOrder" value="@post.PinOrder" aria-label="@UiText.T("置顶顺序，越大越靠前，0 不置顶")" class="compact" /><button class="secondary">@UiText.T("保存")</button></form></details>
 }
 </td><td>@Model.Authors.GetValueOrDefault(post.AuthorId, UiText.T("用户"))</td><td>@(draft.CategoryId.HasValue ? Model.Categories.GetValueOrDefault(draft.CategoryId.Value, UiText.T("未分类")) : UiText.T("未分类"))</td>
-<td><span class="badge">@(post.IsPublic ? UiText.T("已发布") : post.PublishedRevisionId == null ? UiText.T("草稿") : UiText.T("已撤下"))</span>@if (Model.Pending.Contains(post.Id)) { <span class="badge accent">@UiText.T("待审核")</span> }</td>
+<td><span class="badge">@(post.IsPublic ? UiText.T("已发布") : post.IsPrivate ? UiText.T("私有") : post.PublishedRevisionId == null ? UiText.T("草稿") : UiText.T("已撤下"))</span>@if (Model.Pending.Contains(post.Id)) { <span class="badge accent">@UiText.T("待审核")</span> }</td>
 <td>@post.Views</td><td class="date-cell"><time data-local-time="datetime" datetime="@PublicUrls.Utc(draft.UpdatedUtc)">@draft.UpdatedUtc.ToString("yyyy-MM-dd")<br />@draft.UpdatedUtc.ToString("HH:mm")</time></td></tr>
 }
 </tbody></table></div>

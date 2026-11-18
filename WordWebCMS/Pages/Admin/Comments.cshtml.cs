@@ -24,6 +24,7 @@ public class CommentsModel(CmsDb db) : PageModel
         else if (action == "delete") db.Site.Transaction(() =>
         {
             db.Site.Delete<CommentLike>().Where(l => l.CommentId == id).ExecuteAffrows();
+            db.Site.Delete<AnonymousCommentLike>().Where(l => l.CommentId == id).ExecuteAffrows();
             db.Site.Update<Comment>().Set(c => c.ParentId, (long?)null).Where(c => c.ParentId == id).ExecuteAffrows();
             db.Site.Delete<Comment>().Where(c => c.Id == id).ExecuteAffrows();
         });

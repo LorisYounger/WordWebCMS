@@ -587,5 +587,20 @@
   "添加共享账号到本站": "Add a shared account to this site",
   "邮箱验证成功，请等待本站管理员审核通过后再登录。": "Email verified. Please wait for administrator approval before signing in.",
   "{0}的版本为 {1}，当前程序只支持到版本 6。请部署更新的 WordWebCMS 程序。": "{0} is at version {1}; this application supports up to version 6. Deploy a newer WordWebCMS application.",
-  "等待邮箱验证": "Awaiting email verification"
+  "等待邮箱验证": "Awaiting email verification",
+  "私有发布": "Publish privately",
+  "设为私有": "Make private",
+  "公开发布": "Publish publicly",
+  "私有内容": "Private content",
+  "私有": "Private",
+  "私有内容仅作者、编辑和管理员可通过链接阅读，不出现在公开列表。": "Private content is accessible by URL only to its author, editors and administrators, and is excluded from public listings.",
+  "不能同时公开和私有。": "Content cannot be both public and private.",
+  "自定义链接名（可选，包含扩展名）": "Custom link name (optional, including extension)",
+  "链接名": "Link name",
+  "保存链接名": "Save link name",
+  "文件待复制": "File awaiting copy",
+  "链接名已被使用。": "This link name is already in use.",
+  "链接名可含子目录，扩展名必须与文件一致，不能包含路径跳转或特殊 URL 字符。": "Link names may include subdirectories. Keep the original extension and avoid path traversal or special URL characters.",
+  "修改链接名不会重命名文件；旧媒体链接将失效，请同步修改引用。": "Editing the link name does not rename the stored file. Update references because the old media link will stop working.",
+  "{0}的版本为 {1}，当前程序只支持到版本 7。请部署更新的 WordWebCMS 程序。": "{0} is at version {1}; this application supports up to version 7. Deploy a newer WordWebCMS application."
 }

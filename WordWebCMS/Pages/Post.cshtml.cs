@@ -10,8 +10,13 @@ public class PostModel(CmsDb db, ThemeService themes, MarkdownService markdown) 
 {
     public async Task<IActionResult> OnGetAsync(string slug, int cp = 1)
     {
-        var post = await db.Site.Select<Post>().Where(p => p.Slug == slug && p.IsPublic && p.PublishedRevisionId != null).FirstAsync();
-        if (post == null) return NotFound();
+        var post = await db.Site.Select<Post>().Where(p => p.Slug == slug && p.PublishedRevisionId != null).FirstAsync();
+        if (post == null || !ContentService.CanRead(post, User)) return NotFound();
+        if (post.IsPrivate)
+        {
+            Response.Headers.CacheControl = "private, no-store";
+            Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
+        }
         if (!ShortLinks.IsValid(post.Slug)) return NotFound();
         cp = Math.Clamp(cp, 1, 100000);
         var path = "/" + post.Slug + (cp > 1 ? "/comments/" + cp : "");
@@ -29,12 +34,15 @@ public class PostModel(CmsDb db, ThemeService themes, MarkdownService markdown) 
         var rendered = ContentLanguages.Display(revision, settings);
         if (post.Kind == PostKind.Page)
             return await themes.PageAsync(db, HttpContext, "page.liquid", new Dictionary<string, object?> {
-                ["title"] = rendered.Title, ["description"] = rendered.Summary, ["cover"] = rendered.CoverUrl, ["is_page"] = true,
+                ["title"] = rendered.Title, ["description"] = rendered.Summary, ["cover"] = rendered.CoverUrl, ["is_page"] = true, ["is_private"] = post.IsPrivate,
                 ["canonical"] = settings.BaseUrl + "/" + post.Slug,
                 ["post"] = new Dictionary<string, object?> { ["title"] = rendered.Title, ["summary"] = rendered.Summary,
                     ["cover"] = rendered.CoverUrl, ["html"] = markdown.Render(rendered.Markdown), ["url"] = "/" + post.Slug }
             });
         var userId = AccountService.UserId(User);
+        var ipHash = userId == 0 ? LikeIdentity.Anonymous(HttpContext) : "";
+        // Anonymous like state is specific to the visitor's IP, never a shared cache representation.
+        if (userId == 0) Response.Headers.CacheControl = "private, no-store";
         cp = Math.Clamp(cp, 1, 100000);
         var commentsQuery = db.Site.Select<Comment>().Where(c => c.PostId == post.Id && c.Approved);
         var count = await commentsQuery.CountAsync();
@@ -45,6 +53,9 @@ public class PostModel(CmsDb db, ThemeService themes, MarkdownService markdown) 
         var commentLikes = (await db.Site.Select<CommentLike>().Where(l => ids.Contains(l.CommentId)).GroupBy(l => l.CommentId)
             .ToListAsync(g => new { Id = g.Key, Count = g.Count() })).ToDictionary(l => l.Id, l => l.Count);
         var likedComments = (await db.Site.Select<CommentLike>().Where(l => ids.Contains(l.CommentId) && l.UserId == userId).ToListAsync(l => l.CommentId)).ToHashSet();
+        foreach (var likes in await db.Site.Select<AnonymousCommentLike>().Where(l => ids.Contains(l.CommentId)).GroupBy(l => l.CommentId)
+            .ToListAsync(g => new { Id = g.Key, Count = g.Count() })) commentLikes[likes.Id] = commentLikes.GetValueOrDefault(likes.Id) + likes.Count;
+        if (ipHash != "") likedComments.UnionWith(await db.Site.Select<AnonymousCommentLike>().Where(l => ids.Contains(l.CommentId) && l.IpHash == ipHash).ToListAsync(l => l.CommentId));
         var tags = await db.Site.Select<Tag, RevisionTag>().InnerJoin((t, rt) => t.Id == rt.TagId)
             .Where((t, rt) => rt.RevisionId == revision.Id).ToListAsync((t, rt) => new { t.Id, t.Name });
         var category = revision.CategoryId.HasValue ? await db.Site.Select<Category>().Where(c => c.Id == revision.CategoryId).FirstAsync() : null;
@@ -63,7 +74,7 @@ public class PostModel(CmsDb db, ThemeService themes, MarkdownService markdown) 
             .OrderByDescending((p, r) => p.PublishedUtc).OrderByDescending((p, r) => p.Id)
             .Limit(8).ToListAsync((p, r) => new { Post = p, Revision = r });
         return await themes.PageAsync(db, HttpContext, "post.liquid", new Dictionary<string, object?> {
-            ["title"] = rendered.Title, ["description"] = rendered.Summary, ["cover"] = rendered.CoverUrl,
+            ["title"] = rendered.Title, ["description"] = rendered.Summary, ["cover"] = rendered.CoverUrl, ["is_private"] = post.IsPrivate,
             ["previous_post"] = older == null ? null : ThemeService.ArticleLink(older.Post, older.Revision, settings),
             ["next_post"] = newer == null ? null : ThemeService.ArticleLink(newer.Post, newer.Revision, settings),
             ["related_posts"] = related.Select(p => ThemeService.ArticleLink(p.Post, p.Revision, settings)).ToArray(),
@@ -71,8 +82,8 @@ public class PostModel(CmsDb db, ThemeService themes, MarkdownService markdown) 
                 ["url"] = "/" + post.Slug, ["cover"] = rendered.CoverUrl, ["avatar"] = ShortLinks.Avatar(names.GetValueOrDefault(post.AuthorId)?.UserName ?? "user", names.GetValueOrDefault(post.AuthorId)?.AvatarUrl), ["author"] = names.GetValueOrDefault(post.AuthorId)?.UserName ?? UiText.T("用户"),
                 ["date"] = post.PublishedUtc?.ToString("yyyy-MM-dd"), ["date_utc"] = PublicUrls.Utc(post.PublishedUtc), ["archive_url"] = PublicUrls.Archive(post.PublishedUtc),
                 ["author_url"] = PublicUrls.Author(names.GetValueOrDefault(post.AuthorId)?.UserName ?? "user"),
-                ["views"] = post.Views, ["comment_count"] = count, ["likes"] = await db.Site.Select<PostLike>().Where(l => l.PostId == post.Id).CountAsync(),
-                ["liked"] = userId != 0 && await db.Site.Select<PostLike>().Where(l => l.PostId == post.Id && l.UserId == userId).AnyAsync(),
+                ["views"] = post.Views, ["comment_count"] = count, ["likes"] = post.LegacyLikes + await db.Site.Select<PostLike>().Where(l => l.PostId == post.Id).CountAsync() + await db.Site.Select<AnonymousPostLike>().Where(l => l.PostId == post.Id).CountAsync(),
+                ["liked"] = userId != 0 ? await db.Site.Select<PostLike>().Where(l => l.PostId == post.Id && l.UserId == userId).AnyAsync() : ipHash != "" && await db.Site.Select<AnonymousPostLike>().Where(l => l.PostId == post.Id && l.IpHash == ipHash).AnyAsync(),
                 ["category"] = category?.Name ?? "", ["category_url"] = PublicUrls.Category(category?.Name) },
             ["tags"] = tags.Select(t => new Dictionary<string, object?> { ["name"] = t.Name, ["url"] = PublicUrls.Tag(t.Name) }).ToArray(),
             ["comments_open"] = settings.CommentsEnabled && revision.AllowComments, ["moderated"] = settings.ModerateComments,
@@ -92,8 +103,8 @@ public class PostModel(CmsDb db, ThemeService themes, MarkdownService markdown) 
         if (string.IsNullOrWhiteSpace(body) || body.Length > 10000) return BadRequest(UiText.T("评论需为 1–10000 字符。"));
         db.Site.Transaction(() =>
         {
-            var post = db.Site.Select<Post>().Where(p => p.Slug == slug && p.IsPublic && p.PublishedRevisionId != null).ForUpdate().First();
-            if (post == null) throw new InvalidDataException(UiText.T("文章不存在或未公开。"));
+            var post = db.Site.Select<Post>().Where(p => p.Slug == slug && p.PublishedRevisionId != null).ForUpdate().First();
+            if (post == null || !ContentService.CanRead(post, User)) throw new InvalidDataException(UiText.T("文章不存在或未公开。"));
             var revision = db.Site.Select<PostRevision>().Where(r => r.Id == post.PublishedRevisionId).First();
             var settings = db.Site.Select<SiteSettings>().First();
             if (post.Kind == PostKind.Page || !settings.CommentsEnabled || !revision.AllowComments) throw new InvalidDataException(UiText.T("评论已关闭。"));
@@ -108,23 +119,34 @@ public class PostModel(CmsDb db, ThemeService themes, MarkdownService markdown) 
 
     public IActionResult OnPostLike(string slug, long? commentId, bool liked)
     {
-        if (User.Identity?.IsAuthenticated != true) return Challenge();
         var userId = AccountService.UserId(User);
+        var ipHash = userId == 0 ? LikeIdentity.Anonymous(HttpContext) : "";
+        if (userId == 0 && ipHash == "") return BadRequest();
         db.Site.Transaction(() =>
         {
-            var post = db.Site.Select<Post>().Where(p => p.Slug == slug && p.IsPublic && p.PublishedRevisionId != null).ForUpdate().First();
-            if (post == null) throw new InvalidDataException(UiText.T("文章不存在或未公开。"));
+            var post = db.Site.Select<Post>().Where(p => p.Slug == slug && p.PublishedRevisionId != null).ForUpdate().First();
+            if (post == null || !ContentService.CanRead(post, User)) throw new InvalidDataException(UiText.T("文章不存在或未公开。"));
             if (post.Kind == PostKind.Page) throw new InvalidDataException(UiText.T("页面不支持点赞或评论。"));
             if (commentId.HasValue)
             {
                 if (!db.Site.Select<Comment>().Where(c => c.Id == commentId && c.PostId == post.Id && c.Approved).Any())
                     throw new InvalidDataException(UiText.T("评论不存在或未审核。"));
-                if (liked) db.Site.InsertOrUpdate<CommentLike>().SetSource(new CommentLike { CommentId = commentId.Value, UserId = userId }).IfExistsDoNothing().ExecuteAffrows();
+                if (userId == 0)
+                {
+                    if (liked) db.Site.InsertOrUpdate<AnonymousCommentLike>().SetSource(new AnonymousCommentLike { CommentId = commentId.Value, IpHash = ipHash }).IfExistsDoNothing().ExecuteAffrows();
+                    else db.Site.Delete<AnonymousCommentLike>().Where(l => l.CommentId == commentId && l.IpHash == ipHash).ExecuteAffrows();
+                }
+                else if (liked) db.Site.InsertOrUpdate<CommentLike>().SetSource(new CommentLike { CommentId = commentId.Value, UserId = userId }).IfExistsDoNothing().ExecuteAffrows();
                 else db.Site.Delete<CommentLike>().Where(l => l.CommentId == commentId && l.UserId == userId).ExecuteAffrows();
             }
             else
             {
-                if (liked) db.Site.InsertOrUpdate<PostLike>().SetSource(new PostLike { PostId = post.Id, UserId = userId }).IfExistsDoNothing().ExecuteAffrows();
+                if (userId == 0)
+                {
+                    if (liked) db.Site.InsertOrUpdate<AnonymousPostLike>().SetSource(new AnonymousPostLike { PostId = post.Id, IpHash = ipHash }).IfExistsDoNothing().ExecuteAffrows();
+                    else db.Site.Delete<AnonymousPostLike>().Where(l => l.PostId == post.Id && l.IpHash == ipHash).ExecuteAffrows();
+                }
+                else if (liked) db.Site.InsertOrUpdate<PostLike>().SetSource(new PostLike { PostId = post.Id, UserId = userId }).IfExistsDoNothing().ExecuteAffrows();
                 else db.Site.Delete<PostLike>().Where(l => l.PostId == post.Id && l.UserId == userId).ExecuteAffrows();
             }
         });

@@ -353,3 +353,4 @@ MigrationBackup/
 .env
 *.local.json
 Local/
+WordWebCMS/Properties/PublishProfiles/FolderProfile.pubxml.user

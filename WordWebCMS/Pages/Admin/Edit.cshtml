@@ -34,7 +34,7 @@
 <label class="check"><input asp-for="Draft.AllowComments" />@UiText.T("允许评论")</label>
 } else { <p class="help">@UiText.T("页面不显示评论和侧边栏。")</p> }
 <div class="stack"><button name="action" value="save" class="secondary">@UiText.T("保存草稿与修订")</button>
-@if (AccountService.CanEditAll(User)) { <button name="action" value="publish">@UiText.T("发布当前内容")</button> } else { <button name="action" value="submit">@UiText.T("提交审核")</button> }
+@if (AccountService.CanEditAll(User)) { <button name="action" value="publish">@UiText.T("发布当前内容")</button><button name="action" value="private" class="secondary">@UiText.T("私有发布")</button><small>@UiText.T("私有内容仅作者、编辑和管理员可通过链接阅读，不出现在公开列表。")</small> } else { <button name="action" value="submit">@UiText.T("提交审核")</button> }
 </div>
 @if (Model.Post.PublishedRevisionId == null || AccountService.CanEditAll(User)) {
 <div class="conversion"><h3>@UiText.T("转换内容类型")</h3>

@@ -27,7 +27,8 @@ public class IndexModel(CmsDb db, ContentService content) : PageModel
             .WhereIf(Kind.HasValue, p => p.Kind == Kind)
             .WhereIf(Status == "published", p => p.IsPublic)
             .WhereIf(Status == "draft", p => p.PublishedRevisionId == null)
-            .WhereIf(Status == "hidden", p => !p.IsPublic && p.PublishedRevisionId != null)
+            .WhereIf(Status == "hidden", p => !p.IsPublic && !p.IsPrivate && p.PublishedRevisionId != null)
+            .WhereIf(Status == "private", p => p.IsPrivate)
             .WhereIf(Status == "pending", p => db.Site.Select<PostRevision>().Where(r => r.PostId == p.Id && r.State == RevisionState.Pending).Any())
             .WhereIf(!string.IsNullOrWhiteSpace(Q), p => db.Site.Select<PostDraft>().Where(d => d.PostId == p.Id && d.Title.Contains(Q!)).Any());
         Total = await query.CountAsync();
@@ -42,14 +43,15 @@ public class IndexModel(CmsDb db, ContentService content) : PageModel
     }
     public IActionResult OnPostCreate(PostKind kind) => RedirectToPage("Edit", new { id = content.Create(kind, User) });
     public IActionResult OnPostDelete(long id) { content.Delete(id, User); return RedirectToPage(); }
-    public IActionResult OnPostVisibility(long id, bool visible, int pinOrder)
+    public IActionResult OnPostVisibility(long id, bool visible, int pinOrder, bool isPrivate = false)
     {
         if (!AccountService.CanEditAll(User)) return Forbid();
         db.Site.Transaction(() =>
         {
             var post = content.RequireEditable(id, User, true);
             if (post.PublishedRevisionId == null) throw new InvalidDataException(UiText.T("请先发布一个修订。"));
-            db.Site.Update<Post>().Set(p => p.IsPublic, visible).Set(p => p.PinOrder, pinOrder).Where(p => p.Id == id).ExecuteAffrows();
+            if (visible && isPrivate) throw new InvalidDataException(UiText.T("不能同时公开和私有。"));
+            db.Site.Update<Post>().Set(p => p.IsPublic, visible).Set(p => p.IsPrivate, isPrivate).Set(p => p.PinOrder, pinOrder).Where(p => p.Id == id).ExecuteAffrows();
         });
         return RedirectToPage();
     }
